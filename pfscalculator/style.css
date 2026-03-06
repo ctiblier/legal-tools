@@ -1,0 +1,469 @@
+/* ==========================================================================
+   PFSCalculator.com — Site-Specific Stylesheet
+   Imports shared brand tokens, layout, and components from brand.css
+   ========================================================================== */
+
+@import url('brand.css');
+
+/* ==========================================================================
+   Calculator boxes
+   ========================================================================== */
+
+.calculator-box {
+    background: var(--cream);
+    padding: 30px;
+    border-radius: var(--radius-md);
+    margin-bottom: 40px;
+    counter-increment: calculator;
+    position: relative;
+    animation: fadeInUp 0.5s ease-out both;
+    transition: box-shadow 0.3s ease;
+    border: 1px solid var(--gray-200);
+    border-top: 3px solid var(--gold);
+}
+
+.calculator-box:hover {
+    box-shadow: var(--shadow-sm);
+}
+
+.calculator-box h2 {
+    color: var(--navy);
+    font-family: var(--font-display);
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+    letter-spacing: -0.3px;
+}
+
+.calculator-box h2::before {
+    content: counter(calculator) ". ";
+    color: var(--gold);
+}
+
+.calculator-box > p:first-of-type {
+    color: var(--gray-500);
+    font-size: 1rem;
+    font-weight: 400;
+    margin-bottom: 25px;
+}
+
+main {
+    counter-reset: calculator;
+}
+
+/* ==========================================================================
+   Form controls (PFS-specific)
+   ========================================================================== */
+
+fieldset.form-group {
+    border: none;
+    padding: 0;
+    margin-bottom: 20px;
+}
+
+fieldset.form-group legend {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: var(--gray-600);
+    font-size: 1rem;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+input, select {
+    width: 100%;
+    padding: 12px;
+    border: 1.5px solid var(--gray-200);
+    border-radius: var(--radius-md);
+    font-size: 16px;
+    transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+input:focus, select:focus {
+    outline: none;
+    border-color: var(--navy-mid);
+    box-shadow: 0 0 0 3px rgba(44, 82, 130, 0.12);
+}
+
+.form-error {
+    margin-top: 10px;
+    padding: 10px 15px;
+    background: var(--error-bg);
+    border-left: 3px solid var(--error);
+    border-radius: var(--radius-sm);
+    color: var(--error);
+    font-size: 0.9rem;
+}
+
+.form-group label[for]::after {
+    content: " *";
+    color: var(--error);
+}
+
+fieldset.form-group legend::after {
+    content: " *";
+    color: var(--error);
+}
+
+/* ==========================================================================
+   Radio buttons
+   ========================================================================== */
+
+.radio-group {
+    display: flex;
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.radio-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-weight: normal;
+    padding: 10px 20px;
+    border: 1.5px solid var(--gray-200);
+    border-radius: var(--radius-md);
+    transition: all var(--transition);
+    flex: 1;
+    justify-content: center;
+}
+
+.radio-label:hover {
+    border-color: var(--navy-mid);
+    background: rgba(44, 82, 130, 0.03);
+}
+
+.radio-label input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.radio-label input[type="radio"]:checked + span {
+    color: var(--navy);
+    font-weight: 600;
+}
+
+.radio-label:has(input[type="radio"]:checked) {
+    border-color: var(--navy-mid);
+    background: rgba(44, 82, 130, 0.06);
+    box-shadow: 0 0 0 1px var(--navy-mid);
+}
+
+.radio-label:has(input[type="radio"]:focus-visible) {
+    outline: 3px solid var(--gold);
+    outline-offset: 2px;
+}
+
+.radio-label span {
+    font-size: 16px;
+    user-select: none;
+}
+
+/* ==========================================================================
+   Calculate button
+   ========================================================================== */
+
+.calculate-btn {
+    width: 100%;
+    padding: 15px;
+    background: var(--navy);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: 18px;
+    font-weight: 600;
+    font-family: var(--font-body);
+    cursor: pointer;
+    transition: all var(--transition);
+    position: relative;
+    overflow: hidden;
+}
+
+.calculate-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--gold);
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+}
+
+.calculate-btn:hover {
+    background: var(--navy-mid);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(30, 58, 95, 0.3);
+}
+
+.calculate-btn:hover::before {
+    transform: scaleX(1);
+}
+
+.calculate-btn:active {
+    transform: translateY(0);
+}
+
+.calculate-btn:focus-visible {
+    outline: 3px solid var(--gold);
+    outline-offset: 2px;
+}
+
+/* ==========================================================================
+   Results
+   ========================================================================== */
+
+.results {
+    margin-top: 30px;
+    padding: 25px;
+    background: white;
+    border-radius: var(--radius-md);
+    border-left: 5px solid var(--navy-mid);
+    animation: fadeInUp 0.3s ease-out;
+}
+
+.results.hidden {
+    display: none;
+}
+
+.results.success {
+    border-left-color: var(--success);
+    background: var(--success-bg);
+}
+
+.results.failure {
+    border-left-color: var(--error);
+    background: var(--error-bg);
+}
+
+.results h3 {
+    margin-bottom: 15px;
+    font-size: 1.5rem;
+}
+
+.results p {
+    margin-bottom: 10px;
+}
+
+.result-highlight {
+    background: white;
+    padding: 20px;
+    border-radius: var(--radius-md);
+    margin: 15px 0;
+    border-left: 5px solid var(--navy-mid);
+}
+
+.result-highlight p {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--navy);
+    margin-bottom: 10px;
+}
+
+.result-note {
+    margin-top: 15px;
+}
+
+.result-safety-note {
+    margin-top: 15px;
+    font-size: 0.9rem;
+    color: var(--gray-500);
+    font-style: italic;
+}
+
+.rounding-warning {
+    margin-top: 15px;
+    padding: 15px;
+    background: var(--warning-bg);
+    border-left: 4px solid var(--warning);
+    font-size: 0.9rem;
+}
+
+/* ==========================================================================
+   SEO content section
+   ========================================================================== */
+
+.seo-section {
+    background: var(--cream);
+    padding: 40px 30px;
+    margin-top: 40px;
+    border-top: 3px solid var(--gold);
+}
+
+.seo-section-inner {
+    max-width: 900px;
+    margin: 0 auto;
+    line-height: 1.8;
+}
+
+.seo-section h2 {
+    color: var(--navy);
+    font-family: var(--font-display);
+    margin-bottom: 25px;
+    font-size: 2rem;
+    text-align: center;
+    font-weight: 700;
+}
+
+.seo-section h3 {
+    color: var(--navy-mid);
+    font-family: var(--font-display);
+    font-weight: 600;
+    margin-top: 30px;
+    margin-bottom: 15px;
+    font-size: 1.5rem;
+}
+
+.seo-section h4 {
+    color: var(--navy-mid);
+    margin-top: 25px;
+    margin-bottom: 12px;
+    font-size: 1.2rem;
+}
+
+.seo-section p {
+    margin-bottom: 15px;
+}
+
+.seo-section ul {
+    margin-left: 25px;
+    margin-bottom: 20px;
+}
+
+.seo-section li {
+    margin-bottom: 10px;
+}
+
+.practice-tip {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #eef6fd;
+    border-left: 4px solid var(--navy-mid);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    color: var(--navy);
+}
+
+.calculator-card {
+    background: white;
+    padding: 25px;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 20px;
+}
+
+.calculator-card p {
+    margin-bottom: 15px;
+}
+
+.calculator-card p:last-child {
+    margin-bottom: 0;
+}
+
+/* ==========================================================================
+   FAQ
+   ========================================================================== */
+
+.faq-question {
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: var(--navy);
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    padding-top: 20px;
+    border-top: 1px solid var(--gray-200);
+}
+
+.faq-question:first-child {
+    border-top: none;
+    padding-top: 0;
+}
+
+.faq-answer {
+    margin-left: 20px;
+    margin-bottom: 20px;
+}
+
+.faq-answer:last-child {
+    margin-bottom: 0;
+}
+
+.faq-block {
+    margin-bottom: 25px;
+}
+
+/* ==========================================================================
+   Links
+   ========================================================================== */
+
+a {
+    color: var(--navy-mid);
+    text-decoration: none;
+    transition: color var(--transition);
+}
+
+a:hover {
+    color: var(--navy);
+}
+
+main a:hover,
+footer a:hover {
+    text-decoration: underline;
+}
+
+header a {
+    color: white;
+    text-decoration: underline;
+}
+
+header a:hover {
+    opacity: 0.9;
+}
+
+/* ==========================================================================
+   Intro text (override)
+   ========================================================================== */
+
+.intro-text {
+    padding: 0 20px;
+}
+
+/* ==========================================================================
+   Animation
+   ========================================================================== */
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ==========================================================================
+   Responsive (site-specific)
+   ========================================================================== */
+
+@media (max-width: 768px) {
+    .calculator-box {
+        padding: 20px;
+    }
+
+    .radio-group {
+        flex-direction: row;
+        gap: 8px;
+    }
+
+    .radio-label {
+        padding: 12px 16px;
+        min-height: 44px;
+    }
+}
