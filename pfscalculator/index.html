@@ -26,11 +26,11 @@
     <meta name="robots" content="index, follow">
     
     <!-- Canonical URL -->
-    <link rel="canonical" href="https://pfscalculator.com">
+    <link rel="canonical" href="https://pfscalculator.com/">
     
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://pfscalculator.com">
+    <meta property="og:url" content="https://pfscalculator.com/">
     <meta property="og:title" content="Florida 768.79 Calculator | Free PFS Settlement Tool">
     <meta property="og:description" content="Free calculator for Florida Statute 768.79. Determine if your proposal for settlement meets the 25% threshold for attorney's fees recovery.">
     <meta property="og:site_name" content="PFSCalculator.com">
@@ -39,11 +39,11 @@
     <meta property="og:image:height" content="630">
 
     <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image">
-    <meta property="twitter:url" content="https://pfscalculator.com">
-    <meta property="twitter:title" content="Florida 768.79 Calculator | Free PFS Settlement Tool">
-    <meta property="twitter:description" content="Free calculator for Florida Statute 768.79 attorney's fees eligibility.">
-    <meta property="twitter:image" content="https://pfscalculator.com/og-image.svg">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://pfscalculator.com/">
+    <meta name="twitter:title" content="Florida 768.79 Calculator | Free PFS Settlement Tool">
+    <meta name="twitter:description" content="Free calculator for Florida Statute 768.79 attorney's fees eligibility.">
+    <meta name="twitter:image" content="https://pfscalculator.com/og-image.svg">
     
     <!-- Structured Data - JSON-LD -->
     <script type="application/ld+json">
@@ -123,6 +123,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="brand.css">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -136,10 +137,10 @@
         <nav aria-label="Main navigation">
             <div class="nav-links">
                 <a href="https://batesstamp.com" target="_blank" rel="noopener noreferrer">Bates Stamp Tool</a>
-                <a href="/">Calculator</a>
+                <a href="/" aria-current="page">Calculator</a>
                 <a href="/about.html">About</a>
                 <a href="/privacy-policy.html">Privacy Policy</a>
-                <a href="/terms-of-service.html">Terms</a>
+                <a href="/terms-of-service.html">Terms of Service</a>
             </div>
         </nav>
 
@@ -278,7 +279,6 @@
                 </div>
             </div>
 
-        </main>
 
         <!-- About Section - SEO Content -->
         <div id="how-it-works" class="seo-section">
@@ -351,53 +351,57 @@
 
                 <h3>Common Questions About Florida 768.79</h3>
                 
-                <div class="faq-block">
-                    <p class="faq-question">When can I recover attorney's fees under 768.79?</p>
-                    <p class="faq-answer">
+                <dl class="faq-block">
+                    <dt class="faq-question">When can I recover attorney's fees under 768.79?</dt>
+                    <dd class="faq-answer">
                         You can recover reasonable attorney's fees from the date you served your proposal for settlement through entry of judgment if the final judgment meets or exceeds the 25% threshold. The fees must be reasonable and necessary, and courts will review fee petitions for excessiveness.
-                    </p>
+                    </dd>
 
-                    <p class="faq-question">Does the 25% threshold apply to both plaintiffs and defendants?</p>
-                    <p class="faq-answer">
+                    <dt class="faq-question">Does the 25% threshold apply to both plaintiffs and defendants?</dt>
+                    <dd class="faq-answer">
                         Yes, but in opposite directions. Plaintiffs must obtain a judgment at least 25% higher than their proposal. Defendants must achieve a judgment at least 25% lower than their offer. Our calculator handles both scenarios automatically based on who made the proposal.
-                    </p>
+                    </dd>
 
-                    <p class="faq-question">What happens if I serve multiple proposals?</p>
-                    <p class="faq-answer">
+                    <dt class="faq-question">What happens if I serve multiple proposals?</dt>
+                    <dd class="faq-answer">
                         Generally, the most recent proposal controls for purposes of fee entitlement under Florida law. Use our calculator to evaluate each proposal separately to determine which provides the best fee recovery opportunity based on expected judgment amounts.
-                    </p>
+                    </dd>
 
-                    <p class="faq-question">Does this calculator check Rule 1.442 compliance?</p>
-                    <p class="faq-answer">
+                    <dt class="faq-question">Does this calculator check Rule 1.442 compliance?</dt>
+                    <dd class="faq-answer">
                         This calculator checks whether the 25% threshold under Florida Statute 768.79 is met. However, a valid proposal must also comply with Florida Rule of Civil Procedure 1.442, which governs timing (45 days before trial), form (written and stating it's under Rule 1.442), specificity (amount and whether fees/costs are included), and scope (must resolve all claims). Both the statute and rule requirements must be satisfied for fee recovery.
-                    </p>
+                    </dd>
 
-                    <p class="faq-question">Can I use this for federal court cases?</p>
-                    <p class="faq-answer">
+                    <dt class="faq-question">Can I use this for federal court cases?</dt>
+                    <dd class="faq-answer">
                         This calculator is specifically for Florida Statute 768.79, which applies in Florida state courts. Federal courts have different rules for offers of judgment under Federal Rule of Civil Procedure 68, which does not include attorney's fees provisions except where otherwise provided by law.
-                    </p>
-                </div>
+                    </dd>
+                </dl>
             </div>
         </div>
 
+        </main>
+
         <footer>
-            <div class="footer-top">
-                <div class="footer-col">
-                    <h4>PFSCalculator.com</h4>
-                    <p>Free Florida Proposal for Settlement calculator for attorneys. Calculate 768.79 fee thresholds instantly.</p>
+            <nav aria-label="Footer navigation">
+                <div class="footer-top">
+                    <div class="footer-col">
+                        <h4>PFSCalculator.com</h4>
+                        <p>Free Florida Proposal for Settlement calculator for attorneys. Calculate 768.79 fee thresholds instantly.</p>
+                    </div>
+                    <div class="footer-col">
+                        <h4>Pages</h4>
+                        <a href="/">Calculator</a>
+                        <a href="/about.html">About &amp; Contact</a>
+                        <a href="/privacy-policy.html">Privacy Policy</a>
+                        <a href="/terms-of-service.html">Terms of Service</a>
+                    </div>
+                    <div class="footer-col">
+                        <h4>More Tools</h4>
+                        <a href="https://batesstamp.com" target="_blank" rel="noopener noreferrer">Bates Stamp Tool</a>
+                    </div>
                 </div>
-                <div class="footer-col">
-                    <h4>Pages</h4>
-                    <a href="/">Calculator</a>
-                    <a href="/about.html">About &amp; Contact</a>
-                    <a href="/privacy-policy.html">Privacy Policy</a>
-                    <a href="/terms-of-service.html">Terms of Service</a>
-                </div>
-                <div class="footer-col">
-                    <h4>More Tools</h4>
-                    <a href="https://batesstamp.com" target="_blank" rel="noopener noreferrer">Bates Stamp Tool</a>
-                </div>
-            </div>
+            </nav>
             <div class="footer-bottom">
                 <p>&copy; 2026 PFSCalculator.com. All calculations happen in your browser.</p>
                 <p class="footer-disclaimer">This calculator is for informational purposes only and does not constitute legal advice. Always verify calculations independently and consult <a href="https://www.leg.state.fl.us/Statutes/index.cfm?App_mode=Display_Statute&Search_String=&URL=0700-0799/0768/Sections/0768.79.html" target="_blank" rel="noopener noreferrer">&sect; 768.79</a> and Rule 1.442. Use does not create an attorney-client relationship.</p>

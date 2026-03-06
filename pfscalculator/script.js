@@ -72,27 +72,56 @@ function calculatePFS(proposalType, proposalAmount, judgmentAmount) {
 
 function displayResults(results) {
     const resultsDiv = document.getElementById('results');
+    resultsDiv.textContent = '';
 
     const resultClass = results.meetsThreshold ? 'success' : 'failure';
-    const resultText = results.meetsThreshold ? '✅ Threshold MET' : '❌ Threshold NOT Met';
+    const resultText = results.meetsThreshold ? 'Threshold MET' : 'Threshold NOT Met';
 
     const percentRounded = Math.abs(results.percentDifference).toFixed(2);
     const showRoundingWarning = !results.meetsThreshold && (percentRounded === '25.00' || Math.abs(percentRounded - 25.0) < 0.01);
 
-    resultsDiv.innerHTML = `
-    <h3>${resultText}</h3>
-    <p><strong>${results.type}'s Proposal:</strong> ${formatCurrency(results.proposalAmount)}</p>
-    <p><strong>Final Judgment:</strong> ${formatCurrency(results.judgmentAmount)}</p>
-    <p><strong>Required Threshold:</strong> ${formatCurrency(results.threshold)}</p>
-    <p><strong>Percent Difference:</strong> ${percentRounded}%</p>
-    <p>${results.explanation}</p>
-    ${showRoundingWarning ?
-        '<p class="rounding-warning"><strong>Note on Rounding:</strong> While the percentage difference rounds to 25.00%, the statute requires the judgment dollar amount to meet the threshold. Due to rounding precision, the actual judgment amount does not satisfy the "at least 25 percent" requirement specified in § 768.79.</p>'
-        : ''}
-    ${results.meetsThreshold ? '<p><strong>Result:</strong> The proposing party may be entitled to recover attorney\'s fees under § 768.79.</p>' : '<p><strong>Result:</strong> The proposing party is not entitled to recover attorney\'s fees under § 768.79.</p>'}
-    `;
+    var h3 = document.createElement('h3');
+    h3.textContent = resultText;
+    resultsDiv.appendChild(h3);
 
-    resultsDiv.className = `results ${resultClass}`;
+    function addLine(label, value) {
+        var p = document.createElement('p');
+        var strong = document.createElement('strong');
+        strong.textContent = label;
+        p.appendChild(strong);
+        p.appendChild(document.createTextNode(' ' + value));
+        resultsDiv.appendChild(p);
+    }
+
+    addLine(results.type + "'s Proposal:", formatCurrency(results.proposalAmount));
+    addLine('Final Judgment:', formatCurrency(results.judgmentAmount));
+    addLine('Required Threshold:', formatCurrency(results.threshold));
+    addLine('Percent Difference:', percentRounded + '%');
+
+    var explanationP = document.createElement('p');
+    explanationP.textContent = results.explanation;
+    resultsDiv.appendChild(explanationP);
+
+    if (showRoundingWarning) {
+        var warningP = document.createElement('p');
+        warningP.className = 'rounding-warning';
+        var warningStrong = document.createElement('strong');
+        warningStrong.textContent = 'Note on Rounding:';
+        warningP.appendChild(warningStrong);
+        warningP.appendChild(document.createTextNode(' While the percentage difference rounds to 25.00%, the statute requires the judgment dollar amount to meet the threshold. Due to rounding precision, the actual judgment amount does not satisfy the "at least 25 percent" requirement specified in \u00a7 768.79.'));
+        resultsDiv.appendChild(warningP);
+    }
+
+    var resultP = document.createElement('p');
+    var resultStrong = document.createElement('strong');
+    resultStrong.textContent = 'Result:';
+    resultP.appendChild(resultStrong);
+    resultP.appendChild(document.createTextNode(results.meetsThreshold
+        ? ' The proposing party may be entitled to recover attorney\'s fees under \u00a7 768.79.'
+        : ' The proposing party is not entitled to recover attorney\'s fees under \u00a7 768.79.'));
+    resultsDiv.appendChild(resultP);
+
+    resultsDiv.className = 'results ' + resultClass;
 }
 
 function formatCurrency(amount) {
@@ -165,21 +194,46 @@ function calculateRequiredJudgment(proposalType, proposalAmount) {
 
 function displayReverseResults(results) {
     const resultsDiv = document.getElementById('reverseResults');
+    resultsDiv.textContent = '';
 
     const direction = results.type === 'Plaintiff' ? 'at least' : 'no more than';
 
-    resultsDiv.innerHTML = `
-    <h3>📊 Required Judgment Amount</h3>
-    <p><strong>${results.type}'s Proposal:</strong> ${formatCurrency(results.proposalAmount)}</p>
-    <p><strong>Required Threshold:</strong> ${results.threshold}</p>
-    <div class="result-highlight">
-    <p>
-    Judgment must be ${direction}: ${formatCurrency(results.requiredJudgment)}
-    </p>
-    </div>
-    <p>${results.description}</p>
-    <p class="result-note"><strong>Note:</strong> ${results.range}</p>
-    `;
+    var h3 = document.createElement('h3');
+    h3.textContent = 'Required Judgment Amount';
+    resultsDiv.appendChild(h3);
+
+    var proposalP = document.createElement('p');
+    var proposalStrong = document.createElement('strong');
+    proposalStrong.textContent = results.type + "'s Proposal:";
+    proposalP.appendChild(proposalStrong);
+    proposalP.appendChild(document.createTextNode(' ' + formatCurrency(results.proposalAmount)));
+    resultsDiv.appendChild(proposalP);
+
+    var thresholdP = document.createElement('p');
+    var thresholdStrong = document.createElement('strong');
+    thresholdStrong.textContent = 'Required Threshold:';
+    thresholdP.appendChild(thresholdStrong);
+    thresholdP.appendChild(document.createTextNode(' ' + results.threshold));
+    resultsDiv.appendChild(thresholdP);
+
+    var highlightDiv = document.createElement('div');
+    highlightDiv.className = 'result-highlight';
+    var highlightP = document.createElement('p');
+    highlightP.textContent = 'Judgment must be ' + direction + ': ' + formatCurrency(results.requiredJudgment);
+    highlightDiv.appendChild(highlightP);
+    resultsDiv.appendChild(highlightDiv);
+
+    var descP = document.createElement('p');
+    descP.textContent = results.description;
+    resultsDiv.appendChild(descP);
+
+    var noteP = document.createElement('p');
+    noteP.className = 'result-note';
+    var noteStrong = document.createElement('strong');
+    noteStrong.textContent = 'Note:';
+    noteP.appendChild(noteStrong);
+    noteP.appendChild(document.createTextNode(' ' + results.range));
+    resultsDiv.appendChild(noteP);
 
     resultsDiv.className = 'results success';
 }
@@ -194,42 +248,20 @@ function formatCurrencyInput(input) {
 }
 
 function parseCurrencyInput(value) {
-    return parseFloat(value.replace(/[^0-9.]/g, '')) || 0;
+    var cleaned = value.replace(/[^0-9.]/g, '');
+    // Handle multiple decimal points - keep only first
+    var parts = cleaned.split('.');
+    if (parts.length > 2) {
+        cleaned = parts[0] + '.' + parts.slice(1).join('');
+    }
+    return parseFloat(cleaned) || 0;
 }
 
-// Apply to all amount inputs - format on blur, not on input
-document.getElementById('proposalAmount').addEventListener('blur', function(e) {
-    formatCurrencyInput(e.target);
-});
-
-document.getElementById('judgmentAmount').addEventListener('blur', function(e) {
-    formatCurrencyInput(e.target);
-});
-
-document.getElementById('reverseProposalAmount').addEventListener('blur', function(e) {
-    formatCurrencyInput(e.target);
-});
-
-// Remove formatting when user focuses to make editing easier
-document.getElementById('proposalAmount').addEventListener('focus', function(e) {
-    e.target.value = e.target.value.replace(/[^0-9.]/g, '');
-});
-
-document.getElementById('judgmentAmount').addEventListener('focus', function(e) {
-    e.target.value = e.target.value.replace(/[^0-9.]/g, '');
-});
-
-document.getElementById('reverseProposalAmount').addEventListener('focus', function(e) {
-    e.target.value = e.target.value.replace(/[^0-9.]/g, '');
-});
-
-// Format expectedJudgment input
-document.getElementById('expectedJudgment').addEventListener('blur', function(e) {
-    formatCurrencyInput(e.target);
-});
-
-document.getElementById('expectedJudgment').addEventListener('focus', function(e) {
-    e.target.value = e.target.value.replace(/[^0-9.]/g, '');
+// Apply to all amount inputs - format on blur, remove formatting on focus
+['proposalAmount', 'judgmentAmount', 'reverseProposalAmount', 'expectedJudgment'].forEach(function(id) {
+    var el = document.getElementById(id);
+    el.addEventListener('blur', function(e) { formatCurrencyInput(e.target); });
+    el.addEventListener('focus', function(e) { e.target.value = e.target.value.replace(/[^0-9.]/g, ''); });
 });
 
 // Strategic Calculator
@@ -295,23 +327,47 @@ function calculateStrategicProposal(proposalType, expectedJudgment) {
 
 function displayStrategicResults(results) {
     const resultsDiv = document.getElementById('strategicResults');
+    resultsDiv.textContent = '';
 
     const direction = results.type === 'Plaintiff' ? 'at most' : 'at least';
 
-    resultsDiv.innerHTML = `
-        <h3>📊 Recommended Proposal Amount</h3>
-        <p><strong>Expected Judgment:</strong> ${formatCurrency(results.expectedJudgment)}</p>
-        <div class="result-highlight">
-            <p>
-                Propose ${direction}: ${formatCurrency(results.proposalAmount)}
-            </p>
-        </div>
-        <p>${results.description}</p>
-        <p class="result-note"><strong>Note:</strong> ${results.range}</p>
-        <p class="result-safety-note">
-            <strong>Safety Buffer:</strong> This calculation includes a $1 safety buffer to account for rounding. The actual threshold calculation may vary based on how the court rounds. Always verify with counsel and review relevant case law.
-        </p>
-    `;
+    var h3 = document.createElement('h3');
+    h3.textContent = 'Recommended Proposal Amount';
+    resultsDiv.appendChild(h3);
+
+    var judgmentP = document.createElement('p');
+    var judgmentStrong = document.createElement('strong');
+    judgmentStrong.textContent = 'Expected Judgment:';
+    judgmentP.appendChild(judgmentStrong);
+    judgmentP.appendChild(document.createTextNode(' ' + formatCurrency(results.expectedJudgment)));
+    resultsDiv.appendChild(judgmentP);
+
+    var highlightDiv = document.createElement('div');
+    highlightDiv.className = 'result-highlight';
+    var highlightP = document.createElement('p');
+    highlightP.textContent = 'Propose ' + direction + ': ' + formatCurrency(results.proposalAmount);
+    highlightDiv.appendChild(highlightP);
+    resultsDiv.appendChild(highlightDiv);
+
+    var descP = document.createElement('p');
+    descP.textContent = results.description;
+    resultsDiv.appendChild(descP);
+
+    var noteP = document.createElement('p');
+    noteP.className = 'result-note';
+    var noteStrong = document.createElement('strong');
+    noteStrong.textContent = 'Note:';
+    noteP.appendChild(noteStrong);
+    noteP.appendChild(document.createTextNode(' ' + results.range));
+    resultsDiv.appendChild(noteP);
+
+    var safetyP = document.createElement('p');
+    safetyP.className = 'result-safety-note';
+    var safetyStrong = document.createElement('strong');
+    safetyStrong.textContent = 'Safety Buffer:';
+    safetyP.appendChild(safetyStrong);
+    safetyP.appendChild(document.createTextNode(' This calculation includes a $1 safety buffer to account for rounding. The actual threshold calculation may vary based on how the court rounds. Always verify with counsel and review relevant case law.'));
+    resultsDiv.appendChild(safetyP);
 
     resultsDiv.className = 'results success';
 }

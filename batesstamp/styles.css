@@ -3,7 +3,13 @@
    Imports shared brand tokens, layout, and components from brand.css
    ========================================================================== */
 
-@import url('brand.css');
+/* ==========================================================================
+   Utility classes
+   ========================================================================== */
+
+.hidden { display: none; }
+
+.option-panel { margin-top: 15px; }
 
 /* ==========================================================================
    Opacity control (stamp settings)

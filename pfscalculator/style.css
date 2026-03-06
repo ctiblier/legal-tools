@@ -1,9 +1,8 @@
 /* ==========================================================================
    PFSCalculator.com — Site-Specific Stylesheet
-   Imports shared brand tokens, layout, and components from brand.css
+   Site-specific styles; shared brand tokens loaded via brand.css
    ========================================================================== */
 
-@import url('brand.css');
 
 /* ==========================================================================
    Calculator boxes
@@ -71,21 +70,6 @@ fieldset.form-group legend {
 
 .form-group {
     margin-bottom: 20px;
-}
-
-input, select {
-    width: 100%;
-    padding: 12px;
-    border: 1.5px solid var(--gray-200);
-    border-radius: var(--radius-md);
-    font-size: 16px;
-    transition: border-color var(--transition), box-shadow var(--transition);
-}
-
-input:focus, select:focus {
-    outline: none;
-    border-color: var(--navy-mid);
-    box-shadow: 0 0 0 3px rgba(44, 82, 130, 0.12);
 }
 
 .form-error {
@@ -454,6 +438,15 @@ header a:hover {
         transform: translateY(0);
     }
 }
+
+/* ==========================================================================
+   404 error page
+   ========================================================================== */
+
+.error-page { text-align: center; padding: 60px 30px; }
+.error-page h2 { border-bottom: none; font-size: 4rem; margin-top: 0; color: var(--navy-mid); }
+.error-page p { font-size: 1.2rem; }
+.error-page .calculate-btn { display: inline-block; width: auto; padding: 12px 30px; margin-top: 20px; text-decoration: none; }
 
 /* ==========================================================================
    Responsive (site-specific)

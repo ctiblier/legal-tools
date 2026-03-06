@@ -31,10 +31,10 @@
     <meta property="og:site_name" content="PFSCalculator.com">
     <meta property="og:image" content="https://pfscalculator.com/og-image.svg">
     <!-- Twitter -->
-    <meta property="twitter:card" content="summary">
-    <meta property="twitter:title" content="About | PFSCalculator.com">
-    <meta property="twitter:description" content="About PFSCalculator.com - free 768.79 threshold calculator for Florida attorneys.">
-    <meta property="twitter:image" content="https://pfscalculator.com/og-image.svg">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="About | PFSCalculator.com">
+    <meta name="twitter:description" content="About PFSCalculator.com - free 768.79 threshold calculator for Florida attorneys.">
+    <meta name="twitter:image" content="https://pfscalculator.com/og-image.svg">
 
     <!-- Breadcrumb Schema -->
     <script type="application/ld+json">
@@ -53,6 +53,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="brand.css">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -67,7 +68,7 @@
             <div class="nav-links">
                 <a href="https://batesstamp.com" target="_blank" rel="noopener noreferrer">Bates Stamp Tool</a>
                 <a href="/">Calculator</a>
-                <a href="/about.html">About</a>
+                <a href="/about.html" aria-current="page">About</a>
                 <a href="/privacy-policy.html">Privacy Policy</a>
                 <a href="/terms-of-service.html">Terms of Service</a>
             </div>
@@ -131,23 +132,25 @@
         </main>
 
         <footer>
-            <div class="footer-top">
-                <div class="footer-col">
-                    <h4>PFSCalculator.com</h4>
-                    <p>Free Florida Proposal for Settlement calculator for attorneys. Calculate 768.79 fee thresholds instantly.</p>
+            <nav aria-label="Footer navigation">
+                <div class="footer-top">
+                    <div class="footer-col">
+                        <h4>PFSCalculator.com</h4>
+                        <p>Free Florida Proposal for Settlement calculator for attorneys. Calculate 768.79 fee thresholds instantly.</p>
+                    </div>
+                    <div class="footer-col">
+                        <h4>Pages</h4>
+                        <a href="/">Calculator</a>
+                        <a href="/about.html">About &amp; Contact</a>
+                        <a href="/privacy-policy.html">Privacy Policy</a>
+                        <a href="/terms-of-service.html">Terms of Service</a>
+                    </div>
+                    <div class="footer-col">
+                        <h4>More Tools</h4>
+                        <a href="https://batesstamp.com" target="_blank" rel="noopener noreferrer">Bates Stamp Tool</a>
+                    </div>
                 </div>
-                <div class="footer-col">
-                    <h4>Pages</h4>
-                    <a href="/">Calculator</a>
-                    <a href="/about.html">About &amp; Contact</a>
-                    <a href="/privacy-policy.html">Privacy Policy</a>
-                    <a href="/terms-of-service.html">Terms of Service</a>
-                </div>
-                <div class="footer-col">
-                    <h4>More Tools</h4>
-                    <a href="https://batesstamp.com" target="_blank" rel="noopener noreferrer">Bates Stamp Tool</a>
-                </div>
-            </div>
+            </nav>
             <div class="footer-bottom">
                 <p>&copy; 2026 PFSCalculator.com. All calculations happen in your browser.</p>
             </div>

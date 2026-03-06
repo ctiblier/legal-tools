@@ -32,21 +32,21 @@
     <meta name="robots" content="index, follow">
 
     <!-- Canonical URL -->
-    <link rel="canonical" href="https://batesstamp.com">
+    <link rel="canonical" href="https://batesstamp.com/">
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://batesstamp.com">
+    <meta property="og:url" content="https://batesstamp.com/">
     <meta property="og:title" content="Free Bates Stamping Tool - Online PDF Document Numbering">
     <meta property="og:description" content="Add Bates numbers, exhibit stamps, and confidentiality notices to legal PDFs for free. Secure, client-side processing - your files never leave your device.">
     <meta property="og:image" content="https://batesstamp.com/og-image.svg">
 
     <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image">
-    <meta property="twitter:url" content="https://batesstamp.com">
-    <meta property="twitter:title" content="Free Bates Stamping Tool - Online PDF Document Numbering">
-    <meta property="twitter:description" content="Add Bates numbers, exhibit stamps, and confidentiality notices to legal PDFs for free. Secure, client-side processing.">
-    <meta property="twitter:image" content="https://batesstamp.com/og-image.svg">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://batesstamp.com/">
+    <meta name="twitter:title" content="Free Bates Stamping Tool - Online PDF Document Numbering">
+    <meta name="twitter:description" content="Add Bates numbers, exhibit stamps, and confidentiality notices to legal PDFs for free. Secure, client-side processing.">
+    <meta name="twitter:image" content="https://batesstamp.com/og-image.svg">
 
     <!-- Structured Data - JSON-LD -->
     <script type="application/ld+json">
@@ -150,9 +150,11 @@
             integrity="sha384-weMABwrltA6jWR8DDe9Jp5blk+tZQh7ugpCsF3JwSA53WZM9/14PjS5LAJNHNjAI"
             crossorigin="anonymous"></script>
 
+    <link rel="preconnect" href="https://unpkg.com">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/brand.css">
     <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
@@ -167,13 +169,15 @@
         <nav aria-label="Main navigation">
             <div class="nav-links">
                 <a href="https://pfscalculator.com" target="_blank" rel="noopener noreferrer">PFS Calculator</a>
+                <a href="/" aria-current="page">Home</a>
                 <a href="/about.html">About</a>
                 <a href="/privacy-policy.html">Privacy Policy</a>
-                <a href="/terms-of-service.html">Terms</a>
+                <a href="/terms-of-service.html">Terms of Service</a>
             </div>
         </nav>
 
         <main id="main-content">
+            <noscript><p style="text-align:center;padding:20px;color:#c53030;">This tool requires JavaScript to function. Please enable JavaScript in your browser.</p></noscript>
             <!-- Brief Intro -->
             <p class="intro-text">
                 Free tool to add Bates numbers, exhibit stamps, confidentiality notices to your PDF documents. All processing happens in your browser. Your files never leave your device.
@@ -212,11 +216,11 @@
                 <h2 class="section-title">2. Bates Number Settings (Optional)</h2>
 
                 <div class="checkbox-group">
-                    <input type="checkbox" id="addBates" checked onchange="toggleBatesOptions()">
+                    <input type="checkbox" id="addBates" checked>
                     <label for="addBates">Add Bates Numbers</label>
                 </div>
 
-                <div id="batesOptions" style="margin-top: 15px;">
+                <div id="batesOptions" class="option-panel">
                     <div class="two-column">
                         <div class="control-group">
                             <label for="prefix">Prefix:</label>
@@ -249,11 +253,11 @@
                 <h2 class="section-title">3. Exhibit Stamp (Optional)</h2>
 
                 <div class="checkbox-group">
-                    <input type="checkbox" id="addExhibit" onchange="toggleExhibitOptions()">
+                    <input type="checkbox" id="addExhibit">
                     <label for="addExhibit">Add Exhibit Stamp</label>
                 </div>
 
-                <div id="exhibitOptions" style="display: none; margin-top: 15px;">
+                <div id="exhibitOptions" class="option-panel hidden">
                     <div class="two-column">
                         <div class="control-group">
                             <label for="exhibitLabel">Exhibit Label:</label>
@@ -296,14 +300,14 @@
                 <h2 class="section-title">4. Confidentiality Notice (Optional)</h2>
 
                 <div class="checkbox-group">
-                    <input type="checkbox" id="addConfidentiality" onchange="toggleConfidentialityOptions()">
+                    <input type="checkbox" id="addConfidentiality">
                     <label for="addConfidentiality">Add Confidentiality Notice</label>
                 </div>
 
-                <div id="confidentialityOptions" style="display: none; margin-top: 15px;">
+                <div id="confidentialityOptions" class="option-panel hidden">
                     <div class="control-group">
                         <label for="confidentialityText">Confidentiality Text:</label>
-                        <select id="confidentialityText" onchange="updateConfidentialityPreview()">
+                        <select id="confidentialityText">
                             <option value="CONFIDENTIAL">CONFIDENTIAL</option>
                             <option value="CONFIDENTIAL - ATTORNEY EYES ONLY">CONFIDENTIAL - ATTORNEY EYES ONLY</option>
                             <option value="HIGHLY CONFIDENTIAL">HIGHLY CONFIDENTIAL</option>
@@ -313,7 +317,7 @@
                         </select>
                     </div>
 
-                    <div class="control-group" id="customConfidentialityGroup" style="display: none;">
+                    <div class="control-group hidden" id="customConfidentialityGroup">
                         <label for="customConfidentialityText">Custom Text:</label>
                         <input type="text" id="customConfidentialityText" placeholder="Enter custom confidentiality text">
                     </div>
@@ -371,7 +375,7 @@
                     </div>
                 </div>
 
-                <div class="two-column" id="exhibitAppearance" style="display: none;">
+                <div class="two-column hidden" id="exhibitAppearance">
                     <div class="control-group">
                         <label for="exhibitFontSize">Exhibit Font Size:</label>
                         <input type="number" id="exhibitFontSize" value="24" min="12" max="48">
@@ -383,7 +387,7 @@
                     </div>
                 </div>
 
-                <div class="two-column" id="confidentialityAppearance" style="display: none;">
+                <div class="two-column hidden" id="confidentialityAppearance">
                     <div class="control-group">
                         <label for="confidentialityFontSize">Confidentiality Font Size:</label>
                         <input type="number" id="confidentialityFontSize" value="16" min="10" max="36">
@@ -398,7 +402,7 @@
                 <div class="control-group">
                     <label for="textOpacity">Text Opacity (prevents covering content):</label>
                     <div class="opacity-control">
-                        <input type="range" id="textOpacity" min="50" max="100" value="90" aria-valuenow="90" aria-valuemin="50" aria-valuemax="100" oninput="updateOpacityDisplay()">
+                        <input type="range" id="textOpacity" min="50" max="100" value="90" aria-valuenow="90" aria-valuemin="50" aria-valuemax="100">
                         <span id="opacityDisplay" aria-live="polite">90%</span>
                     </div>
                     <p class="info-text">90% recommended - stamps are visible but won't completely obscure text underneath. Lower = more transparent.</p>
@@ -406,7 +410,7 @@
             </div>
 
             <!-- Action Button -->
-            <button class="button" id="stampBtn" onclick="stampPDF()">
+            <button class="button" id="stampBtn">
                 Stamp Document
             </button>
 
@@ -494,23 +498,25 @@
         </main>
 
         <footer>
-            <div class="footer-top">
-                <div class="footer-col">
-                    <h4>BatesStamp.com</h4>
-                    <p>Free, secure Bates stamping for legal professionals. Your documents are processed entirely in your browser — we never see, upload, or store your files.</p>
+            <nav aria-label="Footer navigation">
+                <div class="footer-top">
+                    <div class="footer-col">
+                        <h4>BatesStamp.com</h4>
+                        <p>Free, secure Bates stamping for legal professionals. Your documents are processed entirely in your browser — we never see, upload, or store your files.</p>
+                    </div>
+                    <div class="footer-col">
+                        <h4>Pages</h4>
+                        <a href="/">Home</a>
+                        <a href="/about.html">About &amp; Contact</a>
+                        <a href="/privacy-policy.html">Privacy Policy</a>
+                        <a href="/terms-of-service.html">Terms of Service</a>
+                    </div>
+                    <div class="footer-col">
+                        <h4>More Tools</h4>
+                        <a href="https://pfscalculator.com" target="_blank" rel="noopener noreferrer">Florida PFS Calculator</a>
+                    </div>
                 </div>
-                <div class="footer-col">
-                    <h4>Pages</h4>
-                    <a href="/">Home</a>
-                    <a href="/about.html">About &amp; Contact</a>
-                    <a href="/privacy-policy.html">Privacy Policy</a>
-                    <a href="/terms-of-service.html">Terms of Service</a>
-                </div>
-                <div class="footer-col">
-                    <h4>More Tools</h4>
-                    <a href="https://pfscalculator.com" target="_blank" rel="noopener noreferrer">Florida PFS Calculator</a>
-                </div>
-            </div>
+            </nav>
             <div class="footer-bottom">
                 <p>&copy; 2026 BatesStamp.com. All processing happens on your device.</p>
             </div>
@@ -567,38 +573,48 @@
                 if (files.length > 0 && files[0].type === 'application/pdf') {
                     fileInput.files = files;
                     updateFileDisplay();
+                } else if (files.length > 0) {
+                    setStatus('Please select a PDF file.', 'error');
                 }
             });
         })();
+
+        // Event listeners (W11: no inline handlers)
+        document.getElementById('addBates').addEventListener('change', toggleBatesOptions);
+        document.getElementById('addExhibit').addEventListener('change', toggleExhibitOptions);
+        document.getElementById('addConfidentiality').addEventListener('change', toggleConfidentialityOptions);
+        document.getElementById('confidentialityText').addEventListener('change', updateConfidentialityPreview);
+        document.getElementById('textOpacity').addEventListener('input', updateOpacityDisplay);
+        document.getElementById('stampBtn').addEventListener('click', stampPDF);
 
         function toggleBatesOptions() {
             const checkbox = document.getElementById('addBates');
             const options = document.getElementById('batesOptions');
             const appearance = document.getElementById('batesAppearance');
-            options.style.display = checkbox.checked ? 'block' : 'none';
-            appearance.style.display = checkbox.checked ? '' : 'none';
+            options.classList.toggle('hidden', !checkbox.checked);
+            appearance.classList.toggle('hidden', !checkbox.checked);
         }
 
         function toggleExhibitOptions() {
             const checkbox = document.getElementById('addExhibit');
             const options = document.getElementById('exhibitOptions');
             const appearance = document.getElementById('exhibitAppearance');
-            options.style.display = checkbox.checked ? 'block' : 'none';
-            appearance.style.display = checkbox.checked ? '' : 'none';
+            options.classList.toggle('hidden', !checkbox.checked);
+            appearance.classList.toggle('hidden', !checkbox.checked);
         }
 
         function toggleConfidentialityOptions() {
             const checkbox = document.getElementById('addConfidentiality');
             const options = document.getElementById('confidentialityOptions');
             const appearance = document.getElementById('confidentialityAppearance');
-            options.style.display = checkbox.checked ? 'block' : 'none';
-            appearance.style.display = checkbox.checked ? '' : 'none';
+            options.classList.toggle('hidden', !checkbox.checked);
+            appearance.classList.toggle('hidden', !checkbox.checked);
         }
 
         function updateConfidentialityPreview() {
             const select = document.getElementById('confidentialityText');
             const customGroup = document.getElementById('customConfidentialityGroup');
-            customGroup.style.display = select.value === 'custom' ? 'block' : 'none';
+            customGroup.classList.toggle('hidden', select.value !== 'custom');
         }
 
         function updateOpacityDisplay() {

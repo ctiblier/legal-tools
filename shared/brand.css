@@ -192,6 +192,14 @@ nav {
     width: 60%;
 }
 
+.nav-links a[aria-current="page"] {
+    color: white;
+}
+
+.nav-links a[aria-current="page"]::after {
+    width: 60%;
+}
+
 /* ==========================================================================
    6. Main content
    ========================================================================== */
@@ -304,7 +312,7 @@ input[type="text"]:focus,
 select:focus {
     outline: none;
     border-color: var(--navy-mid);
-    box-shadow: 0 0 0 3px rgba(44, 82, 130, 0.12);
+    box-shadow: 0 0 0 3px rgba(44, 82, 130, 0.3);
 }
 
 input[type="color"] {
@@ -661,5 +669,13 @@ footer {
 @media (max-width: 480px) {
     header h1 {
         font-size: 1.4em;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
     }
 }
