@@ -411,7 +411,7 @@ header a:hover {
 .footer-disclaimer {
     margin-top: 8px;
     font-size: 0.78em;
-    color: var(--gray-400);
+    color: var(--gray-600);
     max-width: 600px;
     margin-left: auto;
     margin-right: auto;
@@ -419,13 +419,13 @@ header a:hover {
 }
 
 .footer-disclaimer a {
-    color: var(--gray-400);
+    color: var(--gray-600);
     text-decoration: underline;
-    text-decoration-color: var(--gray-300);
+    text-decoration-color: var(--gray-400);
 }
 
 .footer-disclaimer a:hover {
-    color: var(--gray-500);
+    color: var(--navy-mid);
 }
 
 @keyframes fadeInUp {
