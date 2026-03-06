@@ -10,7 +10,7 @@
    ========================================================================== */
 
 .calculator-box {
-    background: var(--cream);
+    background: var(--white);
     padding: 30px;
     border-radius: var(--radius-md);
     margin-bottom: 40px;
@@ -122,18 +122,21 @@ fieldset.form-group legend::after {
     display: flex;
     align-items: center;
     cursor: pointer;
-    font-weight: normal;
-    padding: 10px 20px;
-    border: 1.5px solid var(--gray-200);
+    font-weight: 500;
+    padding: 12px 24px;
+    border: 2px solid var(--gray-300);
     border-radius: var(--radius-md);
     transition: all var(--transition);
     flex: 1;
     justify-content: center;
+    background: var(--off-white);
+    color: var(--gray-600);
 }
 
 .radio-label:hover {
     border-color: var(--navy-mid);
-    background: rgba(44, 82, 130, 0.03);
+    background: rgba(44, 82, 130, 0.05);
+    color: var(--navy);
 }
 
 .radio-label input[type="radio"] {
@@ -144,14 +147,15 @@ fieldset.form-group legend::after {
 }
 
 .radio-label input[type="radio"]:checked + span {
-    color: var(--navy);
+    color: white;
     font-weight: 600;
 }
 
 .radio-label:has(input[type="radio"]:checked) {
     border-color: var(--navy-mid);
-    background: rgba(44, 82, 130, 0.06);
-    box-shadow: 0 0 0 1px var(--navy-mid);
+    background: var(--navy-mid);
+    color: white;
+    box-shadow: var(--shadow-sm);
 }
 
 .radio-label:has(input[type="radio"]:focus-visible) {
@@ -170,44 +174,27 @@ fieldset.form-group legend::after {
 
 .calculate-btn {
     width: 100%;
-    padding: 15px;
-    background: var(--navy);
-    color: white;
-    border: none;
+    padding: 12px;
+    background: transparent;
+    color: var(--navy);
+    border: 2px solid var(--navy);
     border-radius: var(--radius-md);
-    font-size: 18px;
+    font-size: 15px;
     font-weight: 600;
     font-family: var(--font-body);
     cursor: pointer;
     transition: all var(--transition);
-    position: relative;
-    overflow: hidden;
-}
-
-.calculate-btn::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: var(--gold);
-    transform: scaleX(0);
-    transition: transform 0.3s ease;
+    letter-spacing: 0.01em;
 }
 
 .calculate-btn:hover {
-    background: var(--navy-mid);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 16px rgba(30, 58, 95, 0.3);
-}
-
-.calculate-btn:hover::before {
-    transform: scaleX(1);
+    background: var(--navy);
+    color: white;
+    box-shadow: var(--shadow-sm);
 }
 
 .calculate-btn:active {
-    transform: translateY(0);
+    transform: translateY(1px);
 }
 
 .calculate-btn:focus-visible {
