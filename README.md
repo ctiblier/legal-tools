@@ -164,6 +164,9 @@ The original repos are preserved as archives.
 Both sites use:
 - **Google Analytics** (separate tracking IDs per site)
 - **Umami Analytics** (self-hosted at `umami.ctibs.app`, separate website IDs)
+  - Custom events track button clicks via `data-umami-event` attributes:
+    - BatesStamp: `stamp-document`
+    - PFSCalculator: `calculate-proposal-amount`, `calculate-required-judgment`, `calculate-pfs-result`
 - **Google AdSense** (same publisher ID: `ca-pub-9125889511214710`)
 
 ## Contact
