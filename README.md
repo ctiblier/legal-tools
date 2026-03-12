@@ -167,7 +167,6 @@ Both sites use:
   - Custom events track button clicks via `data-umami-event` attributes:
     - BatesStamp: `stamp-document`
     - PFSCalculator: `calculate-proposal-amount`, `calculate-required-judgment`, `calculate-pfs-result`
-- **Google AdSense** (same publisher ID: `ca-pub-9125889511214710`)
 
 ## Contact
 

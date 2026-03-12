@@ -327,29 +327,7 @@ input[type="color"] {
 }
 
 /* ==========================================================================
-   9. Ad containers
-   ========================================================================== */
-
-.ad-container {
-    background: var(--off-white);
-    padding: 20px;
-    text-align: center;
-    border-radius: var(--radius-md);
-    margin: 24px 0;
-    border: 1px dashed var(--gray-200);
-}
-
-.ad-label {
-    font-size: 0.7em;
-    color: var(--gray-400);
-    margin-bottom: 10px;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    font-weight: 500;
-}
-
-/* ==========================================================================
-   10. Feature grid (about pages)
+   9. Feature grid (about pages)
    ========================================================================== */
 
 .feature-grid {
@@ -645,10 +623,6 @@ footer {
 
     .nav-links a::after {
         display: none;
-    }
-
-    .ad-container {
-        padding: 12px;
     }
 
     footer {
