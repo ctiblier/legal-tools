@@ -26,6 +26,9 @@ batesstamp.com/bates-stamp         → Bates stamping (existing, moved from root
 batesstamp.com/filing-assembler    → filing assembler with slip sheets
 batesstamp.com/redaction           → privilege redaction
 batesstamp.com/metadata-stripper   → PDF metadata stripper
+batesstamp.com/page-extractor      → PDF page extractor/splitter
+batesstamp.com/compressor          → PDF compressor
+batesstamp.com/watermark           → document watermarking
 batesstamp.com/pleading-paper      → pleading paper generator
 batesstamp.com/pfs-calculator      → PFS calculator (migrated from pfscalculator.com)
 batesstamp.com/about
@@ -149,7 +152,61 @@ Annotations (comments, highlights, sticky notes) are structural PDF elements, no
 
 **Stretch:** Pre-fill caption from a form (court name, parties, case number, document title).
 
-### 6. PFS Calculator (existing, migrated)
+### 6. PDF Page Extractor (`/page-extractor`)
+
+**Purpose:** Pull specific pages out of a PDF for filing excerpts, deposition clips, or partial exhibits.
+
+**Workflow:**
+1. User uploads a PDF
+2. PDF renders page thumbnails in the browser (via pdf.js)
+3. User selects pages — click individual thumbnails, enter page ranges (e.g., "1-3, 7, 12-15"), or select all/none
+4. Download extracted pages as a new PDF
+
+**Additional features:**
+- Split mode: split a PDF into multiple files (e.g., split a 50-page document into 5 ten-page files)
+- Page count and file size estimate before download
+- Drag to reorder extracted pages
+
+**Technical notes:** Straightforward with pdf-lib — `copyPages` for extraction, already proven in the Bates stamper.
+
+### 7. PDF Compressor (`/compressor`)
+
+**Purpose:** Reduce PDF file size to meet e-filing size limits (typically 25-50MB per upload).
+
+**Workflow:**
+1. User uploads one or more PDFs
+2. Tool shows current file size and estimated compressed size
+3. User selects compression level:
+   - Light (minimal quality loss, ~20-40% reduction) — downsample images to 200 DPI
+   - Medium (balanced, ~40-60% reduction) — downsample to 150 DPI
+   - Heavy (maximum reduction, visible quality loss) — downsample to 100 DPI
+4. Download compressed PDF(s)
+
+**Technical approach:**
+Render each page to canvas at the target DPI using pdf.js, then rebuild the PDF from the rasterized images using pdf-lib. Same rasterize-and-rebuild pattern as the redaction tool. Trade-off is the same: output becomes image-based (non-searchable). For documents that are already image-heavy (scanned documents), this is lossless in practice. For text-heavy documents, show a warning that searchability will be lost.
+
+**Batch support:** Multiple files with zip download option.
+
+### 8. Document Watermarking (`/watermark`)
+
+**Purpose:** Apply text watermarks across PDF pages — DRAFT, CONFIDENTIAL, ATTORNEY EYES ONLY, or custom text.
+
+**Workflow:**
+1. User uploads a PDF
+2. User selects or types watermark text:
+   - Presets: DRAFT, CONFIDENTIAL, ATTORNEY EYES ONLY, PRIVILEGED, DO NOT DISTRIBUTE, COPY
+   - Custom text field
+3. User configures appearance:
+   - Opacity (10-100%)
+   - Color (default gray, options for red, black)
+   - Position: diagonal across page (default), header, footer, or centered
+   - Font size (auto-scale to page or manual)
+4. Preview watermarked pages
+5. Download watermarked PDF
+
+**Technical notes:** Nearly identical to Bates stamper logic — pdf-lib text drawing with rotation and opacity. Can share significant code with the existing Bates stamp implementation.
+
+### 9. PFS Calculator (existing, migrated)
 
 Move from pfscalculator.com to `/pfs-calculator`. Redirect pfscalculator.com. No functional changes.
 
@@ -199,6 +256,12 @@ legal-tools/
 │   ├── redaction/
 │   │   └── index.html
 │   ├── metadata-stripper/
+│   │   └── index.html
+│   ├── page-extractor/
+│   │   └── index.html
+│   ├── compressor/
+│   │   └── index.html
+│   ├── watermark/
 │   │   └── index.html
 │   ├── pleading-paper/
 │   │   └── index.html
@@ -314,6 +377,18 @@ The flagship tool (Bates Stamper) should be visually prominent — larger card o
 ### Trust Badge
 Present on every tool page: a small, consistent indicator that files are processed locally. Not intrusive, but always visible.
 
+### Cross-Tool Pipeline ("Open in Next Tool")
+After processing a document, offer to open the result directly in another relevant tool. Examples:
+- Filing Assembler → "Open in Bates Stamper" or "Open in Metadata Stripper"
+- Bates Stamper → "Open in Compressor" (if the output is large)
+- Redaction → "Open in Metadata Stripper" (natural pairing)
+- Page Extractor → "Open in Watermark" or "Open in Bates Stamper"
+
+Implementation: pass the output PDF blob via in-memory reference (no re-upload needed). The target tool receives the file as if the user had dropped it in. This is a major differentiator over generic PDF sites that force re-upload between operations.
+
+### Session File List
+Keep a session-only (not persisted, not stored) list of files the user has worked with during the current browser session. Displayed as a small sidebar or dropdown so users can quickly pass a document into another tool without re-uploading. Uses `sessionStorage` references to in-memory blobs — cleared automatically when the tab closes. No data is ever written to disk or persisted beyond the session.
+
 ### Mobile
 All tools must be usable on mobile/tablet. The existing responsive breakpoints in `brand.css` provide the foundation. For the Filing Assembler's drag-to-reorder, use SortableJS (lightweight, touch-compatible library) since the HTML5 Drag and Drop API does not work on mobile. Other tools' file upload uses standard click-to-browse on mobile (drag-and-drop is a desktop enhancement).
 
@@ -333,6 +408,9 @@ Each tool page is an independent SEO entry point. Key considerations:
 - "redact pdf for discovery free"
 - "assemble court filing exhibits"
 - "remove metadata from pdf before filing"
+- "extract pages from pdf free"
+- "compress pdf for e-filing"
+- "watermark pdf confidential"
 - "california pleading paper template"
 - "florida proposal for settlement calculator"
 
@@ -354,12 +432,8 @@ Not in scope for Phase 1, but validated as useful:
 - Word document support (DOCX input for Filing Assembler — requires mammoth.js or similar for DOCX-to-PDF conversion)
 - EXIF/GPS stripping from images embedded in PDFs
 - Discovery document combiner (merge + auto-Bates in one step)
-- Document watermarking (DRAFT, CONFIDENTIAL, ATTORNEY EYES ONLY)
 - Table of authorities generator
 - Certificate of service generator
-- Interest / damages calculators
-- PDF page extractor (pull specific pages for filing excerpts)
-- File size reducer (compress PDFs for e-filing size limits)
 
 ---
 
@@ -370,6 +444,8 @@ Not in scope for Phase 1, but validated as useful:
 - Cloud storage integration
 - Payment/premium features (for now)
 - Deadline calculator (friend's project)
+- OCR (massive scope, needs Tesseract WASM, questionable quality)
+- Additional calculators (interest, damages, fee/cost — revisit in Phase 2)
 
 ---
 
