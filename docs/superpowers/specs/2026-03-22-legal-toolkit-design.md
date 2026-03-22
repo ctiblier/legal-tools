@@ -18,7 +18,7 @@ Transform batesstamp.com from a single-purpose Bates stamping tool into a free, 
 
 ## Site Architecture
 
-The root of batesstamp.com becomes a tool directory. Each tool lives at its own path. pfscalculator.com redirects to `/pfs-calculator`.
+The root of batesstamp.com becomes a tool directory. Each tool lives at its own path. PFS Calculator remains on pfscalculator.com (see decision rationale below).
 
 ```
 batesstamp.com/                    → toolkit landing page (tool grid)
@@ -30,15 +30,16 @@ batesstamp.com/page-extractor      → PDF page extractor/splitter
 batesstamp.com/compressor          → PDF compressor
 batesstamp.com/watermark           → document watermarking
 batesstamp.com/pleading-paper      → pleading paper generator
-batesstamp.com/pfs-calculator      → PFS calculator (migrated from pfscalculator.com)
 batesstamp.com/about
 batesstamp.com/privacy-policy
 batesstamp.com/terms-of-service
 ```
 
+**PFS Calculator:** Stays on pfscalculator.com as a separate Cloudflare Pages project — no migration. It already ranks well on Google (39 referrals) and moving it risks SEO disruption for no immediate benefit. The toolkit homepage links to pfscalculator.com as an external tool card (with a "opens pfscalculator.com" note), and pfscalculator.com cross-links back to the toolkit. Can be migrated under batesstamp.com later once the toolkit has established traffic.
+
 **Deployment:** Static site on Cloudflare Pages. The build step copies `shared/brand.css` and shared JS modules into the `batesstamp/` deploy directory. Same pattern as the current setup.
 
-**pfscalculator.com redirect:** Handled via Cloudflare redirect rules (bulk redirect from `pfscalculator.com/*` to `batesstamp.com/pfs-calculator`). The existing pfscalculator Cloudflare Pages project is kept minimal — just the redirect config.
+**pfscalculator.com:** Remains its own Cloudflare Pages project. No changes to deployment. Cross-links added between both sites.
 
 ---
 
@@ -206,9 +207,9 @@ Render each page to canvas at the target DPI using pdf.js, then rebuild the PDF 
 
 **Technical notes:** Nearly identical to Bates stamper logic — pdf-lib text drawing with rotation and opacity. Can share significant code with the existing Bates stamp implementation.
 
-### 9. PFS Calculator (existing, migrated)
+### 9. PFS Calculator (stays on pfscalculator.com)
 
-Move from pfscalculator.com to `/pfs-calculator`. Redirect pfscalculator.com. No functional changes.
+No migration. Remains on its own domain and Cloudflare Pages project. Add a cross-link banner or footer link pointing to the BatesStamp toolkit, and list it on the toolkit homepage as an external tool card.
 
 ---
 
@@ -265,12 +266,10 @@ legal-tools/
 │   │   └── index.html
 │   ├── pleading-paper/
 │   │   └── index.html
-│   ├── pfs-calculator/
-│   │   └── index.html         (migrated from pfscalculator/)
 │   ├── about.html
 │   ├── privacy-policy.html
 │   └── terms-of-service.html
-├── pfscalculator/              (minimal — redirect config only)
+├── pfscalculator/              (separate site — no changes, cross-links only)
 └── README.md
 ```
 
@@ -454,4 +453,4 @@ Not in scope for Phase 1, but validated as useful:
 1. **Branding:** TBD — keep "BatesStamp" for now since it has SEO equity. Can rebrand later.
 2. **Monetization:** Tip jar (Buy Me a Coffee or Ko-fi, whichever comes back online first). Placement on homepage and as a subtle link on each tool page. Affiliate links to explore in Phase 2.
 3. **Analytics:** Continue Umami + Google Analytics on all new tool pages. Add custom events for each tool's primary action (like the existing `stamp-document` event).
-4. **pfscalculator.com redirect:** Cloudflare redirect rules (resolved in Site Architecture section above).
+4. **pfscalculator.com:** Stays on its own domain. No migration — cross-links only. Can revisit once the toolkit has traffic.
