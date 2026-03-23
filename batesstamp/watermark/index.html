@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-13354133605"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-13354133605');
+    </script>
+
+    <!-- Umami Analytics -->
+    <script defer src="https://umami.ctibs.app/script.js" data-website-id="b5a8938f-fd00-486c-bf17-0352963407f3"></script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- SEO Meta Tags -->
+    <title>Free PDF Watermark Tool | Add CONFIDENTIAL, DRAFT Stamps Online | BatesStamp.com</title>
+    <meta name="description" content="Free tool to watermark PDF documents with CONFIDENTIAL, DRAFT, ATTORNEY EYES ONLY, or custom text. Diagonal, centered, header, or footer positioning. All processing happens in your browser — your files never leave your device.">
+    <meta name="keywords" content="watermark pdf, confidential stamp pdf, draft watermark, pdf watermark tool, add watermark to pdf, attorney eyes only stamp, pdf confidential watermark, free pdf watermark">
+    <meta name="author" content="BatesStamp.com">
+    <meta name="robots" content="index, follow">
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://batesstamp.com/watermark/">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://batesstamp.com/watermark/">
+    <meta property="og:title" content="Free PDF Watermark Tool - Add CONFIDENTIAL, DRAFT Stamps Online">
+    <meta property="og:description" content="Apply text watermarks across PDF pages. DRAFT, CONFIDENTIAL, ATTORNEY EYES ONLY, or custom text. Secure, client-side processing — your files never leave your device.">
+    <meta property="og:image" content="https://batesstamp.com/og-image.svg">
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://batesstamp.com/watermark/">
+    <meta name="twitter:title" content="Free PDF Watermark Tool - Add CONFIDENTIAL, DRAFT Stamps Online">
+    <meta name="twitter:description" content="Apply text watermarks across PDF pages. DRAFT, CONFIDENTIAL, ATTORNEY EYES ONLY, or custom text. Secure, client-side processing.">
+    <meta name="twitter:image" content="https://batesstamp.com/og-image.svg">
+
+    <!-- Structured Data - JSON-LD -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "PDF Watermark Tool",
+      "description": "Free online tool to apply text watermarks to PDF documents — CONFIDENTIAL, DRAFT, ATTORNEY EYES ONLY, or custom text",
+      "url": "https://batesstamp.com/watermark/",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "Web Browser",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "featureList": [
+        "DRAFT, CONFIDENTIAL, ATTORNEY EYES ONLY watermarks",
+        "Custom watermark text",
+        "Diagonal, centered, header, and footer positioning",
+        "Adjustable opacity",
+        "Color selection",
+        "Auto font sizing",
+        "Client-side processing",
+        "No file uploads required"
+      ],
+      "browserRequirements": "Requires JavaScript. Modern web browser."
+    }
+    </script>
+
+    <!-- Favicons -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <meta name="theme-color" content="#1e3a5f">
+    <link rel="manifest" href="/manifest.json">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="/brand.css">
+    <link rel="stylesheet" href="/styles.css">
+
+    <!-- pdf-lib -->
+    <link rel="preconnect" href="https://unpkg.com">
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js" integrity="sha384-awMiyfMDBszoPfxLPAp6cXS/4DPy9abzcbnVm+mMOp/JWsyPKgrMfwSJFxdsBOqb" crossorigin="anonymous"></script>
+</head>
+<body>
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+    <div class="container">
+        <header id="site-header"></header>
+        <nav id="site-nav" aria-label="Main navigation"></nav>
+
+        <main id="main-content">
+            <noscript><p style="text-align:center;padding:20px;color:#c53030;">This tool requires JavaScript to function. Please enable JavaScript in your browser.</p></noscript>
+
+            <p class="intro-text">Apply text watermarks across your PDF pages. DRAFT, CONFIDENTIAL, ATTORNEY EYES ONLY, or custom text. All processing happens in your browser.</p>
+
+            <!-- 1. File Upload -->
+            <div class="section">
+                <h2 class="section-title">1. Select Document</h2>
+                <div class="control-group">
+                    <div class="file-drop-zone" id="dropZone">
+                        <input type="file" id="fileInput" accept=".pdf" aria-label="Choose PDF file">
+                        <div class="drop-zone-icon">
+                            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/></svg>
+                        </div>
+                        <div class="drop-zone-text">Choose a PDF file or drag it here</div>
+                        <div class="drop-zone-hint">Your document never leaves your browser. Max 100MB.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Watermark Text -->
+            <div class="section">
+                <h2 class="section-title">2. Watermark Text</h2>
+                <div class="control-group">
+                    <label for="watermarkPreset">Select watermark</label>
+                    <select id="watermarkPreset">
+                        <option value="DRAFT">DRAFT</option>
+                        <option value="CONFIDENTIAL" selected>CONFIDENTIAL</option>
+                        <option value="ATTORNEY EYES ONLY">ATTORNEY EYES ONLY</option>
+                        <option value="PRIVILEGED">PRIVILEGED</option>
+                        <option value="DO NOT DISTRIBUTE">DO NOT DISTRIBUTE</option>
+                        <option value="COPY">COPY</option>
+                        <option value="custom">Custom Text...</option>
+                    </select>
+                </div>
+                <div class="control-group hidden" id="customTextGroup">
+                    <label for="customText">Custom watermark text</label>
+                    <input type="text" id="customText" placeholder="Enter your watermark text" maxlength="50">
+                </div>
+            </div>
+
+            <!-- 3. Appearance Settings -->
+            <div class="section">
+                <h2 class="section-title">3. Appearance</h2>
+                <div class="two-column">
+                    <div class="control-group">
+                        <label for="opacity">Opacity</label>
+                        <div class="opacity-control">
+                            <input type="range" id="opacity" min="10" max="100" value="30" aria-valuenow="30" aria-valuemin="10" aria-valuemax="100">
+                            <span id="opacityValue" aria-live="polite">30%</span>
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label for="watermarkColor">Color</label>
+                        <select id="watermarkColor">
+                            <option value="gray" selected>Gray</option>
+                            <option value="red">Red</option>
+                            <option value="black">Black</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label for="position">Position</label>
+                        <select id="position">
+                            <option value="diagonal" selected>Diagonal Across Page</option>
+                            <option value="center">Centered</option>
+                            <option value="header">Top of Page</option>
+                            <option value="footer">Bottom of Page</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label for="fontSize">Font Size</label>
+                        <select id="fontSize">
+                            <option value="auto" selected>Auto (fit to page)</option>
+                            <option value="24">Small (24pt)</option>
+                            <option value="48">Medium (48pt)</option>
+                            <option value="72">Large (72pt)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Button -->
+            <button class="button" id="watermarkBtn" data-umami-event="watermark-document" disabled>Apply Watermark</button>
+
+            <!-- Status -->
+            <div id="status" class="status" role="status" aria-live="polite">
+                Configure your settings and select a PDF to begin
+            </div>
+
+            <!-- SEO Content -->
+            <section id="about" class="seo-content">
+                <h2>About PDF Watermarking</h2>
+                <div class="seo-content-inner">
+                    <h3>What is PDF Watermarking?</h3>
+                    <p>PDF watermarking applies visible text overlays to document pages to indicate their status or sensitivity level. Legal professionals commonly use watermarks like CONFIDENTIAL, DRAFT, or ATTORNEY EYES ONLY to clearly communicate a document's handling requirements to all recipients.</p>
+
+                    <h3>Why Use Our Free PDF Watermark Tool?</h3>
+                    <p>Our tool provides professional-quality watermarks without costly software. Unlike desktop applications requiring installation or cloud services that upload your confidential files, all processing happens locally in your browser for maximum security and privacy.</p>
+
+                    <div class="feature-highlights">
+                        <div class="feature-highlight-card">
+                            <h4>Privacy First</h4>
+                            <p>Your documents never leave your device. All PDF processing happens entirely in your browser — no server uploads, no cloud storage, no privacy concerns.</p>
+                        </div>
+                        <div class="feature-highlight-card">
+                            <h4>100% Free</h4>
+                            <p>No subscription fees, no credit card required, no trial periods. Professional watermarking available to everyone — solo practitioners, large firms, and law students.</p>
+                        </div>
+                        <div class="feature-highlight-card">
+                            <h4>Flexible Positioning</h4>
+                            <p>Choose diagonal (the classic watermark look), centered, top-of-page header, or bottom-of-page footer positioning to fit your document needs.</p>
+                        </div>
+                        <div class="feature-highlight-card">
+                            <h4>Fully Customizable</h4>
+                            <p>Adjust opacity, color, font size, and text. Use preset legal watermarks or enter your own custom text. Auto-sizing fits the watermark to any page dimensions.</p>
+                        </div>
+                    </div>
+
+                    <h3>Common Watermark Uses in Legal Practice</h3>
+                    <ul>
+                        <li><strong>CONFIDENTIAL:</strong> Mark documents subject to confidentiality agreements or protective orders</li>
+                        <li><strong>DRAFT:</strong> Distinguish working versions from final executed documents</li>
+                        <li><strong>ATTORNEY EYES ONLY:</strong> Restrict sensitive discovery materials to counsel only</li>
+                        <li><strong>PRIVILEGED:</strong> Flag attorney-client privileged communications</li>
+                        <li><strong>DO NOT DISTRIBUTE:</strong> Limit circulation of sensitive documents</li>
+                        <li><strong>COPY:</strong> Identify document copies vs. originals</li>
+                    </ul>
+                </div>
+            </section>
+        </main>
+
+        <footer id="site-footer"></footer>
+    </div>
+
+    <!-- Shared scripts -->
+    <script src="/shared/tools.js"></script>
+    <script src="/shared/nav.js"></script>
+    <script src="/shared/file-handler.js"></script>
+
+    <script>
+        // ---------------------------------------------------------------
+        // State
+        // ---------------------------------------------------------------
+        var selectedFile = null;
+
+        // ---------------------------------------------------------------
+        // Navigation
+        // ---------------------------------------------------------------
+        initNav({
+            title: 'Document Watermark',
+            subtitle: 'Apply text watermarks to PDF pages'
+        });
+
+        // ---------------------------------------------------------------
+        // File drop zone
+        // ---------------------------------------------------------------
+        initFileDropZone('dropZone', {
+            accept: ['.pdf'],
+            maxSizeMB: 100,
+            onFile: handleFile
+        });
+
+        function handleFile(file) {
+            selectedFile = file;
+            document.getElementById('watermarkBtn').disabled = false;
+        }
+
+        // ---------------------------------------------------------------
+        // Preset select — show/hide custom text input
+        // ---------------------------------------------------------------
+        document.getElementById('watermarkPreset').addEventListener('change', function () {
+            var customGroup = document.getElementById('customTextGroup');
+            if (this.value === 'custom') {
+                customGroup.classList.remove('hidden');
+                document.getElementById('customText').focus();
+            } else {
+                customGroup.classList.add('hidden');
+            }
+        });
+
+        // ---------------------------------------------------------------
+        // Opacity slider — update display
+        // ---------------------------------------------------------------
+        document.getElementById('opacity').addEventListener('input', function () {
+            document.getElementById('opacityValue').textContent = this.value + '%';
+            this.setAttribute('aria-valuenow', this.value);
+        });
+
+        // ---------------------------------------------------------------
+        // Watermark button
+        // ---------------------------------------------------------------
+        document.getElementById('watermarkBtn').addEventListener('click', watermarkPdf);
+
+        // ---------------------------------------------------------------
+        // Core watermark function
+        // ---------------------------------------------------------------
+        async function watermarkPdf() {
+            var statusEl = document.getElementById('status');
+            statusEl.className = 'status status-processing';
+            statusEl.textContent = 'Applying watermark...';
+
+            // Disable button during processing
+            var btn = document.getElementById('watermarkBtn');
+            btn.disabled = true;
+
+            try {
+                var arrayBuffer = await readFileAsArrayBuffer(selectedFile);
+                var pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
+                var font = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+                var pages = pdfDoc.getPages();
+
+                // Get watermark text
+                var preset = document.getElementById('watermarkPreset').value;
+                var text = preset === 'custom'
+                    ? document.getElementById('customText').value.trim()
+                    : preset;
+
+                if (!text) {
+                    statusEl.className = 'status status-error';
+                    statusEl.textContent = 'Please enter a custom watermark text.';
+                    btn.disabled = false;
+                    return;
+                }
+
+                // Get settings
+                var opacity = parseInt(document.getElementById('opacity').value) / 100;
+                var colorName = document.getElementById('watermarkColor').value;
+                var position = document.getElementById('position').value;
+                var fontSizeSetting = document.getElementById('fontSize').value;
+
+                // Color mapping
+                var color;
+                if (colorName === 'red') {
+                    color = PDFLib.rgb(0.8, 0, 0);
+                } else if (colorName === 'black') {
+                    color = PDFLib.rgb(0, 0, 0);
+                } else {
+                    color = PDFLib.rgb(0.5, 0.5, 0.5); // gray
+                }
+
+                for (var i = 0; i < pages.length; i++) {
+                    var page = pages[i];
+                    var pageSize = page.getSize();
+                    var width = pageSize.width;
+                    var height = pageSize.height;
+
+                    // Calculate font size
+                    var fontSize;
+                    if (fontSizeSetting === 'auto') {
+                        // Auto-scale: fit text diagonally across the page
+                        var diagonal = Math.sqrt(width * width + height * height);
+                        fontSize = diagonal / (text.length * 0.6);
+                        fontSize = Math.min(fontSize, 120); // cap at 120pt
+                        fontSize = Math.max(fontSize, 24);  // floor at 24pt
+                    } else {
+                        fontSize = parseInt(fontSizeSetting);
+                    }
+
+                    var textWidth = font.widthOfTextAtSize(text, fontSize);
+                    var textHeight = fontSize;
+
+                    if (position === 'diagonal') {
+                        // Draw diagonally across the page
+                        var angle = Math.atan2(height, width); // angle of the diagonal
+                        page.drawText(text, {
+                            x: width / 2 - (textWidth / 2) * Math.cos(angle) + (textHeight / 2) * Math.sin(angle),
+                            y: height / 2 - (textWidth / 2) * Math.sin(angle) - (textHeight / 2) * Math.cos(angle),
+                            size: fontSize,
+                            font: font,
+                            color: color,
+                            opacity: opacity,
+                            rotate: PDFLib.degrees(Math.atan2(height, width) * (180 / Math.PI)),
+                        });
+                    } else if (position === 'center') {
+                        page.drawText(text, {
+                            x: (width - textWidth) / 2,
+                            y: (height - textHeight) / 2,
+                            size: fontSize,
+                            font: font,
+                            color: color,
+                            opacity: opacity,
+                        });
+                    } else if (position === 'header') {
+                        page.drawText(text, {
+                            x: (width - textWidth) / 2,
+                            y: height - 40 - textHeight,
+                            size: fontSize,
+                            font: font,
+                            color: color,
+                            opacity: opacity,
+                        });
+                    } else if (position === 'footer') {
+                        page.drawText(text, {
+                            x: (width - textWidth) / 2,
+                            y: 40,
+                            size: fontSize,
+                            font: font,
+                            color: color,
+                            opacity: opacity,
+                        });
+                    }
+                }
+
+                var pdfBytes = await pdfDoc.save();
+                var filename = selectedFile.name.replace(/\.pdf$/i, '') + '_watermarked.pdf';
+                downloadPdf(pdfBytes, filename);
+
+                statusEl.className = 'status status-success';
+                statusEl.textContent = 'Watermark applied! Your file has been downloaded.';
+            } catch (err) {
+                statusEl.className = 'status status-error';
+                statusEl.textContent = 'Error: ' + err.message;
+            } finally {
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
