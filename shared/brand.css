@@ -680,6 +680,7 @@ footer {
 
     .nav-links a {
         padding: 12px 20px;
+        text-align: left;
         border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     }
 
@@ -693,7 +694,7 @@ footer {
 
     .tools-dropdown-toggle {
         width: 100%;
-        text-align: center;
+        text-align: left;
         padding: 12px 20px;
         border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     }
@@ -708,8 +709,8 @@ footer {
     }
 
     .tools-dropdown-menu a {
-        text-align: center;
-        padding: 10px 20px;
+        text-align: left;
+        padding: 10px 20px 10px 36px;
         border-bottom: 1px solid rgba(255, 255, 255, 0.04);
     }
 
