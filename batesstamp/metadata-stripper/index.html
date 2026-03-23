@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-13354133605"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-13354133605');
+    </script>
+
+    <!-- Umami Analytics -->
+    <script defer src="https://umami.ctibs.app/script.js" data-website-id="b5a8938f-fd00-486c-bf17-0352963407f3"></script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- SEO Meta Tags -->
+    <title>Free PDF Metadata Remover | Strip Hidden Data Before Filing | BatesStamp.com</title>
+    <meta name="description" content="Remove metadata from PDF files before court filing. Strip hidden author, creation dates, revision history, and XMP data. Free tool — all processing happens in your browser, your files never leave your device.">
+    <meta name="keywords" content="remove metadata from pdf, strip pdf metadata, remove author from pdf, pdf metadata remover, clean pdf metadata, strip hidden data pdf, remove pdf properties, pdf metadata cleaner">
+    <meta name="author" content="BatesStamp.com">
+    <meta name="robots" content="index, follow">
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://batesstamp.com/metadata-stripper/">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://batesstamp.com/metadata-stripper/">
+    <meta property="og:title" content="Free PDF Metadata Remover — Strip Hidden Data Before Filing">
+    <meta property="og:description" content="Remove author, creation dates, revision history, and XMP metadata from PDFs before filing. Secure, client-side processing — your files never leave your device.">
+    <meta property="og:image" content="https://batesstamp.com/og-image.svg">
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://batesstamp.com/metadata-stripper/">
+    <meta name="twitter:title" content="Free PDF Metadata Remover — Strip Hidden Data Before Filing">
+    <meta name="twitter:description" content="Remove author, creation dates, revision history, and XMP metadata from PDFs before filing. Secure, client-side processing.">
+    <meta name="twitter:image" content="https://batesstamp.com/og-image.svg">
+
+    <!-- Structured Data - JSON-LD -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "PDF Metadata Remover",
+      "description": "Free online tool to strip hidden metadata from PDF documents before court filing — removes author, creation dates, revision history, and XMP data",
+      "url": "https://batesstamp.com/metadata-stripper/",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "Web Browser",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "featureList": [
+        "Remove author and creator fields",
+        "Strip creation and modification dates",
+        "Remove XMP metadata",
+        "Optional annotation removal",
+        "Metadata preview before stripping",
+        "Client-side processing",
+        "No file uploads required"
+      ],
+      "browserRequirements": "Requires JavaScript. Modern web browser."
+    }
+    </script>
+
+    <!-- Favicons -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <meta name="theme-color" content="#1e3a5f">
+    <link rel="manifest" href="/manifest.json">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="/brand.css">
+    <link rel="stylesheet" href="/styles.css">
+
+    <!-- pdf-lib -->
+    <link rel="preconnect" href="https://unpkg.com">
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js" integrity="sha384-awMiyfMDBszoPfxLPAp6cXS/4DPy9abzcbnVm+mMOp/JWsyPKgrMfwSJFxdsBOqb" crossorigin="anonymous"></script>
+
+    <style>
+        /* Metadata table styles */
+        .metadata-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9em;
+            margin-top: 8px;
+        }
+
+        .metadata-table th {
+            text-align: left;
+            padding: 10px 12px;
+            background: var(--gray-100);
+            color: var(--text-heading);
+            font-weight: 600;
+            font-size: 0.85em;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            border-bottom: 2px solid var(--gray-200);
+        }
+
+        .metadata-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--gray-200);
+            vertical-align: middle;
+        }
+
+        .metadata-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .metadata-table tr:hover td {
+            background: var(--off-white);
+        }
+
+        .metadata-field-name {
+            font-weight: 600;
+            color: var(--text-heading);
+            white-space: nowrap;
+            width: 180px;
+        }
+
+        .metadata-value {
+            color: var(--text-body);
+            word-break: break-word;
+        }
+
+        .metadata-value.not-set {
+            color: var(--gray-400);
+            font-style: italic;
+        }
+
+        .metadata-value.has-value {
+            color: var(--text-body);
+        }
+
+        .metadata-table .col-checkbox {
+            width: 40px;
+            text-align: center;
+        }
+
+        .metadata-table input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            accent-color: var(--navy-mid);
+        }
+
+        /* Annotation info box */
+        .annotation-info {
+            margin-top: 16px;
+            padding: 12px 16px;
+            background: var(--warning-bg);
+            border: 1px solid rgba(180, 83, 9, 0.2);
+            border-radius: var(--radius-md);
+            font-size: 0.88em;
+            color: var(--warning);
+        }
+
+        .annotation-info strong {
+            display: block;
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+
+        .annotation-info p {
+            margin: 0;
+            color: var(--gray-600);
+        }
+
+        /* Results list */
+        .results-list {
+            list-style: none;
+            margin: 8px 0 0;
+            padding: 0;
+        }
+
+        .results-list li {
+            padding: 6px 0;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9em;
+        }
+
+        .results-list li:last-child {
+            border-bottom: none;
+        }
+
+        .results-list .result-check {
+            color: var(--success);
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .results-list .result-field {
+            font-weight: 600;
+            color: var(--text-heading);
+            min-width: 140px;
+        }
+
+        .results-list .result-was {
+            color: var(--gray-500);
+            font-size: 0.92em;
+            font-style: italic;
+            word-break: break-all;
+        }
+
+        /* Options helper text */
+        .option-helper {
+            font-size: 0.82em;
+            color: var(--text-muted);
+            margin-top: 6px;
+            margin-left: 30px;
+        }
+    </style>
+</head>
+<body>
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+    <div class="container">
+        <header id="site-header"></header>
+        <nav id="site-nav" aria-label="Main navigation"></nav>
+
+        <main id="main-content">
+            <noscript><p style="text-align:center;padding:20px;color:#c53030;">This tool requires JavaScript to function. Please enable JavaScript in your browser.</p></noscript>
+
+            <p class="intro-text">Inspect and remove hidden metadata from PDF documents before filing. Author names, creation dates, revision history, and XMP data — all removed. All processing happens in your browser.</p>
+
+            <!-- 1. File Upload -->
+            <div class="section">
+                <h2 class="section-title">1. Select Document</h2>
+                <div class="control-group">
+                    <div class="file-drop-zone" id="dropZone">
+                        <input type="file" id="fileInput" accept=".pdf" aria-label="Choose PDF file">
+                        <div class="drop-zone-icon">
+                            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/></svg>
+                        </div>
+                        <div class="drop-zone-text">Choose a PDF file or drag it here</div>
+                        <div class="drop-zone-hint">Your document never leaves your browser. Max 100MB.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Metadata Display (hidden until file loaded) -->
+            <div class="section hidden" id="metadataSection">
+                <h2 class="section-title">2. Found Metadata</h2>
+                <p style="font-size:0.88em;color:var(--text-muted);margin-bottom:12px;">The following metadata fields were detected in your PDF. Fields marked for stripping will be cleared or removed.</p>
+
+                <table class="metadata-table" aria-label="PDF metadata fields">
+                    <thead>
+                        <tr>
+                            <th class="col-checkbox" aria-label="Strip field">Strip</th>
+                            <th>Field</th>
+                            <th>Current Value</th>
+                        </tr>
+                    </thead>
+                    <tbody id="metadataTableBody">
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+
+                <div id="xmpRow" class="hidden" style="margin-top:12px;padding:10px 12px;background:var(--error-bg);border:1px solid rgba(197,48,48,0.2);border-radius:var(--radius-md);font-size:0.88em;">
+                    <strong style="color:var(--error);">XMP Metadata: Present</strong>
+                    <p style="margin:4px 0 0;color:var(--gray-600);">This PDF contains an XMP metadata stream with additional hidden properties. It will be removed when you strip metadata.</p>
+                </div>
+                <div id="xmpAbsentRow" class="hidden" style="margin-top:12px;padding:10px 12px;background:var(--success-bg);border:1px solid rgba(22,121,74,0.2);border-radius:var(--radius-md);font-size:0.88em;">
+                    <strong style="color:var(--success);">XMP Metadata: Not present</strong>
+                </div>
+
+                <div id="annotationInfo" class="annotation-info hidden">
+                    <strong id="annotationCount">Annotations: 0 found</strong>
+                    <p>Annotations (comments, highlights, sticky notes) are structural elements, not metadata. Use the option below to remove them if needed.</p>
+                </div>
+            </div>
+
+            <!-- 3. Options (hidden until file loaded) -->
+            <div class="section hidden" id="optionsSection">
+                <h2 class="section-title">3. Options</h2>
+
+                <label class="checkbox-group">
+                    <input type="checkbox" id="stripAll" checked>
+                    <label for="stripAll" style="margin-bottom:0;cursor:pointer;font-weight:500;">Strip all metadata fields</label>
+                </label>
+                <p class="option-helper">When checked, all detected metadata fields will be cleared. Uncheck to choose individual fields in the table above.</p>
+
+                <label class="checkbox-group" style="margin-top:16px;">
+                    <input type="checkbox" id="removeAnnotations">
+                    <label for="removeAnnotations" style="margin-bottom:0;cursor:pointer;font-weight:500;">Also remove annotations</label>
+                </label>
+                <p class="option-helper">Removes comments, highlights, sticky notes, and other annotations from all pages. This cannot be undone — keep a backup of your original.</p>
+            </div>
+
+            <!-- Action Button -->
+            <button class="button" id="stripBtn" data-umami-event="strip-metadata" disabled>Strip Metadata</button>
+
+            <!-- Status -->
+            <div id="status" class="status" role="status" aria-live="polite">
+                Select a PDF to inspect its metadata
+            </div>
+
+            <!-- Results (hidden until processing complete) -->
+            <div class="section hidden" id="resultsSection">
+                <h2 class="section-title">Stripping Complete</h2>
+                <p style="font-size:0.88em;color:var(--text-muted);margin-bottom:12px;">The cleaned PDF has been downloaded. The following fields were removed:</p>
+                <ul class="results-list" id="resultsList"></ul>
+            </div>
+
+            <!-- SEO Content -->
+            <section id="about" class="seo-content">
+                <h2>About PDF Metadata</h2>
+                <div class="seo-content-inner">
+                    <h3>Why Strip PDF Metadata Before Filing?</h3>
+                    <p>Every PDF carries hidden metadata fields that were set by the software used to create it. These fields can reveal the author's name, the organization that produced the document, the software version used, and the exact dates the file was created and last modified. In litigation, this information can be discoverable and may expose unintended details about who worked on a document or when it was prepared.</p>
+
+                    <h3>What Hidden Data Can a PDF Contain?</h3>
+                    <div class="feature-highlights">
+                        <div class="feature-highlight-card">
+                            <h4>Document Properties</h4>
+                            <p>Title, Author, Subject, Keywords, Creator (the application that created it), and Producer (the PDF conversion software) are stored in the document's info dictionary.</p>
+                        </div>
+                        <div class="feature-highlight-card">
+                            <h4>Timestamps</h4>
+                            <p>Creation Date and Modification Date reveal exactly when a file was first made and when it was last saved — details that may be relevant in disputes about document authenticity.</p>
+                        </div>
+                        <div class="feature-highlight-card">
+                            <h4>XMP Metadata</h4>
+                            <p>The Extensible Metadata Platform (XMP) stream can hold an even richer set of properties, including revision history, contributor names, rights information, and custom schema data from Adobe products.</p>
+                        </div>
+                        <div class="feature-highlight-card">
+                            <h4>Annotations</h4>
+                            <p>Comments, sticky notes, and highlights embedded in a PDF can contain reviewer names and timestamps. While not traditional metadata, they can disclose internal review processes.</p>
+                        </div>
+                    </div>
+
+                    <h3>When Should Attorneys Strip PDF Metadata?</h3>
+                    <ul>
+                        <li><strong>Before e-filing:</strong> Remove internal author names and firm identifiers that were never intended to be part of the public record</li>
+                        <li><strong>Before production in discovery:</strong> Review and clean metadata to avoid inadvertent disclosure under FRCP Rule 26 obligations</li>
+                        <li><strong>When sharing drafts externally:</strong> Strip revision dates and creator fields before sending documents to opposing counsel or clients</li>
+                        <li><strong>Before submitting settlement agreements:</strong> Remove internal notes and timestamps that could reveal negotiating strategy</li>
+                    </ul>
+
+                    <h3>Privacy First — No Uploads Required</h3>
+                    <p>All processing runs entirely in your browser using the open-source pdf-lib library. Your PDF is never sent to a server, never stored in the cloud, and never seen by anyone but you. This makes our tool suitable for confidential, privileged, and attorney-client materials.</p>
+                </div>
+            </section>
+        </main>
+
+        <footer id="site-footer"></footer>
+    </div>
+
+    <!-- Shared scripts -->
+    <script src="/shared/tools.js"></script>
+    <script src="/shared/nav.js"></script>
+    <script src="/shared/file-handler.js"></script>
+    <script src="/shared/session-files.js"></script>
+
+    <script>
+        // ---------------------------------------------------------------
+        // State
+        // ---------------------------------------------------------------
+        var selectedFile = null;
+        var currentMetadata = null;
+
+        // ---------------------------------------------------------------
+        // Navigation
+        // ---------------------------------------------------------------
+        initNav({
+            title: 'PDF Metadata Stripper',
+            subtitle: 'Remove hidden data from PDFs before filing'
+        });
+
+        // ---------------------------------------------------------------
+        // File drop zone
+        // ---------------------------------------------------------------
+        initFileDropZone('dropZone', {
+            accept: ['.pdf'],
+            maxSizeMB: 100,
+            onFile: handleFile
+        });
+
+        function handleFile(file) {
+            selectedFile = file;
+            analyzeMetadata(file);
+        }
+
+        // ---------------------------------------------------------------
+        // Analyze metadata on file selection
+        // ---------------------------------------------------------------
+        async function analyzeMetadata(file) {
+            var statusEl = document.getElementById('status');
+            statusEl.className = 'status status-processing';
+            statusEl.textContent = 'Analyzing metadata...';
+
+            try {
+                var arrayBuffer = await readFileAsArrayBuffer(file);
+                var pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
+
+                // Read all standard metadata fields
+                var metadata = {
+                    title: pdfDoc.getTitle() || null,
+                    author: pdfDoc.getAuthor() || null,
+                    subject: pdfDoc.getSubject() || null,
+                    keywords: pdfDoc.getKeywords() || null,
+                    creator: pdfDoc.getCreator() || null,
+                    producer: pdfDoc.getProducer() || null,
+                    creationDate: pdfDoc.getCreationDate() || null,
+                    modificationDate: pdfDoc.getModificationDate() || null,
+                };
+
+                // Check for XMP metadata
+                var catalog = pdfDoc.catalog;
+                var hasXmp = catalog.has(PDFLib.PDFName.of('Metadata'));
+
+                // Count annotations across all pages
+                var annotationCount = 0;
+                var pages = pdfDoc.getPages();
+                for (var i = 0; i < pages.length; i++) {
+                    var annots = pages[i].node.lookup(PDFLib.PDFName.of('Annots'));
+                    if (annots) {
+                        try {
+                            annotationCount += annots.size();
+                        } catch (e) {
+                            // Some PDFs have annots that aren't arrays — skip gracefully
+                        }
+                    }
+                }
+
+                currentMetadata = metadata;
+                displayMetadata(metadata, hasXmp, annotationCount);
+
+                document.getElementById('metadataSection').classList.remove('hidden');
+                document.getElementById('optionsSection').classList.remove('hidden');
+                document.getElementById('stripBtn').disabled = false;
+
+                statusEl.className = 'status status-success';
+                statusEl.textContent = 'Metadata loaded. Configure options and click Strip Metadata to clean the file.';
+
+            } catch (err) {
+                statusEl.className = 'status status-error';
+                statusEl.textContent = 'Error reading PDF: ' + err.message;
+            }
+        }
+
+        // ---------------------------------------------------------------
+        // Display metadata in the table
+        // ---------------------------------------------------------------
+        var FIELD_LABELS = [
+            { key: 'title',            label: 'Title' },
+            { key: 'author',           label: 'Author' },
+            { key: 'subject',          label: 'Subject' },
+            { key: 'keywords',         label: 'Keywords' },
+            { key: 'creator',          label: 'Creator (Application)' },
+            { key: 'producer',         label: 'Producer (PDF Engine)' },
+            { key: 'creationDate',     label: 'Creation Date' },
+            { key: 'modificationDate', label: 'Modification Date' },
+        ];
+
+        function formatMetadataValue(value) {
+            if (value === null || value === undefined) return null;
+            if (value instanceof Date) {
+                // Format as readable date + time
+                if (isNaN(value.getTime())) return null;
+                return value.toLocaleString(undefined, {
+                    year: 'numeric', month: 'long', day: 'numeric',
+                    hour: '2-digit', minute: '2-digit'
+                });
+            }
+            var str = String(value).trim();
+            return str.length > 0 ? str : null;
+        }
+
+        function displayMetadata(metadata, hasXmp, annotationCount) {
+            var tbody = document.getElementById('metadataTableBody');
+            tbody.innerHTML = '';
+
+            FIELD_LABELS.forEach(function (field) {
+                var raw = metadata[field.key];
+                var formatted = formatMetadataValue(raw);
+                var hasValue = formatted !== null;
+
+                var tr = document.createElement('tr');
+
+                // Checkbox cell
+                var tdCheck = document.createElement('td');
+                tdCheck.className = 'col-checkbox';
+                var cb = document.createElement('input');
+                cb.type = 'checkbox';
+                cb.id = 'field-' + field.key;
+                cb.checked = hasValue; // pre-check fields that have data
+                cb.setAttribute('aria-label', 'Strip ' + field.label);
+                if (!hasValue) cb.disabled = true;
+                tdCheck.appendChild(cb);
+                tr.appendChild(tdCheck);
+
+                // Field name cell
+                var tdName = document.createElement('td');
+                tdName.className = 'metadata-field-name';
+                tdName.textContent = field.label;
+                tr.appendChild(tdName);
+
+                // Value cell
+                var tdVal = document.createElement('td');
+                tdVal.className = 'metadata-value' + (hasValue ? ' has-value' : ' not-set');
+                tdVal.textContent = hasValue ? formatted : 'Not set';
+                tr.appendChild(tdVal);
+
+                tbody.appendChild(tr);
+            });
+
+            // XMP indicator
+            var xmpRow = document.getElementById('xmpRow');
+            var xmpAbsent = document.getElementById('xmpAbsentRow');
+            if (hasXmp) {
+                xmpRow.classList.remove('hidden');
+                xmpAbsent.classList.add('hidden');
+            } else {
+                xmpRow.classList.add('hidden');
+                xmpAbsent.classList.remove('hidden');
+            }
+
+            // Annotation count
+            var annotInfo = document.getElementById('annotationInfo');
+            var annotCount = document.getElementById('annotationCount');
+            if (annotationCount > 0) {
+                annotInfo.classList.remove('hidden');
+                annotCount.textContent = 'Annotations: ' + annotationCount + ' found across all pages';
+            } else {
+                annotInfo.classList.add('hidden');
+            }
+        }
+
+        // ---------------------------------------------------------------
+        // "Strip all" checkbox — toggles individual field checkboxes
+        // ---------------------------------------------------------------
+        document.getElementById('stripAll').addEventListener('change', function () {
+            var allChecked = this.checked;
+            FIELD_LABELS.forEach(function (field) {
+                var cb = document.getElementById('field-' + field.key);
+                if (cb) {
+                    cb.disabled = allChecked || !cb.getAttribute('data-has-value');
+                    if (allChecked && currentMetadata) {
+                        var raw = currentMetadata[field.key];
+                        var formatted = formatMetadataValue(raw);
+                        cb.checked = formatted !== null;
+                    }
+                }
+            });
+        });
+
+        // Mark which checkboxes have actual values after display
+        // (done after displayMetadata runs, by re-reading from state)
+        function updateCheckboxDataAttributes() {
+            FIELD_LABELS.forEach(function (field) {
+                var cb = document.getElementById('field-' + field.key);
+                if (!cb || !currentMetadata) return;
+                var raw = currentMetadata[field.key];
+                var formatted = formatMetadataValue(raw);
+                if (formatted !== null) {
+                    cb.setAttribute('data-has-value', '1');
+                }
+            });
+        }
+
+        // ---------------------------------------------------------------
+        // Pipeline suggestions
+        // ---------------------------------------------------------------
+        function showPipelineSuggestions(currentToolId) {
+            if (typeof TOOL_PIPELINE === 'undefined') return;
+            var suggestions = TOOL_PIPELINE[currentToolId];
+            if (!suggestions || suggestions.length === 0) return;
+
+            var html = '<div class="pipeline-suggestions">';
+            html += '<p class="pipeline-title">Open your result in another tool:</p>';
+            html += '<div class="pipeline-links">';
+
+            for (var i = 0; i < suggestions.length; i++) {
+                var toolId = suggestions[i];
+                var tool = TOOLS.find(function(t) { return t.id === toolId; });
+                if (tool) {
+                    html += '<a href="' + tool.path + '" class="pipeline-link">' + tool.name + ' &rarr;</a>';
+                }
+            }
+
+            html += '</div></div>';
+
+            var statusEl = document.getElementById('status');
+            if (statusEl) {
+                var existing = document.querySelector('.pipeline-suggestions');
+                if (existing) existing.remove();
+                statusEl.insertAdjacentHTML('afterend', html);
+            }
+        }
+
+        // ---------------------------------------------------------------
+        // Strip button
+        // ---------------------------------------------------------------
+        document.getElementById('stripBtn').addEventListener('click', stripMetadata);
+
+        async function stripMetadata() {
+            var statusEl = document.getElementById('status');
+            var btn = document.getElementById('stripBtn');
+
+            statusEl.className = 'status status-processing';
+            statusEl.textContent = 'Stripping metadata...';
+            btn.disabled = true;
+
+            try {
+                var arrayBuffer = await readFileAsArrayBuffer(selectedFile);
+                var pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
+
+                var stripAll = document.getElementById('stripAll').checked;
+                var stripped = [];
+
+                // Helper: check if a field should be stripped
+                function shouldStrip(key) {
+                    if (stripAll) return true;
+                    var cb = document.getElementById('field-' + key);
+                    return cb ? cb.checked : false;
+                }
+
+                // Strip standard document info fields
+                if (shouldStrip('title')) {
+                    if (currentMetadata && currentMetadata.title) {
+                        stripped.push({ field: 'Title', was: formatMetadataValue(currentMetadata.title) });
+                    }
+                    pdfDoc.setTitle('');
+                }
+                if (shouldStrip('author')) {
+                    if (currentMetadata && currentMetadata.author) {
+                        stripped.push({ field: 'Author', was: formatMetadataValue(currentMetadata.author) });
+                    }
+                    pdfDoc.setAuthor('');
+                }
+                if (shouldStrip('subject')) {
+                    if (currentMetadata && currentMetadata.subject) {
+                        stripped.push({ field: 'Subject', was: formatMetadataValue(currentMetadata.subject) });
+                    }
+                    pdfDoc.setSubject('');
+                }
+                if (shouldStrip('keywords')) {
+                    if (currentMetadata && currentMetadata.keywords) {
+                        stripped.push({ field: 'Keywords', was: formatMetadataValue(currentMetadata.keywords) });
+                    }
+                    pdfDoc.setKeywords([]);
+                }
+                if (shouldStrip('creator')) {
+                    if (currentMetadata && currentMetadata.creator) {
+                        stripped.push({ field: 'Creator (Application)', was: formatMetadataValue(currentMetadata.creator) });
+                    }
+                    pdfDoc.setCreator('');
+                }
+                if (shouldStrip('producer')) {
+                    if (currentMetadata && currentMetadata.producer) {
+                        stripped.push({ field: 'Producer (PDF Engine)', was: formatMetadataValue(currentMetadata.producer) });
+                    }
+                    pdfDoc.setProducer('');
+                }
+                if (shouldStrip('creationDate')) {
+                    if (currentMetadata && currentMetadata.creationDate) {
+                        stripped.push({ field: 'Creation Date', was: formatMetadataValue(currentMetadata.creationDate) });
+                    }
+                    pdfDoc.setCreationDate(new Date(0));
+                }
+                if (shouldStrip('modificationDate')) {
+                    if (currentMetadata && currentMetadata.modificationDate) {
+                        stripped.push({ field: 'Modification Date', was: formatMetadataValue(currentMetadata.modificationDate) });
+                    }
+                    pdfDoc.setModificationDate(new Date(0));
+                }
+
+                // Strip XMP metadata
+                var catalog = pdfDoc.catalog;
+                if (catalog.has(PDFLib.PDFName.of('Metadata'))) {
+                    catalog.delete(PDFLib.PDFName.of('Metadata'));
+                    stripped.push({ field: 'XMP Metadata Stream', was: 'Present' });
+                }
+
+                // Optionally remove annotations
+                if (document.getElementById('removeAnnotations').checked) {
+                    var pages = pdfDoc.getPages();
+                    var removedAnnotPages = 0;
+                    for (var i = 0; i < pages.length; i++) {
+                        var pageDict = pages[i].node;
+                        if (pageDict.has(PDFLib.PDFName.of('Annots'))) {
+                            pageDict.delete(PDFLib.PDFName.of('Annots'));
+                            removedAnnotPages++;
+                        }
+                    }
+                    if (removedAnnotPages > 0) {
+                        stripped.push({ field: 'Annotations', was: 'Removed from ' + removedAnnotPages + ' page(s)' });
+                    }
+                }
+
+                var pdfBytes = await pdfDoc.save();
+                var filename = selectedFile.name.replace(/\.pdf$/i, '') + '_cleaned.pdf';
+                downloadPdf(pdfBytes, filename);
+
+                // Add to session files
+                if (typeof sessionFiles !== 'undefined') {
+                    var blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                    sessionFiles.add(filename, blob, 'metadata-stripper');
+                }
+
+                showResults(stripped);
+
+                statusEl.className = 'status status-success';
+                statusEl.textContent = 'Done! Cleaned PDF downloaded as "' + filename + '".';
+
+                // Show pipeline suggestions
+                showPipelineSuggestions('metadata-stripper');
+
+            } catch (err) {
+                statusEl.className = 'status status-error';
+                statusEl.textContent = 'Error: ' + err.message;
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // ---------------------------------------------------------------
+        // Show results summary
+        // ---------------------------------------------------------------
+        function showResults(stripped) {
+            var section = document.getElementById('resultsSection');
+            var list = document.getElementById('resultsList');
+            list.innerHTML = '';
+
+            if (stripped.length === 0) {
+                var li = document.createElement('li');
+                li.textContent = 'No metadata fields had values to remove.';
+                li.style.color = 'var(--text-muted)';
+                list.appendChild(li);
+            } else {
+                stripped.forEach(function (item) {
+                    var li = document.createElement('li');
+
+                    var check = document.createElement('span');
+                    check.className = 'result-check';
+                    check.textContent = '✓';
+                    check.setAttribute('aria-hidden', 'true');
+
+                    var fieldSpan = document.createElement('span');
+                    fieldSpan.className = 'result-field';
+                    fieldSpan.textContent = item.field;
+
+                    var wasSpan = document.createElement('span');
+                    wasSpan.className = 'result-was';
+                    wasSpan.textContent = 'was: ' + (item.was || '(empty)');
+
+                    li.appendChild(check);
+                    li.appendChild(fieldSpan);
+                    li.appendChild(wasSpan);
+                    list.appendChild(li);
+                });
+            }
+
+            section.classList.remove('hidden');
+            section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        // ---------------------------------------------------------------
+        // Init: update data attributes once the page is ready
+        // ---------------------------------------------------------------
+        // (called after analyzeMetadata populates currentMetadata)
+        var _origDisplay = displayMetadata;
+        displayMetadata = function (metadata, hasXmp, annotationCount) {
+            _origDisplay(metadata, hasXmp, annotationCount);
+            updateCheckboxDataAttributes();
+
+            // Enforce initial stripAll state on individual checkboxes
+            var stripAll = document.getElementById('stripAll').checked;
+            if (stripAll) {
+                FIELD_LABELS.forEach(function (field) {
+                    var cb = document.getElementById('field-' + field.key);
+                    if (cb) cb.disabled = true;
+                });
+            }
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-13354133605"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-13354133605');
+    </script>
+
+    <!-- Umami Analytics -->
+    <script defer src="https://umami.ctibs.app/script.js" data-website-id="b5a8938f-fd00-486c-bf17-0352963407f3"></script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- SEO Meta Tags -->
+    <title>Free PDF Page Extractor | Pull Specific Pages from PDFs | BatesStamp.com</title>
+    <meta name="description" content="Extract specific pages from PDFs for filing excerpts or partial exhibits. Select pages visually or by range. Free, browser-based — files never leave your device.">
+    <meta name="keywords" content="extract pdf pages, pdf page extractor, pull pages from pdf, split pdf pages, pdf page selector, extract pages from pdf free, pdf excerpt tool">
+    <meta name="author" content="BatesStamp.com">
+    <meta name="robots" content="index, follow">
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://batesstamp.com/page-extractor/">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://batesstamp.com/page-extractor/">
+    <meta property="og:title" content="Free PDF Page Extractor — Pull Specific Pages from PDFs">
+    <meta property="og:description" content="Extract specific pages from PDF documents for filing excerpts or partial exhibits. Select pages visually or by range. Secure, client-side processing — your files never leave your device.">
+    <meta property="og:image" content="https://batesstamp.com/og-image.svg">
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://batesstamp.com/page-extractor/">
+    <meta name="twitter:title" content="Free PDF Page Extractor — Pull Specific Pages from PDFs">
+    <meta name="twitter:description" content="Extract specific pages from PDF documents for filing excerpts or partial exhibits. Select pages visually or by range. Secure, client-side processing.">
+    <meta name="twitter:image" content="https://batesstamp.com/og-image.svg">
+
+    <!-- Structured Data - JSON-LD -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "PDF Page Extractor",
+      "description": "Free online tool to extract specific pages from PDF documents — select pages visually by thumbnail or enter a page range",
+      "url": "https://batesstamp.com/page-extractor/",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "Web Browser",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "featureList": [
+        "Visual thumbnail page selection",
+        "Page range input (e.g., 1-3, 7, 12-15)",
+        "Bidirectional sync between thumbnails and range input",
+        "Select all / deselect all",
+        "Client-side processing",
+        "No file uploads required"
+      ],
+      "browserRequirements": "Requires JavaScript. Modern web browser."
+    }
+    </script>
+
+    <!-- Favicons -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <meta name="theme-color" content="#1e3a5f">
+    <link rel="manifest" href="/manifest.json">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="/brand.css">
+    <link rel="stylesheet" href="/styles.css">
+
+    <!-- pdf-lib -->
+    <link rel="preconnect" href="https://unpkg.com">
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js" integrity="sha384-awMiyfMDBszoPfxLPAp6cXS/4DPy9abzcbnVm+mMOp/JWsyPKgrMfwSJFxdsBOqb" crossorigin="anonymous"></script>
+
+    <!-- pdf.js (for thumbnail rendering) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
+</head>
+<body>
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+    <div class="container">
+        <header id="site-header"></header>
+        <nav id="site-nav" aria-label="Main navigation"></nav>
+
+        <main id="main-content">
+            <noscript><p style="text-align:center;padding:20px;color:#c53030;">This tool requires JavaScript to function. Please enable JavaScript in your browser.</p></noscript>
+
+            <p class="intro-text">Extract specific pages from any PDF — select pages visually or enter a page range. Perfect for pulling filing excerpts or partial exhibits. All processing happens in your browser.</p>
+
+            <!-- 1. File Upload -->
+            <div class="section">
+                <h2 class="section-title">1. Select Document</h2>
+                <div class="control-group">
+                    <div class="file-drop-zone" id="dropZone">
+                        <input type="file" id="fileInput" accept=".pdf" aria-label="Choose PDF file">
+                        <div class="drop-zone-icon">
+                            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/></svg>
+                        </div>
+                        <div class="drop-zone-text">Choose a PDF file or drag it here</div>
+                        <div class="drop-zone-hint">Your document never leaves your browser. Max 100MB.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Page Selection (hidden until file uploaded) -->
+            <div class="section hidden" id="selectionArea">
+                <h2 class="section-title">2. Select Pages</h2>
+
+                <!-- Page range input -->
+                <div class="control-group">
+                    <label for="pageRange">Page range <span style="font-weight:400;color:var(--text-muted);">(e.g. 1-3, 7, 12-15)</span></label>
+                    <input type="text" id="pageRange" placeholder="e.g. 1-3, 7, 12-15" autocomplete="off" spellcheck="false">
+                    <p class="info-text">Enter individual pages or ranges separated by commas. Changes sync with thumbnail selection below.</p>
+                </div>
+
+                <!-- Selection controls row -->
+                <div class="selection-controls">
+                    <button type="button" id="selectAllBtn">Select All</button>
+                    <button type="button" id="deselectAllBtn">Deselect All</button>
+                    <span id="selectionCount" aria-live="polite">0 of 0 pages selected</span>
+                </div>
+
+                <!-- Thumbnail grid -->
+                <div class="thumbnail-grid" id="thumbnailGrid" role="list" aria-label="PDF page thumbnails"></div>
+            </div>
+
+            <!-- Action Button -->
+            <button class="button" id="extractBtn" data-umami-event="extract-pages" disabled>Extract Pages</button>
+
+            <!-- Status -->
+            <div id="status" class="status" role="status" aria-live="polite">
+                Select a PDF and choose which pages to extract
+            </div>
+
+            <!-- SEO Content -->
+            <section id="about" class="seo-content">
+                <h2>About PDF Page Extraction</h2>
+                <div class="seo-content-inner">
+                    <h3>What is PDF Page Extraction?</h3>
+                    <p>PDF page extraction lets you pull specific pages from a larger document and save them as a new, standalone PDF. Instead of sharing an entire document when only a few pages are relevant, you can produce a clean excerpt — exactly the pages your recipient needs.</p>
+
+                    <h3>Why Use Our Free PDF Page Extractor?</h3>
+                    <p>Our tool renders visual thumbnails of every page so you can see exactly what you are selecting. You can also type a page range directly — the two methods stay in sync. All extraction happens entirely in your browser with no server uploads, making it safe for privileged documents and confidential materials.</p>
+
+                    <div class="feature-highlights">
+                        <div class="feature-highlight-card">
+                            <h4>Visual Selection</h4>
+                            <p>Click thumbnails to select or deselect individual pages. A blue border and counter confirm your selection before you extract.</p>
+                        </div>
+                        <div class="feature-highlight-card">
+                            <h4>Range Input</h4>
+                            <p>Type ranges like "1-3, 7, 12-15" to select pages by number. The thumbnail grid updates instantly to match.</p>
+                        </div>
+                        <div class="feature-highlight-card">
+                            <h4>Privacy First</h4>
+                            <p>Your PDF is processed entirely in your browser. No file is ever uploaded to any server — suitable for attorney-client materials and confidential exhibits.</p>
+                        </div>
+                        <div class="feature-highlight-card">
+                            <h4>100% Free</h4>
+                            <p>No account required, no trial limits, no watermarks on output. Extract as many pages as you need from any PDF.</p>
+                        </div>
+                    </div>
+
+                    <h3>Common Uses in Legal Practice</h3>
+                    <ul>
+                        <li><strong>Filing excerpts:</strong> Extract only the relevant pages of a long document for inclusion in a brief or motion</li>
+                        <li><strong>Partial exhibits:</strong> Produce a subset of a larger exhibit record without redacting the rest</li>
+                        <li><strong>Deposition excerpts:</strong> Pull specific transcript pages for use in supporting motions</li>
+                        <li><strong>Correspondence excerpts:</strong> Extract individual letters or attachments from a multi-document PDF</li>
+                        <li><strong>Contract sections:</strong> Isolate specific clauses or schedules for quick reference</li>
+                    </ul>
+                </div>
+            </section>
+        </main>
+
+        <footer id="site-footer"></footer>
+    </div>
+
+    <!-- Shared scripts -->
+    <script src="/shared/tools.js"></script>
+    <script src="/shared/nav.js"></script>
+    <script src="/shared/file-handler.js"></script>
+    <script src="/shared/session-files.js"></script>
+
+    <script>
+        // ---------------------------------------------------------------
+        // State
+        // ---------------------------------------------------------------
+        var selectedFile = null;
+        var selectedPages = new Set(); // 0-indexed page numbers
+        var totalPages = 0;
+
+        // ---------------------------------------------------------------
+        // Navigation
+        // ---------------------------------------------------------------
+        initNav({
+            title: 'PDF Page Extractor',
+            subtitle: 'Pull specific pages from any PDF'
+        });
+
+        // ---------------------------------------------------------------
+        // File drop zone
+        // ---------------------------------------------------------------
+        initFileDropZone('dropZone', {
+            accept: ['.pdf'],
+            maxSizeMB: 100,
+            onFile: handleFile
+        });
+
+        function handleFile(file) {
+            selectedFile = file;
+            loadPdf(file);
+        }
+
+        // ---------------------------------------------------------------
+        // Load PDF and render thumbnails
+        // ---------------------------------------------------------------
+        async function loadPdf(file) {
+            var statusEl = document.getElementById('status');
+            statusEl.className = 'status status-processing';
+            statusEl.textContent = 'Loading PDF and rendering thumbnails...';
+
+            // Reset state
+            selectedPages = new Set();
+            totalPages = 0;
+            document.getElementById('selectionArea').classList.add('hidden');
+            document.getElementById('extractBtn').disabled = true;
+            document.getElementById('pageRange').value = '';
+
+            try {
+                var arrayBuffer = await readFileAsArrayBuffer(file);
+
+                // Load with pdf.js for thumbnail rendering
+                var pdfJsDoc = await pdfjsLib.getDocument({ data: arrayBuffer.slice(0) }).promise;
+                totalPages = pdfJsDoc.numPages;
+
+                // Render thumbnails
+                var grid = document.getElementById('thumbnailGrid');
+                grid.innerHTML = '';
+
+                for (var i = 1; i <= totalPages; i++) {
+                    var page = await pdfJsDoc.getPage(i);
+                    var viewport = page.getViewport({ scale: 0.3 });
+
+                    var container = document.createElement('div');
+                    container.className = 'page-thumbnail';
+                    container.dataset.pageIndex = i - 1;
+                    container.setAttribute('role', 'listitem');
+                    container.setAttribute('aria-label', 'Page ' + i);
+                    container.setAttribute('tabindex', '0');
+
+                    var canvas = document.createElement('canvas');
+                    canvas.width = viewport.width;
+                    canvas.height = viewport.height;
+                    var ctx = canvas.getContext('2d');
+                    await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+
+                    var label = document.createElement('span');
+                    label.className = 'page-label';
+                    label.textContent = 'Page ' + i;
+
+                    container.appendChild(canvas);
+                    container.appendChild(label);
+                    container.addEventListener('click', togglePage);
+                    container.addEventListener('keydown', function(e) {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            togglePage({ currentTarget: e.currentTarget });
+                        }
+                    });
+                    grid.appendChild(container);
+                }
+
+                // Show selection area
+                document.getElementById('selectionArea').classList.remove('hidden');
+                updateSelectionCount();
+
+                statusEl.className = 'status status-success';
+                statusEl.textContent = 'PDF loaded — ' + totalPages + ' page' + (totalPages !== 1 ? 's' : '') + '. Select pages to extract.';
+
+            } catch (err) {
+                statusEl.className = 'status status-error';
+                statusEl.textContent = 'Error loading PDF: ' + err.message;
+            }
+        }
+
+        // ---------------------------------------------------------------
+        // Toggle page selection (thumbnail click)
+        // ---------------------------------------------------------------
+        function togglePage(e) {
+            var container = e.currentTarget;
+            var index = parseInt(container.dataset.pageIndex);
+            if (selectedPages.has(index)) {
+                selectedPages.delete(index);
+                container.classList.remove('selected');
+                container.setAttribute('aria-pressed', 'false');
+            } else {
+                selectedPages.add(index);
+                container.classList.add('selected');
+                container.setAttribute('aria-pressed', 'true');
+            }
+            updateSelectionCount();
+            syncRangeInput();
+        }
+
+        // ---------------------------------------------------------------
+        // Update selection count display and extract button state
+        // ---------------------------------------------------------------
+        function updateSelectionCount() {
+            document.getElementById('selectionCount').textContent =
+                selectedPages.size + ' of ' + totalPages + ' pages selected';
+            document.getElementById('extractBtn').disabled = selectedPages.size === 0;
+        }
+
+        // ---------------------------------------------------------------
+        // Parse page range input: "1-3, 7, 12-15" → Set of 0-indexed page numbers
+        // ---------------------------------------------------------------
+        function parsePageRange(rangeStr) {
+            var result = new Set();
+            var parts = rangeStr.split(',');
+            for (var i = 0; i < parts.length; i++) {
+                var part = parts[i].trim();
+                if (!part) continue;
+                var rangeParts = part.split('-');
+                if (rangeParts.length === 2) {
+                    var start = parseInt(rangeParts[0]) - 1;
+                    var end = parseInt(rangeParts[1]) - 1;
+                    if (isNaN(start) || isNaN(end)) continue;
+                    for (var j = start; j <= end && j < totalPages; j++) {
+                        if (j >= 0) result.add(j);
+                    }
+                } else {
+                    var num = parseInt(part) - 1;
+                    if (!isNaN(num) && num >= 0 && num < totalPages) result.add(num);
+                }
+            }
+            return result;
+        }
+
+        // ---------------------------------------------------------------
+        // Sync range input text → selectedPages and thumbnails
+        // ---------------------------------------------------------------
+        function applyRangeInput() {
+            if (!totalPages) return;
+            var rangeStr = document.getElementById('pageRange').value;
+            var parsed = parsePageRange(rangeStr);
+
+            selectedPages = parsed;
+
+            // Update thumbnail visual states
+            var thumbnails = document.querySelectorAll('.page-thumbnail');
+            for (var i = 0; i < thumbnails.length; i++) {
+                var idx = parseInt(thumbnails[i].dataset.pageIndex);
+                if (selectedPages.has(idx)) {
+                    thumbnails[i].classList.add('selected');
+                    thumbnails[i].setAttribute('aria-pressed', 'true');
+                } else {
+                    thumbnails[i].classList.remove('selected');
+                    thumbnails[i].setAttribute('aria-pressed', 'false');
+                }
+            }
+            updateSelectionCount();
+        }
+
+        // ---------------------------------------------------------------
+        // Sync selectedPages → range input text
+        // ---------------------------------------------------------------
+        function syncRangeInput() {
+            if (selectedPages.size === 0) {
+                document.getElementById('pageRange').value = '';
+                return;
+            }
+
+            var sorted = Array.from(selectedPages).sort(function(a, b) { return a - b; });
+            var parts = [];
+            var rangeStart = sorted[0];
+            var rangeEnd = sorted[0];
+
+            for (var i = 1; i < sorted.length; i++) {
+                if (sorted[i] === rangeEnd + 1) {
+                    rangeEnd = sorted[i];
+                } else {
+                    if (rangeStart === rangeEnd) {
+                        parts.push(rangeStart + 1);
+                    } else {
+                        parts.push((rangeStart + 1) + '-' + (rangeEnd + 1));
+                    }
+                    rangeStart = sorted[i];
+                    rangeEnd = sorted[i];
+                }
+            }
+            // Push last range
+            if (rangeStart === rangeEnd) {
+                parts.push(rangeStart + 1);
+            } else {
+                parts.push((rangeStart + 1) + '-' + (rangeEnd + 1));
+            }
+
+            document.getElementById('pageRange').value = parts.join(', ');
+        }
+
+        // ---------------------------------------------------------------
+        // Select all / deselect all
+        // ---------------------------------------------------------------
+        document.getElementById('selectAllBtn').addEventListener('click', function() {
+            selectedPages = new Set();
+            for (var i = 0; i < totalPages; i++) {
+                selectedPages.add(i);
+            }
+            var thumbnails = document.querySelectorAll('.page-thumbnail');
+            for (var i = 0; i < thumbnails.length; i++) {
+                thumbnails[i].classList.add('selected');
+                thumbnails[i].setAttribute('aria-pressed', 'true');
+            }
+            updateSelectionCount();
+            syncRangeInput();
+        });
+
+        document.getElementById('deselectAllBtn').addEventListener('click', function() {
+            selectedPages = new Set();
+            var thumbnails = document.querySelectorAll('.page-thumbnail');
+            for (var i = 0; i < thumbnails.length; i++) {
+                thumbnails[i].classList.remove('selected');
+                thumbnails[i].setAttribute('aria-pressed', 'false');
+            }
+            updateSelectionCount();
+            syncRangeInput();
+        });
+
+        // ---------------------------------------------------------------
+        // Page range input — sync to thumbnails on input
+        // ---------------------------------------------------------------
+        document.getElementById('pageRange').addEventListener('input', applyRangeInput);
+
+        // ---------------------------------------------------------------
+        // Pipeline suggestions
+        // ---------------------------------------------------------------
+        function showPipelineSuggestions(currentToolId) {
+            if (typeof TOOL_PIPELINE === 'undefined') return;
+            var suggestions = TOOL_PIPELINE[currentToolId];
+            if (!suggestions || suggestions.length === 0) return;
+
+            var html = '<div class="pipeline-suggestions">';
+            html += '<p class="pipeline-title">Open your result in another tool:</p>';
+            html += '<div class="pipeline-links">';
+
+            for (var i = 0; i < suggestions.length; i++) {
+                var toolId = suggestions[i];
+                var tool = TOOLS.find(function(t) { return t.id === toolId; });
+                if (tool) {
+                    html += '<a href="' + tool.path + '" class="pipeline-link">' + tool.name + ' &rarr;</a>';
+                }
+            }
+
+            html += '</div></div>';
+
+            var statusEl = document.getElementById('status');
+            if (statusEl) {
+                var existing = document.querySelector('.pipeline-suggestions');
+                if (existing) existing.remove();
+                statusEl.insertAdjacentHTML('afterend', html);
+            }
+        }
+
+        // ---------------------------------------------------------------
+        // Extract button
+        // ---------------------------------------------------------------
+        document.getElementById('extractBtn').addEventListener('click', extractPages);
+
+        // ---------------------------------------------------------------
+        // Extract selected pages
+        // ---------------------------------------------------------------
+        async function extractPages() {
+            var statusEl = document.getElementById('status');
+            var btn = document.getElementById('extractBtn');
+
+            statusEl.className = 'status status-processing';
+            statusEl.textContent = 'Extracting pages...';
+            btn.disabled = true;
+
+            try {
+                var arrayBuffer = await readFileAsArrayBuffer(selectedFile);
+                var srcDoc = await PDFLib.PDFDocument.load(arrayBuffer);
+                var newDoc = await PDFLib.PDFDocument.create();
+
+                var sortedPages = Array.from(selectedPages).sort(function(a, b) { return a - b; });
+                var copiedPages = await newDoc.copyPages(srcDoc, sortedPages);
+                for (var i = 0; i < copiedPages.length; i++) {
+                    newDoc.addPage(copiedPages[i]);
+                }
+
+                var pdfBytes = await newDoc.save();
+                var filename = selectedFile.name.replace(/\.pdf$/i, '') + '_extracted.pdf';
+                downloadPdf(pdfBytes, filename);
+
+                // Add to session files
+                if (typeof sessionFiles !== 'undefined') {
+                    var blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                    sessionFiles.add(filename, blob, 'page-extractor');
+                }
+
+                statusEl.className = 'status status-success';
+                statusEl.textContent = 'Extracted ' + sortedPages.length + ' page' + (sortedPages.length !== 1 ? 's' : '') + '! Your file has been downloaded.';
+
+                // Show pipeline suggestions
+                showPipelineSuggestions('page-extractor');
+            } catch (err) {
+                statusEl.className = 'status status-error';
+                statusEl.textContent = 'Error: ' + err.message;
+            } finally {
+                btn.disabled = selectedPages.size === 0;
+            }
+        }
+    </script>
+</body>
+</html>

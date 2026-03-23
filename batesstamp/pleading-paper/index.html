@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-13354133605"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-13354133605');
+    </script>
+
+    <!-- Umami Analytics -->
+    <script defer src="https://umami.ctibs.app/script.js" data-website-id="b5a8938f-fd00-486c-bf17-0352963407f3"></script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- SEO Meta Tags -->
+    <title>Free Pleading Paper Generator | Numbered Line Paper for Court Filings | BatesStamp.com</title>
+    <meta name="description" content="Generate California (28-line), Federal (25-line), or custom pleading paper with numbered lines. Free browser-based PDF generator — no upload required.">
+    <meta name="keywords" content="pleading paper generator, numbered line paper, California pleading paper, federal pleading paper, court filing paper, legal pleading paper, free pleading paper pdf">
+    <meta name="author" content="BatesStamp.com">
+    <meta name="robots" content="index, follow">
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://batesstamp.com/pleading-paper/">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://batesstamp.com/pleading-paper/">
+    <meta property="og:title" content="Free Pleading Paper Generator — Numbered Line Paper for Court Filings">
+    <meta property="og:description" content="Generate California (28-line), Federal (25-line), or custom pleading paper with numbered lines. Free, browser-based PDF generator for attorneys and legal professionals.">
+    <meta property="og:image" content="https://batesstamp.com/og-image.svg">
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://batesstamp.com/pleading-paper/">
+    <meta name="twitter:title" content="Free Pleading Paper Generator — Numbered Line Paper for Court Filings">
+    <meta name="twitter:description" content="Generate California (28-line), Federal (25-line), or custom pleading paper with numbered lines. Free, browser-based PDF generator.">
+    <meta name="twitter:image" content="https://batesstamp.com/og-image.svg">
+
+    <!-- Structured Data - JSON-LD -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Pleading Paper Generator",
+      "description": "Free online tool to generate California, Federal, or custom pleading paper with numbered lines for court filings",
+      "url": "https://batesstamp.com/pleading-paper/",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "Web Browser",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "featureList": [
+        "California 28-line pleading paper",
+        "Federal 25-line pleading paper",
+        "Custom line count and margins",
+        "Optional court caption block",
+        "Multi-page generation",
+        "Client-side PDF generation",
+        "No file uploads required"
+      ],
+      "browserRequirements": "Requires JavaScript. Modern web browser."
+    }
+    </script>
+
+    <!-- Favicons -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <meta name="theme-color" content="#1e3a5f">
+    <link rel="manifest" href="/manifest.json">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="/brand.css">
+    <link rel="stylesheet" href="/styles.css">
+
+    <!-- pdf-lib -->
+    <link rel="preconnect" href="https://unpkg.com">
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js" integrity="sha384-awMiyfMDBszoPfxLPAp6cXS/4DPy9abzcbnVm+mMOp/JWsyPKgrMfwSJFxdsBOqb" crossorigin="anonymous"></script>
+
+    <style>
+        /* Pleading paper specific styles */
+        .format-radio-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .format-radio-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            border: 2px solid var(--gray-300);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all var(--transition);
+            font-weight: 500;
+            color: var(--text-heading);
+            background: var(--white);
+            user-select: none;
+        }
+
+        .format-radio-label:hover {
+            border-color: var(--navy-mid);
+            background: rgba(44, 82, 130, 0.03);
+        }
+
+        .format-radio-label input[type="radio"] {
+            accent-color: var(--navy-mid);
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+        .format-radio-label.active {
+            border-color: var(--navy-mid);
+            background: rgba(44, 82, 130, 0.06);
+            color: var(--navy);
+        }
+
+        .margins-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .margin-input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .margin-input-group label {
+            font-size: 0.85em;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0;
+        }
+
+        /* Collapsible section */
+        .collapsible-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            user-select: none;
+            padding: 0;
+            background: none;
+            border: none;
+            width: 100%;
+            text-align: left;
+            font-family: var(--font-body);
+        }
+
+        .collapsible-header:focus-visible {
+            outline: 3px solid rgba(44, 82, 130, 0.3);
+            border-radius: var(--radius-sm);
+        }
+
+        .collapsible-toggle {
+            font-size: 0.8em;
+            color: var(--text-muted);
+            font-weight: 400;
+            transition: transform var(--transition);
+            display: inline-block;
+        }
+
+        .collapsible-toggle.open {
+            transform: rotate(180deg);
+        }
+
+        .collapsible-body {
+            margin-top: 16px;
+        }
+
+        .collapsible-body.hidden {
+            display: none;
+        }
+
+        .readonly-field {
+            background: var(--gray-100) !important;
+            color: var(--text-muted) !important;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 600px) {
+            .format-radio-group {
+                flex-direction: column;
+            }
+            .margins-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+    <div class="container">
+        <header id="site-header"></header>
+        <nav id="site-nav" aria-label="Main navigation"></nav>
+
+        <main id="main-content">
+            <noscript><p style="text-align:center;padding:20px;color:#c53030;">This tool requires JavaScript to function. Please enable JavaScript in your browser.</p></noscript>
+
+            <p class="intro-text">Generate properly formatted numbered-line pleading paper for California state courts, federal courts, or custom jurisdictions. Download as PDF for printing or importing into Word. No file upload needed.</p>
+
+            <!-- 1. Format Selection -->
+            <div class="section">
+                <h2 class="section-title">1. Format</h2>
+                <div class="control-group">
+                    <div class="format-radio-group" role="radiogroup" aria-label="Pleading paper format">
+                        <label class="format-radio-label active" id="label-california">
+                            <input type="radio" name="format" value="california" id="fmt-california" checked>
+                            California (28 lines)
+                        </label>
+                        <label class="format-radio-label" id="label-federal">
+                            <input type="radio" name="format" value="federal" id="fmt-federal">
+                            Federal (25 lines)
+                        </label>
+                        <label class="format-radio-label" id="label-custom">
+                            <input type="radio" name="format" value="custom" id="fmt-custom">
+                            Custom
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Settings -->
+            <div class="section">
+                <h2 class="section-title">2. Settings</h2>
+
+                <div class="two-column">
+                    <div class="control-group">
+                        <label for="lineCount">Lines per page</label>
+                        <input type="number" id="lineCount" value="28" min="10" max="50" readonly class="readonly-field" aria-describedby="lineCountHint">
+                        <p class="info-text" id="lineCountHint">Set by format. Change to Custom to edit.</p>
+                    </div>
+                    <div class="control-group">
+                        <label for="pageCount">Number of pages</label>
+                        <input type="number" id="pageCount" value="1" min="1" max="50">
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Margins (inches)</label>
+                    <div class="margins-grid">
+                        <div class="margin-input-group">
+                            <label for="marginTop">Top</label>
+                            <input type="number" id="marginTop" value="1.0" min="0.25" max="3" step="0.25" readonly class="readonly-field">
+                        </div>
+                        <div class="margin-input-group">
+                            <label for="marginBottom">Bottom</label>
+                            <input type="number" id="marginBottom" value="0.75" min="0.25" max="3" step="0.25" readonly class="readonly-field">
+                        </div>
+                        <div class="margin-input-group">
+                            <label for="marginLeft">Left</label>
+                            <input type="number" id="marginLeft" value="1.5" min="0.5" max="3" step="0.25" readonly class="readonly-field">
+                        </div>
+                        <div class="margin-input-group">
+                            <label for="marginRight">Right</label>
+                            <input type="number" id="marginRight" value="0.75" min="0.25" max="3" step="0.25" readonly class="readonly-field">
+                        </div>
+                    </div>
+                    <p class="info-text" style="margin-top:10px;">Pre-filled per format. Switch to Custom to adjust.</p>
+                </div>
+            </div>
+
+            <!-- 3. Caption (collapsible, optional) -->
+            <div class="section">
+                <button class="collapsible-header section-title" id="captionToggle" aria-expanded="false" aria-controls="captionBody">
+                    <span>3. Caption <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:0.9em;color:var(--text-muted);">— optional</span></span>
+                    <span class="collapsible-toggle" aria-hidden="true">&#9660;</span>
+                </button>
+                <div class="collapsible-body hidden" id="captionBody">
+                    <p class="info-text" style="margin-bottom:16px;">Fill in caption details to include a court heading on the first page. Leave blank to generate blank pleading paper.</p>
+                    <div class="control-group">
+                        <label for="courtName">Court name</label>
+                        <input type="text" id="courtName" placeholder="e.g. SUPERIOR COURT OF THE STATE OF CALIFORNIA" maxlength="120" autocomplete="off">
+                    </div>
+                    <div class="control-group">
+                        <label for="caseCaption">Case caption</label>
+                        <textarea id="caseCaption" rows="4" placeholder="e.g. JOHN DOE, Plaintiff,&#10;&#10;vs.&#10;&#10;JANE DOE, Defendant." style="resize:vertical;"></textarea>
+                    </div>
+                    <div class="two-column">
+                        <div class="control-group">
+                            <label for="caseNumber">Case number</label>
+                            <input type="text" id="caseNumber" placeholder="e.g. 24STCV12345" maxlength="40" autocomplete="off">
+                        </div>
+                        <div class="control-group">
+                            <label for="documentTitle">Document title</label>
+                            <input type="text" id="documentTitle" placeholder="e.g. COMPLAINT FOR DAMAGES" maxlength="80" autocomplete="off">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Button -->
+            <button class="button" id="generateBtn" data-umami-event="generate-pleading">Generate Pleading Paper</button>
+
+            <!-- Status -->
+            <div id="status" class="status" role="status" aria-live="polite">
+                Configure your settings and click Generate to create your pleading paper PDF.
+            </div>
+
+            <!-- SEO Content -->
+            <section id="about" class="seo-content">
+                <h2>About Pleading Paper</h2>
+                <div class="seo-content-inner">
+                    <h3>What is Pleading Paper?</h3>
+                    <p>Pleading paper is specially formatted stationery used for court filings in the United States. It consists of consecutively numbered horizontal lines running the full width of the page, with vertical margin lines on the left side. Each document filed with the court must be printed on pleading paper, with text aligned to the numbered lines so judges and clerks can quickly reference specific lines during proceedings.</p>
+
+                    <p>Pleading paper is mandatory in California state courts and many other jurisdictions. Federal courts have their own formatting rules, and some courts accept standard paper formatted to match their local rules. Attorneys, paralegals, and self-represented litigants all need access to properly formatted pleading paper.</p>
+
+                    <h3>California vs. Federal Pleading Paper</h3>
+                    <p>The two most common formats are California state court paper (28 lines per page) and federal court paper (25 lines per page). The differences reflect each court system's preferences for spacing and margin requirements:</p>
+
+                    <div class="feature-highlights">
+                        <div class="feature-highlight-card">
+                            <h4>California (28 Lines)</h4>
+                            <p>Required for Superior Court filings throughout California. Features 28 numbered lines per page, two vertical lines at the left margin (at 1.0" and 1.25" from the left edge), and tighter bottom margins. The double vertical line is the hallmark of California pleading paper.</p>
+                        </div>
+                        <div class="feature-highlight-card">
+                            <h4>Federal (25 Lines)</h4>
+                            <p>Used in U.S. District Courts and other federal tribunals. Features 25 numbered lines per page and a single left margin line. Federal courts tend to require slightly wider margins and fewer lines to accommodate their formatting preferences for briefs and motions.</p>
+                        </div>
+                        <div class="feature-highlight-card">
+                            <h4>Custom Format</h4>
+                            <p>Some state courts, administrative agencies, and specialized tribunals have their own pleading paper requirements. Use the Custom option to set your own line count and margins to match any local rule or court requirement.</p>
+                        </div>
+                        <div class="feature-highlight-card">
+                            <h4>100% Free &amp; Private</h4>
+                            <p>All PDF generation happens entirely in your browser — no files are uploaded to any server. Use it as many times as you need. No account, no subscription, no watermarks on output.</p>
+                        </div>
+                    </div>
+
+                    <h3>Which Courts Require Pleading Paper?</h3>
+                    <ul>
+                        <li><strong>California Superior Courts:</strong> All 58 California counties require pleading paper for motions, complaints, answers, and other filed documents. California Rules of Court, Rule 2.100 et seq., govern the format.</li>
+                        <li><strong>Federal District Courts:</strong> Many federal districts require or strongly prefer numbered pleading paper. Check your district's local rules — the Northern, Central, Eastern, and Southern Districts of California all use 25-line paper.</li>
+                        <li><strong>California Courts of Appeal:</strong> Appellate briefs have separate formatting rules, but pleading paper may be required for supporting documents and declarations.</li>
+                        <li><strong>State Administrative Agencies:</strong> WCAB (Workers' Compensation Appeals Board), PERB, and many other California agencies require numbered-line paper for all filed documents.</li>
+                        <li><strong>Other States:</strong> Nevada, Arizona, and several other western states use pleading paper formats similar to California's.</li>
+                    </ul>
+
+                    <h3>How to Use This Generator</h3>
+                    <ul>
+                        <li>Select your format: California (28-line), Federal (25-line), or Custom</li>
+                        <li>Choose how many pages to generate (1–50)</li>
+                        <li>Optionally expand the Caption section to include court name, parties, case number, and document title on the first page</li>
+                        <li>Click Generate — the PDF downloads immediately to your device</li>
+                        <li>Print directly, or import into Word or Google Docs as a template</li>
+                    </ul>
+                </div>
+            </section>
+        </main>
+
+        <footer id="site-footer"></footer>
+    </div>
+
+    <!-- Shared scripts -->
+    <script src="/shared/tools.js"></script>
+    <script src="/shared/nav.js"></script>
+
+    <script>
+        // ---------------------------------------------------------------
+        // Format presets
+        // ---------------------------------------------------------------
+        var FORMATS = {
+            california: {
+                lines: 28,
+                margins: { top: 1.0, bottom: 0.75, left: 1.5, right: 0.75 },
+                doubleVertical: true,
+                verticalLinePositions: [1.0, 1.25]
+            },
+            federal: {
+                lines: 25,
+                margins: { top: 1.0, bottom: 1.0, left: 1.5, right: 1.0 },
+                doubleVertical: false,
+                verticalLinePositions: [1.0]
+            },
+            custom: {
+                lines: 28,
+                margins: { top: 1.0, bottom: 1.0, left: 1.5, right: 1.0 },
+                doubleVertical: false,
+                verticalLinePositions: [1.0]
+            }
+        };
+
+        // ---------------------------------------------------------------
+        // Navigation
+        // ---------------------------------------------------------------
+        initNav({
+            title: 'Pleading Paper Generator',
+            subtitle: 'Numbered-line paper for court filings'
+        });
+
+        // ---------------------------------------------------------------
+        // Format radio buttons — update fields when format changes
+        // ---------------------------------------------------------------
+        var formatInputs = document.querySelectorAll('input[name="format"]');
+        var formatLabels = {
+            california: document.getElementById('label-california'),
+            federal: document.getElementById('label-federal'),
+            custom: document.getElementById('label-custom')
+        };
+        var marginFields = ['marginTop', 'marginBottom', 'marginLeft', 'marginRight'];
+
+        function getCurrentFormatName() {
+            for (var i = 0; i < formatInputs.length; i++) {
+                if (formatInputs[i].checked) return formatInputs[i].value;
+            }
+            return 'california';
+        }
+
+        function applyFormat(formatName) {
+            var preset = FORMATS[formatName];
+            var isCustom = formatName === 'custom';
+
+            // Update active label styling
+            var keys = Object.keys(formatLabels);
+            for (var k = 0; k < keys.length; k++) {
+                if (keys[k] === formatName) {
+                    formatLabels[keys[k]].classList.add('active');
+                } else {
+                    formatLabels[keys[k]].classList.remove('active');
+                }
+            }
+
+            // Update line count field
+            var lineCountEl = document.getElementById('lineCount');
+            lineCountEl.value = preset.lines;
+            if (isCustom) {
+                lineCountEl.removeAttribute('readonly');
+                lineCountEl.classList.remove('readonly-field');
+                document.getElementById('lineCountHint').textContent = 'Enter the number of lines per page (10–50).';
+            } else {
+                lineCountEl.setAttribute('readonly', 'readonly');
+                lineCountEl.classList.add('readonly-field');
+                document.getElementById('lineCountHint').textContent = 'Set by format. Change to Custom to edit.';
+            }
+
+            // Update margin fields
+            var marginKeys = ['top', 'bottom', 'left', 'right'];
+            var marginIds = ['marginTop', 'marginBottom', 'marginLeft', 'marginRight'];
+            for (var m = 0; m < marginIds.length; m++) {
+                var el = document.getElementById(marginIds[m]);
+                el.value = preset.margins[marginKeys[m]];
+                if (isCustom) {
+                    el.removeAttribute('readonly');
+                    el.classList.remove('readonly-field');
+                } else {
+                    el.setAttribute('readonly', 'readonly');
+                    el.classList.add('readonly-field');
+                }
+            }
+        }
+
+        for (var i = 0; i < formatInputs.length; i++) {
+            formatInputs[i].addEventListener('change', function() {
+                applyFormat(this.value);
+            });
+        }
+
+        // ---------------------------------------------------------------
+        // Collapsible caption section
+        // ---------------------------------------------------------------
+        var captionToggle = document.getElementById('captionToggle');
+        var captionBody = document.getElementById('captionBody');
+        var captionToggleIcon = captionToggle.querySelector('.collapsible-toggle');
+
+        captionToggle.addEventListener('click', function() {
+            var isOpen = !captionBody.classList.contains('hidden');
+            if (isOpen) {
+                captionBody.classList.add('hidden');
+                captionToggle.setAttribute('aria-expanded', 'false');
+                captionToggleIcon.classList.remove('open');
+            } else {
+                captionBody.classList.remove('hidden');
+                captionToggle.setAttribute('aria-expanded', 'true');
+                captionToggleIcon.classList.add('open');
+            }
+        });
+
+        // ---------------------------------------------------------------
+        // Helper: get current format preset (with live custom values)
+        // ---------------------------------------------------------------
+        function getCurrentFormat() {
+            var name = getCurrentFormatName();
+            var preset = FORMATS[name];
+
+            if (name === 'custom') {
+                var lines = parseInt(document.getElementById('lineCount').value) || 28;
+                lines = Math.min(50, Math.max(10, lines));
+                return {
+                    lines: lines,
+                    margins: {
+                        top: parseFloat(document.getElementById('marginTop').value) || 1.0,
+                        bottom: parseFloat(document.getElementById('marginBottom').value) || 1.0,
+                        left: parseFloat(document.getElementById('marginLeft').value) || 1.5,
+                        right: parseFloat(document.getElementById('marginRight').value) || 1.0
+                    },
+                    verticalLinePositions: [parseFloat(document.getElementById('marginLeft').value) - 0.5 || 1.0]
+                };
+            }
+
+            return {
+                lines: preset.lines,
+                margins: {
+                    top: parseFloat(document.getElementById('marginTop').value) || preset.margins.top,
+                    bottom: parseFloat(document.getElementById('marginBottom').value) || preset.margins.bottom,
+                    left: parseFloat(document.getElementById('marginLeft').value) || preset.margins.left,
+                    right: parseFloat(document.getElementById('marginRight').value) || preset.margins.right
+                },
+                verticalLinePositions: preset.verticalLinePositions
+            };
+        }
+
+        // ---------------------------------------------------------------
+        // Helper: get caption data
+        // ---------------------------------------------------------------
+        function getCaptionData() {
+            return {
+                courtName: document.getElementById('courtName').value.trim(),
+                caseCaption: document.getElementById('caseCaption').value.trim(),
+                caseNumber: document.getElementById('caseNumber').value.trim(),
+                documentTitle: document.getElementById('documentTitle').value.trim()
+            };
+        }
+
+        // ---------------------------------------------------------------
+        // Generate button
+        // ---------------------------------------------------------------
+        document.getElementById('generateBtn').addEventListener('click', generatePleading);
+
+        // ---------------------------------------------------------------
+        // Core generation function
+        // ---------------------------------------------------------------
+        async function generatePleading() {
+            var statusEl = document.getElementById('status');
+            var btn = document.getElementById('generateBtn');
+
+            statusEl.className = 'status status-processing';
+            statusEl.textContent = 'Generating pleading paper...';
+            btn.disabled = true;
+
+            try {
+                var pdfDoc = await PDFLib.PDFDocument.create();
+                var font = await pdfDoc.embedFont(PDFLib.StandardFonts.TimesRoman);
+                var boldFont = await pdfDoc.embedFont(PDFLib.StandardFonts.TimesRomanBold);
+
+                var format = getCurrentFormat();
+                var pageCount = parseInt(document.getElementById('pageCount').value) || 1;
+                pageCount = Math.min(50, Math.max(1, pageCount));
+
+                // US Letter: 8.5" x 11" = 612 x 792 points (72 points per inch)
+                var pageWidth = 612;
+                var pageHeight = 792;
+
+                // Margins in points
+                var marginTop = format.margins.top * 72;
+                var marginBottom = format.margins.bottom * 72;
+                var marginLeft = format.margins.left * 72;
+                var marginRight = format.margins.right * 72;
+
+                // Usable area and line spacing
+                var usableHeight = pageHeight - marginTop - marginBottom;
+                var lineSpacing = usableHeight / format.lines;
+
+                // Caption data (if provided)
+                var caption = getCaptionData();
+
+                for (var p = 0; p < pageCount; p++) {
+                    var page = pdfDoc.addPage([pageWidth, pageHeight]);
+
+                    // Draw vertical line(s) at left margin
+                    for (var v = 0; v < format.verticalLinePositions.length; v++) {
+                        var vx = format.verticalLinePositions[v] * 72;
+                        page.drawLine({
+                            start: { x: vx, y: marginBottom },
+                            end: { x: vx, y: pageHeight - marginTop },
+                            thickness: 0.5,
+                            color: PDFLib.rgb(0, 0, 0)
+                        });
+                    }
+
+                    // Draw line numbers
+                    for (var line = 1; line <= format.lines; line++) {
+                        var y = pageHeight - marginTop - (line * lineSpacing);
+
+                        // Line number positioned to the left of the first vertical line
+                        var numStr = String(line);
+                        var numWidth = font.widthOfTextAtSize(numStr, 10);
+                        var firstVLine = format.verticalLinePositions[0] * 72;
+                        var numX = firstVLine - numWidth - 8;
+
+                        // Clamp so numbers don't go off the left edge
+                        if (numX < 4) numX = 4;
+
+                        page.drawText(numStr, {
+                            x: numX,
+                            y: y - 3,
+                            size: 10,
+                            font: font,
+                            color: PDFLib.rgb(0, 0, 0)
+                        });
+                    }
+
+                    // Draw caption on first page only (if provided)
+                    if (p === 0 && (caption.courtName || caption.documentTitle)) {
+                        var textAreaLeft = marginLeft;
+                        var textAreaWidth = pageWidth - marginLeft - marginRight;
+                        var captionFontSize = 12;
+                        var captionLineHeight = lineSpacing;
+                        var currentLine = 1; // which pleading line we are placing content on
+
+                        // Court name — centered, bold, uppercase
+                        if (caption.courtName) {
+                            var courtText = caption.courtName.toUpperCase();
+                            // Truncate if too wide
+                            var courtWidth = boldFont.widthOfTextAtSize(courtText, captionFontSize);
+                            var centerX = textAreaLeft + textAreaWidth / 2;
+                            var courtX = centerX - courtWidth / 2;
+                            if (courtX < textAreaLeft) courtX = textAreaLeft;
+
+                            var courtY = pageHeight - marginTop - (currentLine * captionLineHeight) - 3;
+                            page.drawText(courtText, {
+                                x: courtX,
+                                y: courtY,
+                                size: captionFontSize,
+                                font: boldFont,
+                                color: PDFLib.rgb(0, 0, 0)
+                            });
+                            currentLine++;
+
+                            // County/department line separator
+                            var sepY = pageHeight - marginTop - (currentLine * captionLineHeight) - 3;
+                            page.drawLine({
+                                start: { x: textAreaLeft, y: sepY + 8 },
+                                end: { x: pageWidth - marginRight, y: sepY + 8 },
+                                thickness: 0.5,
+                                color: PDFLib.rgb(0, 0, 0)
+                            });
+                            currentLine++;
+                        }
+
+                        // Case caption (left column) and case number (right column)
+                        if (caption.caseCaption || caption.caseNumber) {
+                            var captionLines = caption.caseCaption ? caption.caseCaption.split('\n') : [];
+                            var halfWidth = textAreaWidth / 2;
+
+                            // Draw a vertical separator between caption and case info
+                            var captionBlockStart = pageHeight - marginTop - (currentLine * captionLineHeight);
+                            var captionBlockLines = Math.max(captionLines.length, 4);
+                            var captionBlockEnd = pageHeight - marginTop - ((currentLine + captionBlockLines + 1) * captionLineHeight);
+                            var dividerX = textAreaLeft + halfWidth;
+
+                            page.drawLine({
+                                start: { x: dividerX, y: captionBlockEnd },
+                                end: { x: dividerX, y: captionBlockStart },
+                                thickness: 0.5,
+                                color: PDFLib.rgb(0, 0, 0)
+                            });
+
+                            // Left column: case caption
+                            for (var cl = 0; cl < captionLines.length; cl++) {
+                                var clText = captionLines[cl].trim();
+                                if (!clText) { currentLine++; continue; }
+                                var clY = pageHeight - marginTop - (currentLine * captionLineHeight) - 3;
+                                page.drawText(clText, {
+                                    x: textAreaLeft + 4,
+                                    y: clY,
+                                    size: captionFontSize,
+                                    font: font,
+                                    color: PDFLib.rgb(0, 0, 0),
+                                    maxWidth: halfWidth - 8
+                                });
+                                currentLine++;
+                            }
+
+                            // Right column: case number and document title
+                            if (caption.caseNumber) {
+                                var cnLineY = pageHeight - marginTop - ((currentLine - captionLines.length + 1) * captionLineHeight) - 3;
+                                page.drawText('Case No.: ' + caption.caseNumber, {
+                                    x: dividerX + 8,
+                                    y: cnLineY,
+                                    size: captionFontSize,
+                                    font: font,
+                                    color: PDFLib.rgb(0, 0, 0),
+                                    maxWidth: halfWidth - 16
+                                });
+                            }
+
+                            currentLine++;
+                        }
+
+                        // Document title — centered, bold, uppercase
+                        if (caption.documentTitle) {
+                            // Skip a line then draw title
+                            currentLine++;
+                            var titleText = caption.documentTitle.toUpperCase();
+                            var titleWidth = boldFont.widthOfTextAtSize(titleText, captionFontSize);
+                            var titleX = textAreaLeft + textAreaWidth / 2 - titleWidth / 2;
+                            if (titleX < textAreaLeft) titleX = textAreaLeft;
+                            var titleY = pageHeight - marginTop - (currentLine * captionLineHeight) - 3;
+                            page.drawText(titleText, {
+                                x: titleX,
+                                y: titleY,
+                                size: captionFontSize,
+                                font: boldFont,
+                                color: PDFLib.rgb(0, 0, 0),
+                                maxWidth: textAreaWidth
+                            });
+                        }
+                    }
+
+                    // Page number at bottom center (if multiple pages)
+                    if (pageCount > 1) {
+                        var pageNumStr = String(p + 1);
+                        var pageNumWidth = font.widthOfTextAtSize(pageNumStr, 10);
+                        page.drawText(pageNumStr, {
+                            x: (pageWidth - pageNumWidth) / 2,
+                            y: marginBottom / 2,
+                            size: 10,
+                            font: font,
+                            color: PDFLib.rgb(0, 0, 0)
+                        });
+                    }
+                }
+
+                var pdfBytes = await pdfDoc.save();
+                var formatName = getCurrentFormatName();
+                downloadPdf(pdfBytes, 'pleading_paper_' + formatName + '.pdf');
+
+                statusEl.className = 'status status-success';
+                statusEl.textContent = pageCount + ' page' + (pageCount !== 1 ? 's' : '') + ' of ' + formatName + ' pleading paper generated and downloaded.';
+
+            } catch (err) {
+                statusEl.className = 'status status-error';
+                statusEl.textContent = 'Error generating PDF: ' + err.message;
+                console.error(err);
+            } finally {
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>

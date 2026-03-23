@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-13354133605"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-13354133605');
+    </script>
+
+    <!-- Umami Analytics -->
+    <script defer src="https://umami.ctibs.app/script.js" data-website-id="b5a8938f-fd00-486c-bf17-0352963407f3"></script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- SEO Meta Tags -->
+    <title>Free PDF Redaction Tool | Permanently Redact Privileged Documents | BatesStamp.com</title>
+    <meta name="description" content="Permanently redact sensitive content from PDF documents. Draw boxes over privileged text, assign privilege reasons, and download a permanently redacted PDF. Free, browser-based, no upload required.">
+    <meta name="keywords" content="pdf redaction tool, redact pdf, permanently redact pdf, privilege redaction, attorney-client privilege redaction, work product redaction, legal redaction tool, pdf black box redaction">
+    <meta name="author" content="BatesStamp.com">
+    <meta name="robots" content="index, follow">
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://batesstamp.com/redaction/">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://batesstamp.com/redaction/">
+    <meta property="og:title" content="Free PDF Redaction Tool — Permanently Redact Privileged Documents">
+    <meta property="og:description" content="Permanently redact sensitive content from PDFs. Draw boxes, assign privilege reasons, and download an irrecoverably redacted document — all in your browser.">
+    <meta property="og:image" content="https://batesstamp.com/og-image.svg">
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://batesstamp.com/redaction/">
+    <meta name="twitter:title" content="Free PDF Redaction Tool — Permanently Redact Privileged Documents">
+    <meta name="twitter:description" content="Permanently redact sensitive content from PDFs. Draw boxes, assign privilege reasons, and download an irrecoverably redacted document — all in your browser.">
+    <meta name="twitter:image" content="https://batesstamp.com/og-image.svg">
+
+    <!-- Structured Data - JSON-LD -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "PDF Privilege Redaction Tool",
+      "description": "Free online tool to permanently redact sensitive content from PDF documents using rasterization at 300 DPI — original text is irrecoverably removed",
+      "url": "https://batesstamp.com/redaction/",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "Web Browser",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "featureList": [
+        "Draw redaction boxes on PDF pages",
+        "Assign privilege reasons (Attorney-Client, Work Product, etc.)",
+        "Permanent rasterize-and-rebuild at 300 DPI",
+        "Original text irrecoverably removed",
+        "Browser-based processing — files never uploaded",
+        "Custom redaction labels"
+      ],
+      "browserRequirements": "Requires JavaScript. Modern web browser."
+    }
+    </script>
+
+    <!-- Favicons -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <meta name="theme-color" content="#1e3a5f">
+    <link rel="manifest" href="/manifest.json">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="/brand.css">
+    <link rel="stylesheet" href="/styles.css">
+
+    <!-- pdf-lib -->
+    <link rel="preconnect" href="https://unpkg.com">
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js" integrity="sha384-awMiyfMDBszoPfxLPAp6cXS/4DPy9abzcbnVm+mMOp/JWsyPKgrMfwSJFxdsBOqb" crossorigin="anonymous"></script>
+
+    <!-- pdf.js (for page rendering) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
+</head>
+<body>
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+    <div class="container">
+        <header id="site-header"></header>
+        <nav id="site-nav" aria-label="Main navigation"></nav>
+
+        <main id="main-content">
+            <noscript><p style="text-align:center;padding:20px;color:#c53030;">This tool requires JavaScript to function. Please enable JavaScript in your browser.</p></noscript>
+
+            <p class="intro-text">Draw redaction boxes over sensitive content, assign a privilege reason, and download a permanently redacted PDF. Redactions are applied by rasterizing each page at 300 DPI — the original text is irrecoverably removed. All processing happens in your browser.</p>
+
+            <!-- 1. File Upload -->
+            <div class="section">
+                <h2 class="section-title">1. Select Document</h2>
+                <div class="control-group">
+                    <div class="file-drop-zone" id="dropZone">
+                        <input type="file" id="fileInput" accept=".pdf" aria-label="Choose PDF file">
+                        <div class="drop-zone-icon">
+                            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/></svg>
+                        </div>
+                        <div class="drop-zone-text">Choose a PDF file or drag it here</div>
+                        <div class="drop-zone-hint">Your document never leaves your browser. Max 100MB.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Redaction Workspace (hidden until file uploaded) -->
+            <div class="section hidden" id="workspaceSection">
+                <h2 class="section-title">2. Mark Redactions</h2>
+                <p class="info-text" style="margin-bottom:16px;">Draw rectangles on the page to mark content for redaction. Use the controls on the right to set the privilege reason before drawing each box.</p>
+
+                <div class="redaction-workspace">
+                    <!-- Left: page viewer -->
+                    <div class="redaction-viewer">
+                        <div class="page-nav">
+                            <button type="button" id="prevPage" aria-label="Previous page">&#8592; Prev</button>
+                            <span id="pageInfo" aria-live="polite">Page 1 of 1</span>
+                            <button type="button" id="nextPage" aria-label="Next page">Next &#8594;</button>
+                        </div>
+                        <div class="canvas-container" id="canvasContainer">
+                            <canvas id="pdfCanvas" aria-label="PDF page preview"></canvas>
+                            <canvas id="drawCanvas" aria-label="Redaction drawing overlay" role="img" aria-describedby="canvasInstructions"></canvas>
+                        </div>
+                        <p class="info-text" id="canvasInstructions" style="margin-top:8px;text-align:center;">Click and drag to draw a redaction box. Release to add it to the list.</p>
+                    </div>
+
+                    <!-- Right: controls -->
+                    <div class="redaction-controls">
+                        <div class="control-group">
+                            <label for="redactionReason">Redaction Reason</label>
+                            <select id="redactionReason">
+                                <option value="ATTORNEY-CLIENT PRIVILEGE">Attorney-Client Privilege</option>
+                                <option value="WORK PRODUCT">Work Product Doctrine</option>
+                                <option value="CONFIDENTIAL">Confidential / Proprietary</option>
+                                <option value="PERSONAL INFORMATION">Privacy / Personal Information</option>
+                                <option value="TRADE SECRET">Trade Secret</option>
+                                <option value="custom">Custom Label...</option>
+                            </select>
+                        </div>
+                        <div class="control-group hidden" id="customReasonGroup">
+                            <label for="customReason">Custom label</label>
+                            <input type="text" id="customReason" placeholder="Enter redaction label" maxlength="40">
+                        </div>
+
+                        <!-- Redaction list -->
+                        <h3 class="redaction-list-title">Redactions (<span id="redactionCount">0</span>)</h3>
+                        <div id="redactionList" class="redaction-list" role="list" aria-label="Redaction list">
+                            <p class="redaction-list-empty">Draw rectangles on the page to add redactions</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Warning notice -->
+            <div class="disclaimer hidden" id="warningNotice">
+                <h3>Permanent Redaction</h3>
+                <p>Redactions are permanent. The original text is irrecoverably removed using rasterization at 300 DPI. The output is an image-based PDF. Verify your redactions before filing.</p>
+            </div>
+
+            <!-- Action Button -->
+            <button class="button" id="redactBtn" data-umami-event="redact-document" disabled>Apply Redactions &amp; Download</button>
+
+            <!-- Progress bar -->
+            <div class="progress-container hidden" id="progressContainer">
+                <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+                <span class="progress-text" id="progressText">Processing...</span>
+            </div>
+
+            <!-- Status -->
+            <div id="status" class="status" role="status" aria-live="polite">
+                Select a PDF to begin
+            </div>
+
+            <!-- SEO Content -->
+            <section id="about" class="seo-content">
+                <h2>About PDF Privilege Redaction</h2>
+                <div class="seo-content-inner">
+                    <h3>What is Permanent PDF Redaction?</h3>
+                    <p>True redaction means the underlying text or image data is permanently destroyed — not just visually hidden. A black rectangle drawn on top of text in a PDF editor does not constitute proper redaction because the original text may still be extractable from the file. Permanent redaction requires converting the page to a flat image so that nothing beneath the black box can be recovered.</p>
+
+                    <h3>How This Tool Works</h3>
+                    <p>This tool uses a rasterize-and-rebuild approach. After you mark your redactions, each page is rendered to a canvas at 300 DPI using pdf.js. The black redaction boxes (with their privilege labels) are drawn directly on the rendered canvas image. The flattened image is then compressed as JPEG and embedded into a new PDF via pdf-lib. The result is a document where the redacted content is gone at the pixel level — there is no hidden text layer to extract.</p>
+
+                    <div class="feature-highlights">
+                        <div class="feature-highlight-card">
+                            <h4>Privilege Labels</h4>
+                            <p>Each redaction box displays the applicable privilege reason: Attorney-Client Privilege, Work Product Doctrine, Confidential, Personal Information, Trade Secret, or a custom label you define.</p>
+                        </div>
+                        <div class="feature-highlight-card">
+                            <h4>300 DPI Rasterization</h4>
+                            <p>Pages are rendered at 300 DPI — high enough to maintain readability of surrounding text while permanently eliminating the content beneath each redaction box.</p>
+                        </div>
+                        <div class="feature-highlight-card">
+                            <h4>Multi-Page Support</h4>
+                            <p>Navigate between pages with the Prev/Next buttons. Redactions accumulate across pages and are all applied when you click "Apply Redactions &amp; Download."</p>
+                        </div>
+                        <div class="feature-highlight-card">
+                            <h4>Privacy First</h4>
+                            <p>All processing happens entirely in your browser. Your PDF is never uploaded to any server — appropriate for attorney-client materials, work product, and other privileged documents.</p>
+                        </div>
+                    </div>
+
+                    <h3>When to Use Privilege Redaction</h3>
+                    <ul>
+                        <li><strong>Document production:</strong> Redact privileged portions before producing responsive documents in discovery</li>
+                        <li><strong>Court filings:</strong> Remove personal information (SSNs, dates of birth, financial account numbers) before filing public records</li>
+                        <li><strong>Client communications:</strong> Remove third-party confidential information before sharing a document with a client</li>
+                        <li><strong>Contract review:</strong> Redact pricing and terms before sharing a contract template with opposing counsel</li>
+                        <li><strong>FOIA responses:</strong> Apply exemption-based redactions to responsive records before release</li>
+                    </ul>
+
+                    <h3>Verify Before Filing</h3>
+                    <p>Always verify your redactions in the downloaded PDF before filing or producing. Open the output file and confirm that the redacted areas show only the black box — no underlying text should be visible or selectable. Because the output is an image-based PDF, text selection tools will not work on the content, which confirms the redaction is complete.</p>
+                </div>
+            </section>
+        </main>
+
+        <footer id="site-footer"></footer>
+    </div>
+
+    <!-- Shared scripts -->
+    <script src="/shared/tools.js"></script>
+    <script src="/shared/nav.js"></script>
+    <script src="/shared/file-handler.js"></script>
+    <script src="/shared/session-files.js"></script>
+
+    <script>
+        // ---------------------------------------------------------------
+        // Navigation
+        // ---------------------------------------------------------------
+        initNav({
+            title: 'Privilege Redaction',
+            subtitle: 'Permanently redact sensitive content from PDFs'
+        });
+
+        // ---------------------------------------------------------------
+        // State
+        // ---------------------------------------------------------------
+        var selectedFile = null;
+        var currentPage = 1;
+        var totalPages = 0;
+        var pdfJsDoc = null;
+        var scale = 1;         // Display scale (fit to container width)
+        var pageData = {};     // { pageNum: { width, height } }
+        var redactions = {};   // { pageNum: [{ x, y, w, h, reason }] } — PDF-space coords
+
+        // ---------------------------------------------------------------
+        // File drop zone
+        // ---------------------------------------------------------------
+        initFileDropZone('dropZone', {
+            accept: ['.pdf'],
+            maxSizeMB: 100,
+            onFile: handleFile
+        });
+
+        async function handleFile(file) {
+            selectedFile = file;
+            var statusEl = document.getElementById('status');
+
+            // Reset state
+            currentPage = 1;
+            totalPages = 0;
+            pdfJsDoc = null;
+            scale = 1;
+            pageData = {};
+            redactions = {};
+
+            statusEl.className = 'status status-processing';
+            statusEl.textContent = 'Loading PDF...';
+
+            // Reset UI
+            document.getElementById('workspaceSection').classList.add('hidden');
+            document.getElementById('warningNotice').classList.add('hidden');
+            document.getElementById('redactBtn').disabled = true;
+            document.getElementById('progressContainer').classList.add('hidden');
+            document.getElementById('progressBar').style.width = '0%';
+            document.getElementById('redactionList').innerHTML = '<p class="redaction-list-empty">Draw rectangles on the page to add redactions</p>';
+            document.getElementById('redactionCount').textContent = '0';
+
+            try {
+                var arrayBuffer = await readFileAsArrayBuffer(file);
+                pdfJsDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                totalPages = pdfJsDoc.numPages;
+
+                document.getElementById('workspaceSection').classList.remove('hidden');
+                document.getElementById('warningNotice').classList.remove('hidden');
+
+                await renderPage(currentPage);
+
+                statusEl.className = 'status status-success';
+                statusEl.textContent = 'PDF loaded — ' + totalPages + ' page' + (totalPages !== 1 ? 's' : '') + '. Draw boxes on the page to mark redactions.';
+            } catch (err) {
+                statusEl.className = 'status status-error';
+                statusEl.textContent = 'Error loading PDF: ' + err.message;
+            }
+        }
+
+        // ---------------------------------------------------------------
+        // Render page
+        // ---------------------------------------------------------------
+        async function renderPage(pageNum) {
+            var page = await pdfJsDoc.getPage(pageNum);
+            var origViewport = page.getViewport({ scale: 1 });
+
+            // Scale to fit container width
+            var container = document.getElementById('canvasContainer');
+            var containerWidth = container.clientWidth - 4;
+            scale = containerWidth / origViewport.width;
+            if (scale <= 0) scale = 1; // Safeguard if container has no width yet
+            var viewport = page.getViewport({ scale: scale });
+
+            // Render PDF page onto pdfCanvas
+            var pdfCanvas = document.getElementById('pdfCanvas');
+            pdfCanvas.width = Math.floor(viewport.width);
+            pdfCanvas.height = Math.floor(viewport.height);
+            var ctx = pdfCanvas.getContext('2d');
+            await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+
+            // Size the drawing overlay to match
+            var drawCanvas = document.getElementById('drawCanvas');
+            drawCanvas.width = Math.floor(viewport.width);
+            drawCanvas.height = Math.floor(viewport.height);
+
+            // Store page dimensions (in PDF points)
+            pageData[pageNum] = { width: origViewport.width, height: origViewport.height };
+
+            // Redraw any existing redaction boxes for this page
+            drawRedactionBoxes(pageNum);
+
+            // Update page info
+            document.getElementById('pageInfo').textContent = 'Page ' + pageNum + ' of ' + totalPages;
+
+            // Update prev/next button states
+            document.getElementById('prevPage').disabled = (pageNum <= 1);
+            document.getElementById('nextPage').disabled = (pageNum >= totalPages);
+        }
+
+        // ---------------------------------------------------------------
+        // Draw redaction boxes onto the overlay canvas
+        // ---------------------------------------------------------------
+        function drawRedactionBoxes(pageNum) {
+            var drawCanvas = document.getElementById('drawCanvas');
+            var ctx = drawCanvas.getContext('2d');
+            ctx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+
+            var boxes = redactions[pageNum] || [];
+            for (var i = 0; i < boxes.length; i++) {
+                var box = boxes[i];
+                // Convert PDF coords back to canvas coords
+                var canvasX = box.x * scale;
+                var canvasY = (pageData[pageNum].height - box.y - box.h) * scale;
+                var canvasW = box.w * scale;
+                var canvasH = box.h * scale;
+
+                // Black filled rectangle
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+                ctx.fillRect(canvasX, canvasY, canvasW, canvasH);
+
+                // White text label (centered in the box)
+                if (canvasH >= 12) {
+                    ctx.fillStyle = 'white';
+                    var labelSize = Math.max(10, Math.min(canvasH * 0.3, 16));
+                    ctx.font = labelSize + 'px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+
+                    var labelText = box.reason;
+                    // Truncate label if wider than box
+                    while (labelText.length > 3 && ctx.measureText(labelText).width > canvasW - 8) {
+                        labelText = labelText.slice(0, -1);
+                    }
+                    if (labelText !== box.reason && labelText.length > 3) {
+                        labelText = labelText.slice(0, -1) + '…';
+                    }
+                    ctx.fillText(labelText, canvasX + canvasW / 2, canvasY + canvasH / 2);
+                    ctx.textAlign = 'start';
+                    ctx.textBaseline = 'alphabetic';
+                }
+            }
+        }
+
+        // ---------------------------------------------------------------
+        // Drawing — mouse events
+        // ---------------------------------------------------------------
+        var isDrawing = false;
+        var startX = 0;
+        var startY = 0;
+
+        var drawCanvas = document.getElementById('drawCanvas');
+
+        function getCanvasPos(e) {
+            var rect = drawCanvas.getBoundingClientRect();
+            // Scale from CSS pixels to canvas pixels
+            var scaleX = drawCanvas.width / rect.width;
+            var scaleY = drawCanvas.height / rect.height;
+            return {
+                x: (e.clientX - rect.left) * scaleX,
+                y: (e.clientY - rect.top) * scaleY
+            };
+        }
+
+        function getTouchCanvasPos(e) {
+            var touch = e.touches[0];
+            return getCanvasPos(touch);
+        }
+
+        function onDrawStart(pos) {
+            isDrawing = true;
+            startX = pos.x;
+            startY = pos.y;
+        }
+
+        function onDrawMove(pos) {
+            if (!isDrawing) return;
+            var ctx = drawCanvas.getContext('2d');
+            ctx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+            drawRedactionBoxes(currentPage);
+
+            var w = pos.x - startX;
+            var h = pos.y - startY;
+
+            // Preview box while dragging
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.fillRect(startX, startY, w, h);
+            ctx.strokeStyle = 'rgba(200, 0, 0, 0.8)';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(startX, startY, w, h);
+        }
+
+        function onDrawEnd(pos) {
+            if (!isDrawing) return;
+            isDrawing = false;
+
+            var endX = pos.x;
+            var endY = pos.y;
+
+            // Minimum size check — ignore accidental clicks
+            if (Math.abs(endX - startX) < 10 || Math.abs(endY - startY) < 10) {
+                drawRedactionBoxes(currentPage);
+                return;
+            }
+
+            // Ensure we have page data
+            if (!pageData[currentPage]) return;
+
+            // Convert canvas coordinates to PDF space (PDF Y is bottom-up)
+            var pdfX = Math.min(startX, endX) / scale;
+            var pdfY = pageData[currentPage].height - (Math.max(startY, endY) / scale);
+            var pdfW = Math.abs(endX - startX) / scale;
+            var pdfH = Math.abs(endY - startY) / scale;
+
+            // Get the selected reason
+            var reasonSelect = document.getElementById('redactionReason');
+            var reason;
+            if (reasonSelect.value === 'custom') {
+                reason = document.getElementById('customReason').value.trim() || 'REDACTED';
+            } else {
+                reason = reasonSelect.value;
+            }
+
+            // Store the redaction
+            if (!redactions[currentPage]) redactions[currentPage] = [];
+            redactions[currentPage].push({ x: pdfX, y: pdfY, w: pdfW, h: pdfH, reason: reason });
+
+            drawRedactionBoxes(currentPage);
+            updateRedactionList();
+            updateRedactButton();
+        }
+
+        // Mouse events
+        drawCanvas.addEventListener('mousedown', function(e) {
+            e.preventDefault();
+            onDrawStart(getCanvasPos(e));
+        });
+        drawCanvas.addEventListener('mousemove', function(e) {
+            e.preventDefault();
+            onDrawMove(getCanvasPos(e));
+        });
+        drawCanvas.addEventListener('mouseup', function(e) {
+            e.preventDefault();
+            onDrawEnd(getCanvasPos(e));
+        });
+        drawCanvas.addEventListener('mouseleave', function(e) {
+            // Cancel drawing if mouse leaves canvas mid-drag
+            if (isDrawing) {
+                isDrawing = false;
+                drawRedactionBoxes(currentPage);
+            }
+        });
+
+        // Touch events
+        drawCanvas.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            onDrawStart(getTouchCanvasPos(e));
+        }, { passive: false });
+        drawCanvas.addEventListener('touchmove', function(e) {
+            e.preventDefault();
+            onDrawMove(getTouchCanvasPos(e));
+        }, { passive: false });
+        drawCanvas.addEventListener('touchend', function(e) {
+            e.preventDefault();
+            // touchend has no touches[0], use changedTouches
+            var touch = e.changedTouches[0];
+            onDrawEnd(getCanvasPos(touch));
+        }, { passive: false });
+
+        // ---------------------------------------------------------------
+        // Custom reason show/hide
+        // ---------------------------------------------------------------
+        document.getElementById('redactionReason').addEventListener('change', function() {
+            var customGroup = document.getElementById('customReasonGroup');
+            if (this.value === 'custom') {
+                customGroup.classList.remove('hidden');
+                document.getElementById('customReason').focus();
+            } else {
+                customGroup.classList.add('hidden');
+            }
+        });
+
+        // ---------------------------------------------------------------
+        // Page navigation
+        // ---------------------------------------------------------------
+        document.getElementById('prevPage').addEventListener('click', async function() {
+            if (currentPage > 1) {
+                currentPage--;
+                await renderPage(currentPage);
+            }
+        });
+
+        document.getElementById('nextPage').addEventListener('click', async function() {
+            if (currentPage < totalPages) {
+                currentPage++;
+                await renderPage(currentPage);
+            }
+        });
+
+        // ---------------------------------------------------------------
+        // Update redaction list sidebar
+        // ---------------------------------------------------------------
+        function updateRedactionList() {
+            var listEl = document.getElementById('redactionList');
+            var countEl = document.getElementById('redactionCount');
+
+            var totalCount = 0;
+            var items = [];
+
+            // Build sorted list: all pages in order, all boxes per page in order
+            var pageNums = Object.keys(redactions).map(Number).sort(function(a, b) { return a - b; });
+            for (var p = 0; p < pageNums.length; p++) {
+                var pageNum = pageNums[p];
+                var boxes = redactions[pageNum];
+                for (var b = 0; b < boxes.length; b++) {
+                    items.push({ pageNum: pageNum, boxIndex: b, box: boxes[b] });
+                    totalCount++;
+                }
+            }
+
+            countEl.textContent = totalCount;
+
+            if (totalCount === 0) {
+                listEl.innerHTML = '<p class="redaction-list-empty">Draw rectangles on the page to add redactions</p>';
+                return;
+            }
+
+            var html = '';
+            for (var i = 0; i < items.length; i++) {
+                var item = items[i];
+                html += '<div class="redaction-item" role="listitem">' +
+                    '<div class="redaction-item-info">' +
+                        '<div>' + escapeHtml(item.box.reason) + '</div>' +
+                        '<div class="redaction-item-page">Page ' + item.pageNum + '</div>' +
+                    '</div>' +
+                    '<button type="button" ' +
+                        'data-page="' + item.pageNum + '" ' +
+                        'data-index="' + item.boxIndex + '" ' +
+                        'aria-label="Remove redaction on page ' + item.pageNum + '"' +
+                        '>&#10005;</button>' +
+                '</div>';
+            }
+            listEl.innerHTML = html;
+
+            // Attach delete handlers
+            var deleteButtons = listEl.querySelectorAll('button');
+            for (var j = 0; j < deleteButtons.length; j++) {
+                deleteButtons[j].addEventListener('click', function() {
+                    var pageNum = parseInt(this.dataset.page);
+                    var boxIndex = parseInt(this.dataset.index);
+                    deleteRedaction(pageNum, boxIndex);
+                });
+            }
+        }
+
+        function deleteRedaction(pageNum, boxIndex) {
+            if (!redactions[pageNum]) return;
+            redactions[pageNum].splice(boxIndex, 1);
+            if (redactions[pageNum].length === 0) {
+                delete redactions[pageNum];
+            }
+            // Re-render the overlay if we're on that page
+            if (pageNum === currentPage) {
+                drawRedactionBoxes(currentPage);
+            }
+            updateRedactionList();
+            updateRedactButton();
+        }
+
+        function updateRedactButton() {
+            var totalCount = 0;
+            var pageNums = Object.keys(redactions);
+            for (var p = 0; p < pageNums.length; p++) {
+                totalCount += redactions[pageNums[p]].length;
+            }
+            document.getElementById('redactBtn').disabled = (totalCount === 0);
+        }
+
+        // ---------------------------------------------------------------
+        // Helper: HTML escape
+        // ---------------------------------------------------------------
+        function escapeHtml(str) {
+            return str
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        // ---------------------------------------------------------------
+        // Helper: convert data URL to Uint8Array
+        // ---------------------------------------------------------------
+        function dataUrlToUint8Array(dataUrl) {
+            var base64 = dataUrl.split(',')[1];
+            var binaryString = atob(base64);
+            var bytes = new Uint8Array(binaryString.length);
+            for (var i = 0; i < binaryString.length; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            return bytes;
+        }
+
+        // ---------------------------------------------------------------
+        // Pipeline suggestions
+        // ---------------------------------------------------------------
+        function showPipelineSuggestions(currentToolId) {
+            if (typeof TOOL_PIPELINE === 'undefined') return;
+            var suggestions = TOOL_PIPELINE[currentToolId];
+            if (!suggestions || suggestions.length === 0) return;
+
+            var html = '<div class="pipeline-suggestions">';
+            html += '<p class="pipeline-title">Open your result in another tool:</p>';
+            html += '<div class="pipeline-links">';
+
+            for (var i = 0; i < suggestions.length; i++) {
+                var toolId = suggestions[i];
+                var tool = TOOLS.find(function(t) { return t.id === toolId; });
+                if (tool) {
+                    html += '<a href="' + tool.path + '" class="pipeline-link">' + tool.name + ' &rarr;</a>';
+                }
+            }
+
+            html += '</div></div>';
+
+            var statusEl = document.getElementById('status');
+            if (statusEl) {
+                var existing = document.querySelector('.pipeline-suggestions');
+                if (existing) existing.remove();
+                statusEl.insertAdjacentHTML('afterend', html);
+            }
+        }
+
+        // ---------------------------------------------------------------
+        // Apply redactions — rasterize-and-rebuild at 300 DPI
+        // ---------------------------------------------------------------
+        document.getElementById('redactBtn').addEventListener('click', applyRedactions);
+
+        async function applyRedactions() {
+            var btn = document.getElementById('redactBtn');
+            var statusEl = document.getElementById('status');
+            var progressContainer = document.getElementById('progressContainer');
+            var progressBar = document.getElementById('progressBar');
+            var progressText = document.getElementById('progressText');
+
+            btn.disabled = true;
+            statusEl.className = 'status status-processing';
+            statusEl.textContent = 'Applying redactions...';
+            progressContainer.classList.remove('hidden');
+            progressBar.style.width = '0%';
+            progressText.textContent = 'Starting...';
+
+            try {
+                var DPI = 300;
+                var renderScale = DPI / 72; // pdf.js renders at 72 DPI by default
+
+                var newDoc = await PDFLib.PDFDocument.create();
+
+                for (var i = 1; i <= totalPages; i++) {
+                    var percent = Math.round(((i - 1) / totalPages) * 90);
+                    progressBar.style.width = percent + '%';
+                    progressText.textContent = 'Rasterizing page ' + i + ' of ' + totalPages + '...';
+
+                    var page = await pdfJsDoc.getPage(i);
+                    var origViewport = page.getViewport({ scale: 1 });
+                    var renderViewport = page.getViewport({ scale: renderScale });
+
+                    // Render page at 300 DPI
+                    var canvas = document.createElement('canvas');
+                    canvas.width = Math.floor(renderViewport.width);
+                    canvas.height = Math.floor(renderViewport.height);
+                    var ctx = canvas.getContext('2d');
+                    await page.render({ canvasContext: ctx, viewport: renderViewport }).promise;
+
+                    // Draw redaction boxes onto the rendered page image
+                    var boxes = redactions[i] || [];
+                    for (var j = 0; j < boxes.length; j++) {
+                        var box = boxes[j];
+                        // Convert PDF coords to pixel coords at render scale
+                        var rx = box.x * renderScale;
+                        var ry = (origViewport.height - box.y - box.h) * renderScale;
+                        var rw = box.w * renderScale;
+                        var rh = box.h * renderScale;
+
+                        // Black filled rectangle — covers the content
+                        ctx.fillStyle = 'black';
+                        ctx.fillRect(rx, ry, rw, rh);
+
+                        // White label text centered in the box
+                        ctx.fillStyle = 'white';
+                        var labelSize = Math.max(12, Math.min(rh * 0.25, 24));
+                        ctx.font = 'bold ' + labelSize + 'px Helvetica, Arial, sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+
+                        var labelText = box.reason;
+                        while (labelText.length > 3 && ctx.measureText(labelText).width > rw - 16) {
+                            labelText = labelText.slice(0, -1);
+                        }
+                        if (labelText !== box.reason && labelText.length > 3) {
+                            labelText = labelText.slice(0, -1) + '…';
+                        }
+                        ctx.fillText(labelText, rx + rw / 2, ry + rh / 2);
+                        ctx.textAlign = 'start';
+                        ctx.textBaseline = 'alphabetic';
+                    }
+
+                    // Convert to JPEG at high quality
+                    var jpegDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+                    var jpegBytes = dataUrlToUint8Array(jpegDataUrl);
+
+                    // Embed in new PDF at original page dimensions (PDF points)
+                    var jpegImage = await newDoc.embedJpg(jpegBytes);
+                    var newPage = newDoc.addPage([origViewport.width, origViewport.height]);
+                    newPage.drawImage(jpegImage, {
+                        x: 0,
+                        y: 0,
+                        width: origViewport.width,
+                        height: origViewport.height
+                    });
+                }
+
+                progressBar.style.width = '95%';
+                progressText.textContent = 'Saving PDF...';
+
+                // Strip metadata from output so no identifying info leaks
+                newDoc.setTitle('');
+                newDoc.setAuthor('');
+                newDoc.setSubject('');
+                newDoc.setCreator('');
+                newDoc.setProducer('');
+
+                var pdfBytes = await newDoc.save();
+
+                progressBar.style.width = '100%';
+                progressText.textContent = 'Done!';
+
+                var filename = selectedFile.name.replace(/\.pdf$/i, '') + '_redacted.pdf';
+                downloadPdf(pdfBytes, filename);
+
+                // Add to session files
+                if (typeof sessionFiles !== 'undefined') {
+                    var blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                    sessionFiles.add(filename, blob, 'redaction');
+                }
+
+                statusEl.className = 'status status-success';
+                statusEl.textContent = 'Redacted PDF downloaded as "' + filename + '". Verify all redaction boxes before filing.';
+
+                // Show pipeline suggestions
+                showPipelineSuggestions('redaction');
+
+            } catch (err) {
+                statusEl.className = 'status status-error';
+                statusEl.textContent = 'Error applying redactions: ' + err.message;
+                progressContainer.classList.add('hidden');
+            } finally {
+                // Re-enable button only if there are still redactions
+                updateRedactButton();
+            }
+        }
+
+        // ---------------------------------------------------------------
+        // Handle window resize — re-render current page to update scale
+        // ---------------------------------------------------------------
+        var resizeTimer;
+        window.addEventListener('resize', function() {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(function() {
+                if (pdfJsDoc && currentPage) {
+                    renderPage(currentPage);
+                }
+            }, 200);
+        });
+    </script>
+</body>
+</html>

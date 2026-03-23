@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-13354133605"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-13354133605');
+    </script>
+
+    <!-- Umami Analytics -->
+    <script defer src="https://umami.ctibs.app/script.js" data-website-id="b5a8938f-fd00-486c-bf17-0352963407f3"></script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- SEO Meta Tags -->
+    <title>Free Filing Assembler | Combine Motion &amp; Exhibits with Slip Sheets | BatesStamp.com</title>
+    <meta name="description" content="Combine your motion or brief with exhibits and slip sheets into one e-filing-ready PDF. Free, browser-based — your files never leave your device.">
+    <meta name="keywords" content="filing assembler, combine pdf exhibits, slip sheet generator, legal filing pdf, exhibit slip sheets, assemble legal filing, e-file pdf combiner, motion exhibits pdf">
+    <meta name="author" content="BatesStamp.com">
+    <meta name="robots" content="index, follow">
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://batesstamp.com/filing-assembler/">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://batesstamp.com/filing-assembler/">
+    <meta property="og:title" content="Free Filing Assembler — Combine Motion &amp; Exhibits with Slip Sheets">
+    <meta property="og:description" content="Combine your motion or brief with exhibits and auto-generated slip sheets into one PDF ready to e-file. Free, browser-based — your files never leave your device.">
+    <meta property="og:image" content="https://batesstamp.com/og-image.svg">
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://batesstamp.com/filing-assembler/">
+    <meta name="twitter:title" content="Free Filing Assembler — Combine Motion &amp; Exhibits with Slip Sheets">
+    <meta name="twitter:description" content="Combine your motion or brief with exhibits and auto-generated slip sheets into one PDF ready to e-file. Free, browser-based — your files never leave your device.">
+    <meta name="twitter:image" content="https://batesstamp.com/og-image.svg">
+
+    <!-- Structured Data - JSON-LD -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Filing Assembler",
+      "description": "Free online tool to combine a motion or brief with exhibits and auto-generated slip sheets into a single PDF ready to e-file — all processing happens in your browser",
+      "url": "https://batesstamp.com/filing-assembler/",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "Web Browser",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "featureList": [
+        "Combine motion or brief with multiple exhibits",
+        "Auto-generated exhibit slip sheets",
+        "Drag-to-reorder exhibits",
+        "Multiple label formats (Exhibit A/B/C, 1/2/3, Plaintiff's/Defendant's)",
+        "Optional case caption on slip sheets",
+        "Browser-based processing — files never uploaded"
+      ],
+      "browserRequirements": "Requires JavaScript. Modern web browser."
+    }
+    </script>
+
+    <!-- Favicons -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <meta name="theme-color" content="#1e3a5f">
+    <link rel="manifest" href="/manifest.json">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="/brand.css">
+    <link rel="stylesheet" href="/styles.css">
+
+    <!-- pdf-lib -->
+    <link rel="preconnect" href="https://unpkg.com">
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js" integrity="sha384-awMiyfMDBszoPfxLPAp6cXS/4DPy9abzcbnVm+mMOp/JWsyPKgrMfwSJFxdsBOqb" crossorigin="anonymous"></script>
+
+    <!-- pdf.js (for page counts) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
+
+    <!-- SortableJS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.3/Sortable.min.js"></script>
+</head>
+<body>
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+    <div class="container">
+        <header id="site-header"></header>
+        <nav id="site-nav" aria-label="Main navigation"></nav>
+
+        <main id="main-content">
+            <noscript><p style="text-align:center;padding:20px;color:#c53030;">This tool requires JavaScript to function. Please enable JavaScript in your browser.</p></noscript>
+
+            <p class="intro-text">Combine your motion or brief with exhibits and auto-generated slip sheets into one PDF ready to e-file. Add files, reorder exhibits by dragging, and download the assembled filing. All processing happens in your browser — your files never leave your device.</p>
+
+            <!-- 1. Main Document -->
+            <div class="section">
+                <h2 class="section-title">1. Main Document (Optional)</h2>
+                <p class="section-hint">Upload your motion, brief, or main filing document. Exhibits will follow.</p>
+                <div class="file-drop-zone" id="mainDocZone">
+                    <input type="file" accept=".pdf,.jpg,.jpeg,.png" aria-label="Choose main document">
+                    <div class="drop-zone-icon">
+                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/></svg>
+                    </div>
+                    <div class="drop-zone-text">Drop your main document here or click to browse</div>
+                    <div class="drop-zone-hint">PDF or image files. Your files never leave your browser.</div>
+                </div>
+            </div>
+
+            <!-- 2. Exhibits -->
+            <div class="section">
+                <h2 class="section-title">2. Exhibits</h2>
+                <div id="exhibitList" class="exhibit-list" role="list" aria-label="Exhibit list">
+                    <p class="exhibit-list-empty" id="emptyMessage">No exhibits added yet</p>
+                </div>
+                <div class="file-drop-zone" id="exhibitZone">
+                    <input type="file" accept=".pdf,.jpg,.jpeg,.png" multiple aria-label="Add exhibits">
+                    <div class="drop-zone-icon">
+                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/></svg>
+                    </div>
+                    <div class="drop-zone-text">Drop exhibit files here or click to browse</div>
+                    <div class="drop-zone-hint">Add multiple files at once. PDF or image files.</div>
+                </div>
+            </div>
+
+            <!-- 3. Slip Sheet Options -->
+            <div class="section">
+                <h2 class="section-title">3. Slip Sheet Options</h2>
+                <div class="two-column">
+                    <div class="control-group">
+                        <label for="labelFormat">Label Format</label>
+                        <select id="labelFormat">
+                            <option value="alpha" selected>Exhibit A, B, C&hellip;</option>
+                            <option value="numeric">Exhibit 1, 2, 3&hellip;</option>
+                            <option value="plaintiff-alpha">Plaintiff's Exhibit A, B, C&hellip;</option>
+                            <option value="defendant-alpha">Defendant's Exhibit A, B, C&hellip;</option>
+                            <option value="custom">Custom Prefix&hellip;</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label for="slipFontSize">Font Size</label>
+                        <select id="slipFontSize">
+                            <option value="24">Small (24pt)</option>
+                            <option value="36" selected>Medium (36pt)</option>
+                            <option value="48">Large (48pt)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="control-group hidden" id="customPrefixGroup">
+                    <label for="customPrefix">Custom Prefix</label>
+                    <input type="text" id="customPrefix" placeholder="e.g. Joint Exhibit">
+                </div>
+                <div class="control-group">
+                    <label for="caseName">Case Name (optional)</label>
+                    <input type="text" id="caseName" placeholder="Smith v. Jones">
+                </div>
+                <div class="control-group">
+                    <label for="caseNumber">Case Number (optional)</label>
+                    <input type="text" id="caseNumber" placeholder="2024-CA-12345">
+                </div>
+                <div class="control-group">
+                    <label for="courtName">Court Name (optional)</label>
+                    <input type="text" id="courtName" placeholder="Circuit Court, 15th Judicial Circuit">
+                </div>
+            </div>
+
+            <!-- Summary -->
+            <div class="assembly-summary" id="summary">
+                <span>Exhibits: <strong id="exhibitCount">0</strong></span>
+                <span>Total pages: <strong id="totalPages">0</strong></span>
+                <span>Est. size: <strong id="totalSize">0 KB</strong></span>
+            </div>
+
+            <!-- Action Button -->
+            <button class="button" id="assembleBtn" data-umami-event="assemble-filing" disabled>Assemble Filing</button>
+
+            <!-- Progress bar -->
+            <div class="progress-container hidden" id="progressContainer">
+                <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+                <span class="progress-text" id="progressText">Assembling&hellip;</span>
+            </div>
+
+            <!-- Status -->
+            <div id="status" class="status" role="status" aria-live="polite">
+                Add at least one exhibit or a main document to begin
+            </div>
+
+            <!-- SEO Content -->
+            <section id="about" class="seo-content">
+                <h2>About the Filing Assembler</h2>
+                <div class="seo-content-inner">
+                    <h3>What Is a Filing Assembler?</h3>
+                    <p>When filing a motion with exhibits in court, the standard practice is to assemble the documents in a specific order: the main motion or brief first, followed by each exhibit preceded by a labeled slip sheet (also called an exhibit cover page). This tool automates that assembly process, combining all of your documents into a single, court-ready PDF in seconds.</p>
+
+                    <h3>How It Works</h3>
+                    <p>Upload your main document (optional) and any number of exhibit files. The tool generates a slip sheet for each exhibit — a single page with the exhibit label centered in large text — then assembles everything in order: main document, then [Slip Sheet → Exhibit] for each exhibit. The result is a single PDF ready to e-file or print.</p>
+
+                    <div class="feature-highlights">
+                        <div class="feature-highlight-card">
+                            <h4>Drag-to-Reorder</h4>
+                            <p>Rearrange exhibits in any order by dragging the handle. Labels update automatically to reflect the new sequence.</p>
+                        </div>
+                        <div class="feature-highlight-card">
+                            <h4>Flexible Label Formats</h4>
+                            <p>Choose from Exhibit A/B/C, Exhibit 1/2/3, Plaintiff's Exhibit, Defendant's Exhibit, or a fully custom prefix.</p>
+                        </div>
+                        <div class="feature-highlight-card">
+                            <h4>Case Caption on Slip Sheets</h4>
+                            <p>Optionally include the court name, case name, and case number on each slip sheet for a professional, court-ready appearance.</p>
+                        </div>
+                        <div class="feature-highlight-card">
+                            <h4>Privacy First</h4>
+                            <p>All processing happens entirely in your browser. Your documents are never uploaded to any server — suitable for confidential and privileged materials.</p>
+                        </div>
+                    </div>
+
+                    <h3>Supported File Types</h3>
+                    <p>Both the main document and exhibit slots accept PDF, JPG, and PNG files. Image files are embedded as single-page PDFs in the output. For multi-page exhibits, use PDF format.</p>
+
+                    <h3>When to Use the Filing Assembler</h3>
+                    <ul>
+                        <li><strong>Motion practice:</strong> Assemble a motion with supporting exhibits before e-filing</li>
+                        <li><strong>Trial preparation:</strong> Build a pre-marked exhibit binder as a single PDF</li>
+                        <li><strong>Deposition notices:</strong> Attach document requests as lettered exhibits</li>
+                        <li><strong>Discovery responses:</strong> Combine your response with labeled exhibit documents</li>
+                        <li><strong>Appellate filings:</strong> Assemble the appendix with tabbed exhibit pages</li>
+                    </ul>
+                </div>
+            </section>
+        </main>
+
+        <footer id="site-footer"></footer>
+    </div>
+
+    <!-- Shared scripts -->
+    <script src="/shared/tools.js"></script>
+    <script src="/shared/nav.js"></script>
+    <script src="/shared/file-handler.js"></script>
+    <script src="/shared/session-files.js"></script>
+
+    <script>
+        // ---------------------------------------------------------------
+        // State
+        // ---------------------------------------------------------------
+        var mainDoc = null;   // { file: File, pages: number }
+        var exhibits = [];    // [{ file: File, pages: number, label: String, size: number }]
+
+        // ---------------------------------------------------------------
+        // Navigation
+        // ---------------------------------------------------------------
+        initNav({
+            title: 'Filing Assembler',
+            subtitle: 'Combine motion, exhibits, and slip sheets into one filing'
+        });
+
+        // ---------------------------------------------------------------
+        // Main document drop zone
+        // ---------------------------------------------------------------
+        initFileDropZone('mainDocZone', {
+            accept: ['.pdf', '.jpg', '.jpeg', '.png'],
+            maxSizeMB: 200,
+            onFile: handleMainDoc
+        });
+
+        async function handleMainDoc(file) {
+            var pages = 1;
+            if (file.type === 'application/pdf') {
+                try {
+                    var ab = await readFileAsArrayBuffer(file);
+                    var doc = await PDFLib.PDFDocument.load(ab);
+                    pages = doc.getPageCount();
+                } catch (e) {
+                    pages = 1;
+                }
+            }
+            mainDoc = { file: file, pages: pages };
+            updateSummary();
+            updateAssembleButton();
+        }
+
+        // ---------------------------------------------------------------
+        // Exhibit drop zone (multi-file, custom handling)
+        // ---------------------------------------------------------------
+        initFileDropZone('exhibitZone', {
+            accept: ['.pdf', '.jpg', '.jpeg', '.png'],
+            multiple: true,
+            maxSizeMB: 200,
+            onFiles: function(files) {
+                addExhibits(files);
+            }
+        });
+
+        // ---------------------------------------------------------------
+        // SortableJS for drag-to-reorder
+        // ---------------------------------------------------------------
+        var sortable = new Sortable(document.getElementById('exhibitList'), {
+            handle: '.drag-handle',
+            animation: 150,
+            ghostClass: 'exhibit-ghost',
+            filter: '#emptyMessage',
+            onEnd: function() {
+                // Rebuild exhibits array to match new DOM order
+                var list = document.getElementById('exhibitList');
+                var items = list.querySelectorAll('.exhibit-item');
+                var reordered = [];
+                for (var i = 0; i < items.length; i++) {
+                    var idx = parseInt(items[i].getAttribute('data-index'), 10);
+                    reordered.push(exhibits[idx]);
+                }
+                exhibits = reordered;
+                renderExhibitList();
+                updateSummary();
+            }
+        });
+
+        // ---------------------------------------------------------------
+        // Label format change
+        // ---------------------------------------------------------------
+        document.getElementById('labelFormat').addEventListener('change', function() {
+            var customGroup = document.getElementById('customPrefixGroup');
+            if (this.value === 'custom') {
+                customGroup.classList.remove('hidden');
+            } else {
+                customGroup.classList.add('hidden');
+            }
+            updateExhibitLabels();
+            renderExhibitList();
+            updateSummary();
+        });
+
+        document.getElementById('customPrefix').addEventListener('input', function() {
+            updateExhibitLabels();
+            renderExhibitList();
+        });
+
+        // ---------------------------------------------------------------
+        // Label generation
+        // ---------------------------------------------------------------
+        function getLabel(index) {
+            var format = document.getElementById('labelFormat').value;
+            if (format === 'alpha') return 'Exhibit ' + String.fromCharCode(65 + index);
+            if (format === 'numeric') return 'Exhibit ' + (index + 1);
+            if (format === 'plaintiff-alpha') return "Plaintiff's Exhibit " + String.fromCharCode(65 + index);
+            if (format === 'defendant-alpha') return "Defendant's Exhibit " + String.fromCharCode(65 + index);
+            if (format === 'custom') {
+                var prefix = document.getElementById('customPrefix').value.trim() || 'Exhibit';
+                return prefix + ' ' + String.fromCharCode(65 + index);
+            }
+            return 'Exhibit ' + String.fromCharCode(65 + index);
+        }
+
+        function updateExhibitLabels() {
+            for (var i = 0; i < exhibits.length; i++) {
+                exhibits[i].label = getLabel(i);
+            }
+        }
+
+        // ---------------------------------------------------------------
+        // Add exhibits
+        // ---------------------------------------------------------------
+        async function addExhibits(files) {
+            for (var i = 0; i < files.length; i++) {
+                var file = files[i];
+                var pages = 1;
+
+                if (file.type === 'application/pdf') {
+                    try {
+                        var ab = await readFileAsArrayBuffer(file);
+                        var doc = await PDFLib.PDFDocument.load(ab);
+                        pages = doc.getPageCount();
+                    } catch (e) {
+                        pages = 1;
+                    }
+                }
+
+                exhibits.push({
+                    file: file,
+                    pages: pages,
+                    label: getLabel(exhibits.length),
+                    size: file.size
+                });
+            }
+            renderExhibitList();
+            updateSummary();
+            updateAssembleButton();
+        }
+
+        // ---------------------------------------------------------------
+        // Render exhibit list
+        // ---------------------------------------------------------------
+        function renderExhibitList() {
+            var list = document.getElementById('exhibitList');
+            var emptyMsg = document.getElementById('emptyMessage');
+
+            // Remove all exhibit items (but not the empty message)
+            var existingItems = list.querySelectorAll('.exhibit-item');
+            for (var i = 0; i < existingItems.length; i++) {
+                list.removeChild(existingItems[i]);
+            }
+
+            if (exhibits.length === 0) {
+                emptyMsg.style.display = '';
+                return;
+            }
+
+            emptyMsg.style.display = 'none';
+
+            for (var i = 0; i < exhibits.length; i++) {
+                var exhibit = exhibits[i];
+                var item = document.createElement('div');
+                item.className = 'exhibit-item';
+                item.setAttribute('data-index', i);
+                item.setAttribute('role', 'listitem');
+
+                var pageWord = exhibit.pages === 1 ? 'page' : 'pages';
+                item.innerHTML =
+                    '<span class="drag-handle" aria-hidden="true">&#10783;</span>' +
+                    '<input type="text" class="exhibit-label" value="' + escapeAttr(exhibit.label) + '" ' +
+                        'aria-label="Label for ' + escapeAttr(exhibit.file.name) + '">' +
+                    '<span class="exhibit-info">' + escapeHtml(exhibit.file.name) + ' (' + exhibit.pages + ' ' + pageWord + ')</span>' +
+                    '<button type="button" class="exhibit-remove" aria-label="Remove ' + escapeAttr(exhibit.label) + '" data-idx="' + i + '">&times;</button>';
+
+                list.insertBefore(item, emptyMsg);
+            }
+
+            // Attach label change listeners
+            var inputs = list.querySelectorAll('.exhibit-label');
+            for (var j = 0; j < inputs.length; j++) {
+                (function(input, idx) {
+                    input.addEventListener('change', function() {
+                        exhibits[idx].label = this.value;
+                    });
+                })(inputs[j], j);
+            }
+
+            // Attach remove button listeners
+            var removeBtns = list.querySelectorAll('.exhibit-remove');
+            for (var k = 0; k < removeBtns.length; k++) {
+                (function(btn) {
+                    btn.addEventListener('click', function() {
+                        var removeIdx = parseInt(this.getAttribute('data-idx'), 10);
+                        exhibits.splice(removeIdx, 1);
+                        updateExhibitLabels();
+                        renderExhibitList();
+                        updateSummary();
+                        updateAssembleButton();
+                    });
+                })(removeBtns[k]);
+            }
+        }
+
+        // ---------------------------------------------------------------
+        // Summary
+        // ---------------------------------------------------------------
+        function updateSummary() {
+            var totalPgs = 0;
+            var totalBytes = 0;
+
+            if (mainDoc) {
+                totalPgs += mainDoc.pages;
+                totalBytes += mainDoc.file.size;
+            }
+
+            // Each exhibit: 1 slip sheet page + exhibit pages
+            for (var i = 0; i < exhibits.length; i++) {
+                totalPgs += 1 + exhibits[i].pages; // slip sheet + exhibit
+                totalBytes += exhibits[i].size;
+            }
+
+            document.getElementById('exhibitCount').textContent = exhibits.length;
+            document.getElementById('totalPages').textContent = totalPgs;
+            document.getElementById('totalSize').textContent = formatFileSize(totalBytes);
+        }
+
+        function updateAssembleButton() {
+            var btn = document.getElementById('assembleBtn');
+            btn.disabled = (exhibits.length === 0 && !mainDoc);
+        }
+
+        // ---------------------------------------------------------------
+        // Assemble button
+        // ---------------------------------------------------------------
+        document.getElementById('assembleBtn').addEventListener('click', function() {
+            assembleFiling();
+        });
+
+        // ---------------------------------------------------------------
+        // Slip sheet generation
+        // ---------------------------------------------------------------
+        async function createSlipSheet(label, pageWidth, pageHeight) {
+            var doc = await PDFLib.PDFDocument.create();
+            var font = await doc.embedFont(PDFLib.StandardFonts.HelveticaBold);
+            var page = doc.addPage([pageWidth, pageHeight]);
+
+            var fontSize = parseInt(document.getElementById('slipFontSize').value, 10);
+            var textWidth = font.widthOfTextAtSize(label, fontSize);
+
+            // Center the main label vertically and horizontally
+            page.drawText(label, {
+                x: (pageWidth - textWidth) / 2,
+                y: pageHeight / 2 + fontSize / 2,
+                size: fontSize,
+                font: font,
+                color: PDFLib.rgb(0, 0, 0)
+            });
+
+            // Optional case caption (above the label)
+            var caseName = document.getElementById('caseName').value.trim();
+            var caseNumber = document.getElementById('caseNumber').value.trim();
+            var courtName = document.getElementById('courtName').value.trim();
+
+            if (courtName) {
+                var courtFontSize = 14;
+                var courtText = courtName.toUpperCase();
+                var courtWidth = font.widthOfTextAtSize(courtText, courtFontSize);
+                page.drawText(courtText, {
+                    x: (pageWidth - courtWidth) / 2,
+                    y: pageHeight / 2 + fontSize + 60,
+                    size: courtFontSize,
+                    font: font,
+                    color: PDFLib.rgb(0, 0, 0)
+                });
+            }
+
+            if (caseName) {
+                var nameFont = await doc.embedFont(PDFLib.StandardFonts.Helvetica);
+                var nameFontSize = 12;
+                var nameWidth = nameFont.widthOfTextAtSize(caseName, nameFontSize);
+                page.drawText(caseName, {
+                    x: (pageWidth - nameWidth) / 2,
+                    y: pageHeight / 2 + fontSize + 40,
+                    size: nameFontSize,
+                    font: nameFont,
+                    color: PDFLib.rgb(0, 0, 0)
+                });
+            }
+
+            if (caseNumber) {
+                var numFont = await doc.embedFont(PDFLib.StandardFonts.Helvetica);
+                var numFontSize = 12;
+                var numText = 'Case No. ' + caseNumber;
+                var numWidth = numFont.widthOfTextAtSize(numText, numFontSize);
+                page.drawText(numText, {
+                    x: (pageWidth - numWidth) / 2,
+                    y: pageHeight / 2 + fontSize + 20,
+                    size: numFontSize,
+                    font: numFont,
+                    color: PDFLib.rgb(0, 0, 0)
+                });
+            }
+
+            return await doc.save();
+        }
+
+        // ---------------------------------------------------------------
+        // Progress helper
+        // ---------------------------------------------------------------
+        function updateProgress(current, total) {
+            var pct = Math.round((current / total) * 100);
+            document.getElementById('progressBar').style.width = pct + '%';
+            document.getElementById('progressText').textContent =
+                'Processing exhibit ' + current + ' of ' + total + '\u2026';
+        }
+
+        // ---------------------------------------------------------------
+        // Pipeline suggestions
+        // ---------------------------------------------------------------
+        function showPipelineSuggestions(currentToolId) {
+            if (typeof TOOL_PIPELINE === 'undefined') return;
+            var suggestions = TOOL_PIPELINE[currentToolId];
+            if (!suggestions || suggestions.length === 0) return;
+
+            var html = '<div class="pipeline-suggestions">';
+            html += '<p class="pipeline-title">Open your result in another tool:</p>';
+            html += '<div class="pipeline-links">';
+
+            for (var i = 0; i < suggestions.length; i++) {
+                var toolId = suggestions[i];
+                var tool = TOOLS.find(function(t) { return t.id === toolId; });
+                if (tool) {
+                    html += '<a href="' + tool.path + '" class="pipeline-link">' + tool.name + ' &rarr;</a>';
+                }
+            }
+
+            html += '</div></div>';
+
+            var statusEl = document.getElementById('status');
+            if (statusEl) {
+                var existing = document.querySelector('.pipeline-suggestions');
+                if (existing) existing.remove();
+                statusEl.insertAdjacentHTML('afterend', html);
+            }
+        }
+
+        // ---------------------------------------------------------------
+        // Main assembly
+        // ---------------------------------------------------------------
+        async function assembleFiling() {
+            var btn = document.getElementById('assembleBtn');
+            var statusEl = document.getElementById('status');
+            var progressContainer = document.getElementById('progressContainer');
+
+            btn.disabled = true;
+            statusEl.className = 'status status-processing';
+            statusEl.textContent = 'Assembling filing\u2026';
+            progressContainer.classList.remove('hidden');
+            document.getElementById('progressBar').style.width = '0%';
+            document.getElementById('progressText').textContent = 'Starting\u2026';
+
+            try {
+                var outputDoc = await PDFLib.PDFDocument.create();
+
+                // 1. Add main document if provided
+                if (mainDoc) {
+                    var mainBytes = await readFileAsArrayBuffer(mainDoc.file);
+                    if (mainDoc.file.type === 'application/pdf') {
+                        var mainPdf = await PDFLib.PDFDocument.load(mainBytes);
+                        var mainPages = await outputDoc.copyPages(mainPdf, mainPdf.getPageIndices());
+                        mainPages.forEach(function(p) { outputDoc.addPage(p); });
+                    } else {
+                        // Image main doc
+                        var mainImg;
+                        if (mainDoc.file.type === 'image/jpeg') {
+                            mainImg = await outputDoc.embedJpg(mainBytes);
+                        } else {
+                            mainImg = await outputDoc.embedPng(mainBytes);
+                        }
+                        var mainImgPage = outputDoc.addPage([mainImg.width, mainImg.height]);
+                        mainImgPage.drawImage(mainImg, { x: 0, y: 0, width: mainImg.width, height: mainImg.height });
+                    }
+                    mainBytes = null;
+                }
+
+                // 2. For each exhibit: slip sheet + exhibit content
+                for (var i = 0; i < exhibits.length; i++) {
+                    updateProgress(i + 1, exhibits.length);
+                    var exhibit = exhibits[i];
+
+                    var exhibitBytes = await readFileAsArrayBuffer(exhibit.file);
+                    var pageWidth = 612, pageHeight = 792; // US Letter default
+
+                    if (exhibit.file.type === 'application/pdf') {
+                        var exhibitPdf = await PDFLib.PDFDocument.load(exhibitBytes);
+                        var firstPage = exhibitPdf.getPages()[0];
+                        var size = firstPage.getSize();
+                        pageWidth = size.width;
+                        pageHeight = size.height;
+
+                        // Slip sheet
+                        var slipBytes = await createSlipSheet(exhibit.label, pageWidth, pageHeight);
+                        var slipDoc = await PDFLib.PDFDocument.load(slipBytes);
+                        var slipPages = await outputDoc.copyPages(slipDoc, [0]);
+                        outputDoc.addPage(slipPages[0]);
+
+                        // Exhibit pages
+                        var exhibitPages = await outputDoc.copyPages(exhibitPdf, exhibitPdf.getPageIndices());
+                        exhibitPages.forEach(function(p) { outputDoc.addPage(p); });
+
+                    } else {
+                        // Image file
+                        var slipBytes2 = await createSlipSheet(exhibit.label, pageWidth, pageHeight);
+                        var slipDoc2 = await PDFLib.PDFDocument.load(slipBytes2);
+                        var slipPages2 = await outputDoc.copyPages(slipDoc2, [0]);
+                        outputDoc.addPage(slipPages2[0]);
+
+                        var img;
+                        if (exhibit.file.type === 'image/jpeg') {
+                            img = await outputDoc.embedJpg(exhibitBytes);
+                        } else {
+                            img = await outputDoc.embedPng(exhibitBytes);
+                        }
+                        var imgPage = outputDoc.addPage([img.width, img.height]);
+                        imgPage.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
+                    }
+
+                    exhibitBytes = null;
+                }
+
+                document.getElementById('progressBar').style.width = '100%';
+                document.getElementById('progressText').textContent = 'Saving\u2026';
+
+                var pdfBytes = await outputDoc.save();
+                downloadPdf(pdfBytes, 'filing_assembled.pdf');
+
+                // Add to session files
+                if (typeof sessionFiles !== 'undefined') {
+                    var blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                    sessionFiles.add('filing_assembled.pdf', blob, 'filing-assembler');
+                }
+
+                statusEl.className = 'status status-success';
+                statusEl.textContent = '\u2713 Filing assembled successfully — ' + formatFileSize(pdfBytes.byteLength) + '. Download started.';
+
+                // Show pipeline suggestions
+                showPipelineSuggestions('filing-assembler');
+
+            } catch (err) {
+                console.error('Assembly error:', err);
+                statusEl.className = 'status status-error';
+                statusEl.textContent = 'Error: ' + (err.message || 'Assembly failed. Please check your files and try again.');
+            } finally {
+                btn.disabled = false;
+                progressContainer.classList.add('hidden');
+            }
+        }
+
+        // ---------------------------------------------------------------
+        // HTML escape helpers
+        // ---------------------------------------------------------------
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function escapeAttr(str) {
+            return String(str).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        // ---------------------------------------------------------------
+        // Initial render
+        // ---------------------------------------------------------------
+        updateSummary();
+    </script>
+</body>
+</html>
