@@ -167,20 +167,8 @@
     <a href="#main-content" class="skip-link">Skip to main content</a>
 
     <div class="container">
-        <header>
-            <h1>Free Bates Stamping Tool<br>Add Bates Numbers to PDFs Online</h1>
-            <p>Secure, client-side document numbering for legal professionals</p>
-        </header>
-
-        <nav aria-label="Main navigation">
-            <div class="nav-links">
-                <a href="https://pfscalculator.com" target="_blank" rel="noopener noreferrer">PFS Calculator</a>
-                <a href="/" aria-current="page">Home</a>
-                <a href="/about.html">About</a>
-                <a href="/privacy-policy.html">Privacy Policy</a>
-                <a href="/terms-of-service.html">Terms of Service</a>
-            </div>
-        </nav>
+        <header id="site-header"></header>
+        <nav id="site-nav" aria-label="Main navigation"></nav>
 
         <main id="main-content">
             <noscript><p style="text-align:center;padding:20px;color:#c53030;">This tool requires JavaScript to function. Please enable JavaScript in your browser.</p></noscript>
@@ -481,33 +469,22 @@
             </section>
         </main>
 
-        <footer>
-            <nav aria-label="Footer navigation">
-                <div class="footer-top">
-                    <div class="footer-col">
-                        <h4>BatesStamp.com</h4>
-                        <p>Free, secure Bates stamping for legal professionals. Your documents are processed entirely in your browser — we never see, upload, or store your files.</p>
-                    </div>
-                    <div class="footer-col">
-                        <h4>Pages</h4>
-                        <a href="/">Home</a>
-                        <a href="/about.html">About &amp; Contact</a>
-                        <a href="/privacy-policy.html">Privacy Policy</a>
-                        <a href="/terms-of-service.html">Terms of Service</a>
-                    </div>
-                    <div class="footer-col">
-                        <h4>More Tools</h4>
-                        <a href="https://pfscalculator.com" target="_blank" rel="noopener noreferrer">Florida PFS Calculator</a>
-                    </div>
-                </div>
-            </nav>
-            <div class="footer-bottom">
-                <p>&copy; 2026 BatesStamp.com. All processing happens on your device.</p>
-            </div>
-        </footer>
+        <footer id="site-footer"></footer>
     </div>
 
+    <script src="/shared/tools.js"></script>
+    <script src="/shared/nav.js"></script>
+    <script src="/shared/file-handler.js"></script>
+    <script src="/shared/session-files.js"></script>
     <script>
+        // Initialize shared navigation
+        if (typeof initNav === 'function') {
+            initNav({
+                title: 'Free Bates Stamping Tool',
+                subtitle: 'Add Bates Numbers to PDFs Online'
+            });
+        }
+
         // Drag-and-drop file upload
         (function() {
             var dropZone = document.getElementById('dropZone');
@@ -684,7 +661,7 @@
                 setStatus('Processing PDF...', 'processing');
 
                 // Read the PDF file
-                const arrayBuffer = await file.arrayBuffer();
+                const arrayBuffer = await readFileAsArrayBuffer(file);
 
                 // Load the PDF with pdf-lib
                 let pdfDoc;
@@ -917,13 +894,51 @@
 
                 // Generate filename
                 const originalName = file.name.replace(/\.pdf$/i, '');
-                link.download = originalName + '_stamped.pdf';
+                const outputFilename = originalName + '_stamped.pdf';
+                link.download = outputFilename;
                 link.click();
 
                 // Clean up after download has started
                 setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
 
-                setStatus('Stamped ' + totalPages + ' page(s) — saved as ' + originalName + '_stamped.pdf', 'success');
+                // Add to session files for cross-tool pipeline
+                if (typeof sessionFiles !== 'undefined') {
+                    var sessionBlob = new Blob([pdfBytes], { type: 'application/pdf' });
+                    sessionFiles.add(outputFilename, sessionBlob, 'bates-stamp');
+                }
+
+                setStatus('Stamped ' + totalPages + ' page(s) — saved as ' + outputFilename, 'success');
+
+                // Show pipeline suggestions
+                if (typeof showPipelineSuggestions === 'function') {
+                    showPipelineSuggestions('bates-stamp');
+                } else {
+                    (function() {
+                        function showPipelineSuggestions(currentToolId) {
+                            if (typeof TOOL_PIPELINE === 'undefined' || typeof TOOLS === 'undefined') return;
+                            var suggestions = TOOL_PIPELINE[currentToolId];
+                            if (!suggestions || suggestions.length === 0) return;
+                            var existing = document.querySelector('.pipeline-suggestions');
+                            if (existing) existing.remove();
+                            var html = '<div class="pipeline-suggestions">';
+                            html += '<p class="pipeline-title">Open your result in another tool:</p>';
+                            html += '<div class="pipeline-links">';
+                            for (var i = 0; i < suggestions.length; i++) {
+                                var toolId = suggestions[i];
+                                for (var j = 0; j < TOOLS.length; j++) {
+                                    if (TOOLS[j].id === toolId) {
+                                        html += '<a href="' + TOOLS[j].path + '" class="pipeline-link">' + TOOLS[j].name + ' &rarr;</a>';
+                                        break;
+                                    }
+                                }
+                            }
+                            html += '</div></div>';
+                            var statusEl = document.getElementById('status');
+                            if (statusEl) statusEl.insertAdjacentHTML('afterend', html);
+                        }
+                        showPipelineSuggestions('bates-stamp');
+                    })();
+                }
 
             } catch (error) {
                 console.error('Error:', error);
