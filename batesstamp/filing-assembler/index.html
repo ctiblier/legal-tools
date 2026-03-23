@@ -349,17 +349,27 @@
         // ---------------------------------------------------------------
         // Label generation
         // ---------------------------------------------------------------
+        function indexToAlpha(index) {
+            var result = '';
+            var n = index;
+            do {
+                result = String.fromCharCode(65 + (n % 26)) + result;
+                n = Math.floor(n / 26) - 1;
+            } while (n >= 0);
+            return result;
+        }
+
         function getLabel(index) {
             var format = document.getElementById('labelFormat').value;
-            if (format === 'alpha') return 'Exhibit ' + String.fromCharCode(65 + index);
+            if (format === 'alpha') return 'Exhibit ' + indexToAlpha(index);
             if (format === 'numeric') return 'Exhibit ' + (index + 1);
-            if (format === 'plaintiff-alpha') return "Plaintiff's Exhibit " + String.fromCharCode(65 + index);
-            if (format === 'defendant-alpha') return "Defendant's Exhibit " + String.fromCharCode(65 + index);
+            if (format === 'plaintiff-alpha') return "Plaintiff's Exhibit " + indexToAlpha(index);
+            if (format === 'defendant-alpha') return "Defendant's Exhibit " + indexToAlpha(index);
             if (format === 'custom') {
                 var prefix = document.getElementById('customPrefix').value.trim() || 'Exhibit';
-                return prefix + ' ' + String.fromCharCode(65 + index);
+                return prefix + ' ' + indexToAlpha(index);
             }
-            return 'Exhibit ' + String.fromCharCode(65 + index);
+            return 'Exhibit ' + indexToAlpha(index);
         }
 
         function updateExhibitLabels() {
