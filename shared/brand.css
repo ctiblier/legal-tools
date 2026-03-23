@@ -205,6 +205,68 @@ footer nav {
     width: 60%;
 }
 
+/* Tools dropdown */
+.tools-dropdown {
+    position: relative;
+    display: inline-flex;
+}
+
+.tools-dropdown-toggle {
+    /* Match .nav-links a styling exactly */
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none;
+    font-size: 0.85em;
+    font-weight: 500;
+    padding: 14px 18px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: var(--font-body);
+    letter-spacing: 0.01em;
+    transition: color var(--transition), background var(--transition);
+}
+
+.tools-dropdown-toggle:hover {
+    color: white;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.tools-dropdown-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: var(--navy-deep);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-md);
+    min-width: 220px;
+    padding: 8px 0;
+    z-index: 100;
+    box-shadow: var(--shadow-lg);
+}
+
+.tools-dropdown-menu.open {
+    display: block;
+}
+
+.tools-dropdown-menu a {
+    display: block;
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none;
+    font-size: 0.85em;
+    padding: 10px 18px;
+    transition: background var(--transition), color var(--transition);
+}
+
+.tools-dropdown-menu a:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: white;
+}
+
+.tools-dropdown-menu a[aria-current="page"] {
+    color: var(--gold);
+}
+
 /* ==========================================================================
    6. Main content
    ========================================================================== */
@@ -623,6 +685,32 @@ footer {
 
     .nav-links a::after {
         display: none;
+    }
+
+    .tools-dropdown {
+        width: 100%;
+    }
+
+    .tools-dropdown-toggle {
+        width: 100%;
+        text-align: center;
+        padding: 12px 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .tools-dropdown-menu {
+        position: static;
+        background: rgba(0, 0, 0, 0.15);
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+        min-width: 100%;
+    }
+
+    .tools-dropdown-menu a {
+        text-align: center;
+        padding: 10px 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
     }
 
     footer {
