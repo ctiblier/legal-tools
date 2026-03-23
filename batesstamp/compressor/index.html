@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-13354133605"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-13354133605');
+    </script>
+
+    <!-- Umami Analytics -->
+    <script defer src="https://umami.ctibs.app/script.js" data-website-id="b5a8938f-fd00-486c-bf17-0352963407f3"></script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- SEO Meta Tags -->
+    <title>Free PDF Compressor | Reduce File Size for E-Filing | BatesStamp.com</title>
+    <meta name="description" content="Compress PDF files to meet e-filing upload limits. Reduce size by 20-60%. Free, browser-based, no upload required.">
+    <meta name="keywords" content="compress pdf, reduce pdf size, pdf compressor, shrink pdf, pdf file size reducer, compress pdf for email, pdf optimizer, reduce pdf mb">
+    <meta name="author" content="BatesStamp.com">
+    <meta name="robots" content="index, follow">
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://batesstamp.com/compressor/">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://batesstamp.com/compressor/">
+    <meta property="og:title" content="Free PDF Compressor — Reduce File Size for E-Filing">
+    <meta property="og:description" content="Compress PDF files to meet e-filing upload limits. Reduce size by 20-60%. Free, browser-based — your files never leave your device.">
+    <meta property="og:image" content="https://batesstamp.com/og-image.svg">
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://batesstamp.com/compressor/">
+    <meta name="twitter:title" content="Free PDF Compressor — Reduce File Size for E-Filing">
+    <meta name="twitter:description" content="Compress PDF files to meet e-filing upload limits. Reduce size by 20-60%. Free, browser-based, no upload required.">
+    <meta name="twitter:image" content="https://batesstamp.com/og-image.svg">
+
+    <!-- Structured Data - JSON-LD -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "PDF Compressor",
+      "description": "Free online tool to compress PDF files and reduce file size for e-filing upload limits — renders pages to images at a target DPI and rebuilds the PDF",
+      "url": "https://batesstamp.com/compressor/",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "Web Browser",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "featureList": [
+        "Three compression levels: Light, Medium, Heavy",
+        "20-60% file size reduction",
+        "Browser-based rasterize-and-rebuild processing",
+        "No file uploads required",
+        "Client-side processing"
+      ],
+      "browserRequirements": "Requires JavaScript. Modern web browser."
+    }
+    </script>
+
+    <!-- Favicons -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <meta name="theme-color" content="#1e3a5f">
+    <link rel="manifest" href="/manifest.json">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="/brand.css">
+    <link rel="stylesheet" href="/styles.css">
+
+    <!-- pdf-lib -->
+    <link rel="preconnect" href="https://unpkg.com">
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js" integrity="sha384-awMiyfMDBszoPfxLPAp6cXS/4DPy9abzcbnVm+mMOp/JWsyPKgrMfwSJFxdsBOqb" crossorigin="anonymous"></script>
+
+    <!-- pdf.js (for page rendering) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
+</head>
+<body>
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+    <div class="container">
+        <header id="site-header"></header>
+        <nav id="site-nav" aria-label="Main navigation"></nav>
+
+        <main id="main-content">
+            <noscript><p style="text-align:center;padding:20px;color:#c53030;">This tool requires JavaScript to function. Please enable JavaScript in your browser.</p></noscript>
+
+            <p class="intro-text">Compress PDF files to meet e-filing upload limits. Choose a compression level, then download the reduced file. All processing happens in your browser — your files never leave your device.</p>
+
+            <!-- 1. File Upload -->
+            <div class="section">
+                <h2 class="section-title">1. Select Document</h2>
+                <div class="control-group">
+                    <div class="file-drop-zone" id="dropZone">
+                        <input type="file" id="fileInput" accept=".pdf" aria-label="Choose PDF file">
+                        <div class="drop-zone-icon">
+                            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/></svg>
+                        </div>
+                        <div class="drop-zone-text">Choose a PDF file or drag it here</div>
+                        <div class="drop-zone-hint">Your document never leaves your browser. Max 100MB.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Compression Level -->
+            <div class="section">
+                <h2 class="section-title">2. Compression Level</h2>
+                <div class="control-group">
+                    <fieldset style="border:none;padding:0;margin:0;" aria-label="Compression level">
+                        <legend class="visually-hidden">Choose compression level</legend>
+
+                        <label class="compression-option">
+                            <input type="radio" name="compression" value="light">
+                            <div class="compression-option-content">
+                                <span class="compression-option-label">Light <span class="compression-dpi">(200 DPI)</span></span>
+                                <span class="compression-option-desc">Minimal quality loss, ~20–40% reduction</span>
+                            </div>
+                        </label>
+
+                        <label class="compression-option">
+                            <input type="radio" name="compression" value="medium" checked>
+                            <div class="compression-option-content">
+                                <span class="compression-option-label">Medium <span class="compression-dpi">(150 DPI)</span></span>
+                                <span class="compression-option-desc">Balanced quality and size, ~40–60% reduction</span>
+                            </div>
+                        </label>
+
+                        <label class="compression-option">
+                            <input type="radio" name="compression" value="heavy">
+                            <div class="compression-option-content">
+                                <span class="compression-option-label">Heavy <span class="compression-dpi">(100 DPI)</span></span>
+                                <span class="compression-option-desc">Maximum reduction, some quality loss</span>
+                            </div>
+                        </label>
+                    </fieldset>
+                </div>
+            </div>
+
+            <!-- Warning notice (shown after upload) -->
+            <div class="disclaimer hidden" id="warningNotice">
+                <h3>Important</h3>
+                <p>Compression converts pages to images. Text in the output will no longer be searchable or selectable. For scanned/image-based documents, there is no difference.</p>
+            </div>
+
+            <!-- Action Button -->
+            <button class="button" id="compressBtn" data-umami-event="compress-pdf" disabled>Compress PDF</button>
+
+            <!-- Progress bar -->
+            <div class="progress-container hidden" id="progressContainer">
+                <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+                <span class="progress-text" id="progressText">Compressing...</span>
+            </div>
+
+            <!-- Status -->
+            <div id="status" class="status" role="status" aria-live="polite">
+                Select a PDF to begin compression
+            </div>
+
+            <!-- Results (hidden until complete) -->
+            <div class="section hidden" id="resultsSection">
+                <h2 class="section-title">Compression Results</h2>
+                <div class="compression-results" id="compressionResults"></div>
+            </div>
+
+            <!-- SEO Content -->
+            <section id="about" class="seo-content">
+                <h2>About PDF Compression</h2>
+                <div class="seo-content-inner">
+                    <h3>Why Compress PDFs for E-Filing?</h3>
+                    <p>Most courts impose upload size limits — often 10MB, 25MB, or 50MB per filing. When a PDF exceeds the limit, it must be reduced before it can be submitted. Our compressor renders each page at a lower resolution and rebuilds the PDF from those images, achieving significant file size reductions while keeping the document readable for court purposes.</p>
+
+                    <h3>How Does PDF Compression Work?</h3>
+                    <p>This tool uses a rasterize-and-rebuild approach: each PDF page is rendered to a canvas at the selected DPI using pdf.js, converted to a compressed JPEG image, then assembled into a new PDF using pdf-lib. The output file contains images of your pages rather than the original vector/text content.</p>
+
+                    <div class="feature-highlights">
+                        <div class="feature-highlight-card">
+                            <h4>Light Compression (200 DPI)</h4>
+                            <p>Renders pages at 200 DPI with high JPEG quality. Suitable when you need a small reduction — documents remain sharp and suitable for printing.</p>
+                        </div>
+                        <div class="feature-highlight-card">
+                            <h4>Medium Compression (150 DPI)</h4>
+                            <p>The best balance of size and readability for most e-filing purposes. Typically achieves 40–60% reduction while keeping text legible on screen and in print.</p>
+                        </div>
+                        <div class="feature-highlight-card">
+                            <h4>Heavy Compression (100 DPI)</h4>
+                            <p>Maximum file size reduction. Output is readable on screen but may appear soft in print. Use only when you need to meet a strict size limit.</p>
+                        </div>
+                        <div class="feature-highlight-card">
+                            <h4>Privacy First</h4>
+                            <p>All processing happens entirely in your browser. Your PDF is never uploaded to any server — suitable for confidential, privileged, and attorney-client materials.</p>
+                        </div>
+                    </div>
+
+                    <h3>When to Use PDF Compression</h3>
+                    <ul>
+                        <li><strong>E-filing over the limit:</strong> Court filing portals that reject uploads above 10MB or 25MB</li>
+                        <li><strong>Email attachments:</strong> Reduce PDFs to stay under email size caps</li>
+                        <li><strong>Scanned exhibits:</strong> Compress scan-heavy PDFs that balloon in size</li>
+                        <li><strong>Batch filing:</strong> Reduce total filing size across multiple documents</li>
+                        <li><strong>Client portals:</strong> Make large PDFs easier to share through document portals with size limits</li>
+                    </ul>
+
+                    <h3>Note on Text Searchability</h3>
+                    <p>Because compression converts pages to images, the resulting PDF will not have searchable or selectable text. If your original document is already a scanned image PDF, this has no practical effect. For text-based PDFs, consider whether your court or recipient requires text-searchable output before compressing.</p>
+                </div>
+            </section>
+        </main>
+
+        <footer id="site-footer"></footer>
+    </div>
+
+    <!-- Shared scripts -->
+    <script src="/shared/tools.js"></script>
+    <script src="/shared/nav.js"></script>
+    <script src="/shared/file-handler.js"></script>
+
+    <script>
+        // ---------------------------------------------------------------
+        // State
+        // ---------------------------------------------------------------
+        var selectedFile = null;
+
+        // ---------------------------------------------------------------
+        // Navigation
+        // ---------------------------------------------------------------
+        initNav({
+            title: 'PDF Compressor',
+            subtitle: 'Reduce PDF file size for e-filing'
+        });
+
+        // ---------------------------------------------------------------
+        // File drop zone
+        // ---------------------------------------------------------------
+        initFileDropZone('dropZone', {
+            accept: ['.pdf'],
+            maxSizeMB: 100,
+            onFile: handleFile
+        });
+
+        function handleFile(file) {
+            selectedFile = file;
+            document.getElementById('compressBtn').disabled = false;
+            document.getElementById('warningNotice').classList.remove('hidden');
+            document.getElementById('status').className = 'status status-success';
+            document.getElementById('status').textContent =
+                'Ready — ' + formatFileSize(file.size) + '. Choose a compression level and click Compress PDF.';
+            // Hide stale results
+            document.getElementById('resultsSection').classList.add('hidden');
+            document.getElementById('progressContainer').classList.add('hidden');
+            var bar = document.getElementById('progressBar');
+            bar.style.width = '0%';
+        }
+
+        // ---------------------------------------------------------------
+        // Compress button
+        // ---------------------------------------------------------------
+        document.getElementById('compressBtn').addEventListener('click', compressPdf);
+
+        // ---------------------------------------------------------------
+        // Helper: convert data URL to Uint8Array
+        // ---------------------------------------------------------------
+        function dataUrlToUint8Array(dataUrl) {
+            var base64 = dataUrl.split(',')[1];
+            var binaryString = atob(base64);
+            var bytes = new Uint8Array(binaryString.length);
+            for (var i = 0; i < binaryString.length; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            return bytes;
+        }
+
+        // ---------------------------------------------------------------
+        // Main compression function
+        // ---------------------------------------------------------------
+        async function compressPdf() {
+            var btn = document.getElementById('compressBtn');
+            var statusEl = document.getElementById('status');
+            var progressContainer = document.getElementById('progressContainer');
+            var progressBar = document.getElementById('progressBar');
+            var progressText = document.getElementById('progressText');
+
+            var level = document.querySelector('input[name="compression"]:checked').value;
+            var dpiMap    = { light: 200, medium: 150, heavy: 100 };
+            var qualityMap = { light: 0.85, medium: 0.75, heavy: 0.65 };
+            var targetDpi  = dpiMap[level];
+            var jpegQuality = qualityMap[level];
+            // pdf.js renders at 72 DPI by default; scale factor achieves the target DPI
+            var scale = targetDpi / 72;
+
+            btn.disabled = true;
+            statusEl.className = 'status status-processing';
+            statusEl.textContent = 'Compressing...';
+            progressContainer.classList.remove('hidden');
+            progressBar.style.width = '0%';
+            progressText.textContent = 'Starting...';
+            document.getElementById('resultsSection').classList.add('hidden');
+
+            try {
+                var arrayBuffer = await readFileAsArrayBuffer(selectedFile);
+                var originalSize = arrayBuffer.byteLength;
+
+                // Load the PDF with pdf.js for rendering
+                var pdfJsDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                var totalPages = pdfJsDoc.numPages;
+
+                // Build a new PDF document with pdf-lib
+                var newDoc = await PDFLib.PDFDocument.create();
+
+                for (var i = 1; i <= totalPages; i++) {
+                    // Update progress
+                    var percent = Math.round(((i - 1) / totalPages) * 100);
+                    progressBar.style.width = percent + '%';
+                    progressText.textContent = 'Compressing page ' + i + ' of ' + totalPages + '...';
+
+                    var page = await pdfJsDoc.getPage(i);
+
+                    // Original page dimensions (in PDF points at scale 1)
+                    var origViewport = page.getViewport({ scale: 1 });
+
+                    // High-resolution render viewport
+                    var renderViewport = page.getViewport({ scale: scale });
+
+                    // Render to canvas at target DPI
+                    var canvas = document.createElement('canvas');
+                    canvas.width  = Math.floor(renderViewport.width);
+                    canvas.height = Math.floor(renderViewport.height);
+                    var ctx = canvas.getContext('2d');
+                    await page.render({ canvasContext: ctx, viewport: renderViewport }).promise;
+
+                    // Convert canvas to JPEG bytes
+                    var jpegDataUrl = canvas.toDataURL('image/jpeg', jpegQuality);
+                    var jpegBytes = dataUrlToUint8Array(jpegDataUrl);
+
+                    // Embed JPEG into the new PDF
+                    var jpegImage = await newDoc.embedJpg(jpegBytes);
+
+                    // Add a page at the original dimensions (PDF points), draw the image to fill it
+                    var newPage = newDoc.addPage([origViewport.width, origViewport.height]);
+                    newPage.drawImage(jpegImage, {
+                        x: 0,
+                        y: 0,
+                        width: origViewport.width,
+                        height: origViewport.height
+                    });
+                }
+
+                // Finalize progress
+                progressBar.style.width = '100%';
+                progressText.textContent = 'Saving PDF...';
+
+                var pdfBytes = await newDoc.save();
+                var compressedSize = pdfBytes.length;
+
+                var filename = selectedFile.name.replace(/\.pdf$/i, '') + '_compressed.pdf';
+                downloadPdf(pdfBytes, filename);
+
+                // Complete
+                progressBar.style.width = '100%';
+                progressText.textContent = 'Done!';
+
+                statusEl.className = 'status status-success';
+                statusEl.textContent = 'Compressed PDF downloaded as "' + filename + '".';
+
+                showCompressionResults(originalSize, compressedSize);
+
+            } catch (err) {
+                statusEl.className = 'status status-error';
+                statusEl.textContent = 'Error: ' + err.message;
+                progressContainer.classList.add('hidden');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // ---------------------------------------------------------------
+        // Show compression result stats
+        // ---------------------------------------------------------------
+        function showCompressionResults(originalSize, compressedSize) {
+            var reduction = ((1 - compressedSize / originalSize) * 100).toFixed(1);
+            var reductionNum = parseFloat(reduction);
+
+            var resultsEl = document.getElementById('compressionResults');
+            resultsEl.innerHTML =
+                '<div class="result-stat">' +
+                    '<div class="value">' + formatFileSize(originalSize) + '</div>' +
+                    '<div class="label">Original Size</div>' +
+                '</div>' +
+                '<div class="result-stat">' +
+                    '<div class="value">' + formatFileSize(compressedSize) + '</div>' +
+                    '<div class="label">Compressed Size</div>' +
+                '</div>' +
+                '<div class="result-stat highlight">' +
+                    '<div class="value">' + (reductionNum > 0 ? '-' : '') + Math.abs(reductionNum) + '%</div>' +
+                    '<div class="label">Size Reduction</div>' +
+                '</div>';
+
+            document.getElementById('resultsSection').classList.remove('hidden');
+            document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    </script>
+</body>
+</html>
