@@ -4,7 +4,7 @@ Monorepo for free legal tools built for attorneys and legal professionals.
 
 | Site | Domain | Description |
 |------|--------|-------------|
-| [BatesStamp](batesstamp/) | [batesstamp.com](https://batesstamp.com) | Free browser-based Bates stamping for PDFs |
+| [BatesStamp](batesstamp/) | [batesstamp.com](https://batesstamp.com) | Free browser-based legal document toolkit (Bates stamping, watermarking, PDF utilities, and more) |
 | [PFSCalculator](pfscalculator/) | [pfscalculator.com](https://pfscalculator.com) | Florida Statute 768.79 settlement calculator |
 
 ---
@@ -44,7 +44,7 @@ Both sites are deployed via **Cloudflare Pages** from this single repo.
 
 **BatesStamp project:**
 - Repository: `ctiblier/legal-tools`
-- Build command: `cp shared/brand.css batesstamp/`
+- Build command: `bash build.sh`
 - Build output directory: `batesstamp`
 - Custom domain: `batesstamp.com`
 
@@ -64,7 +64,7 @@ To avoid unnecessary rebuilds, set build watch paths in each project's settings:
 ### How Deploys Work
 
 1. Push to `main` triggers Cloudflare Pages builds
-2. The build command copies `shared/brand.css` into the site directory
+2. The build command copies shared files into the site directory (`bash build.sh` for BatesStamp)
 3. Cloudflare serves the site directory as a static site
 4. Both sites rebuild on any push (unless watch paths are configured)
 
