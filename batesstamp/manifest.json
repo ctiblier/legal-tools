@@ -1,7 +1,7 @@
 {
-    "name": "BatesStamp.com - Free Bates Stamping Tool",
+    "name": "BatesStamp.com - Free Legal Document Tools",
     "short_name": "BatesStamp",
-    "description": "Free tool to add Bates numbers, exhibit stamps, and confidentiality notices to PDF documents. All processing happens in your browser.",
+    "description": "Free, private, browser-based legal document tools",
     "start_url": "/",
     "display": "standalone",
     "background_color": "#ffffff",
