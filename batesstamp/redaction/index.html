@@ -121,46 +121,42 @@
             <!-- 2. Redaction Workspace (hidden until file uploaded) -->
             <div class="section hidden" id="workspaceSection">
                 <h2 class="section-title">2. Mark Redactions</h2>
-                <p class="info-text" style="margin-bottom:16px;">Draw rectangles on the page to mark content for redaction. Use the controls on the right to set the privilege reason before drawing each box.</p>
 
-                <div class="redaction-workspace">
-                    <!-- Left: page viewer -->
-                    <div class="redaction-viewer">
-                        <div class="page-nav">
-                            <button type="button" id="prevPage" aria-label="Previous page">&#8592; Prev</button>
-                            <span id="pageInfo" aria-live="polite">Page 1 of 1</span>
-                            <button type="button" id="nextPage" aria-label="Next page">Next &#8594;</button>
-                        </div>
-                        <div class="canvas-container" id="canvasContainer">
-                            <canvas id="pdfCanvas" aria-label="PDF page preview"></canvas>
-                            <canvas id="drawCanvas" aria-label="Redaction drawing overlay" role="img" aria-describedby="canvasInstructions"></canvas>
-                        </div>
-                        <p class="info-text" id="canvasInstructions" style="margin-top:8px;text-align:center;">Click and drag to draw a redaction box. Release to add it to the list.</p>
+                <!-- Toolbar: reason selector + instructions -->
+                <div class="redaction-toolbar">
+                    <div class="redaction-toolbar-reason">
+                        <label for="redactionReason">Reason:</label>
+                        <select id="redactionReason">
+                            <option value="ATTORNEY-CLIENT PRIVILEGE">Attorney-Client Privilege</option>
+                            <option value="WORK PRODUCT">Work Product Doctrine</option>
+                            <option value="CONFIDENTIAL">Confidential / Proprietary</option>
+                            <option value="PERSONAL INFORMATION">Privacy / Personal Information</option>
+                            <option value="TRADE SECRET">Trade Secret</option>
+                            <option value="custom">Custom Label...</option>
+                        </select>
+                        <input type="text" id="customReason" class="hidden" placeholder="Custom label" maxlength="40">
                     </div>
+                    <p class="redaction-toolbar-hint">Draw rectangles on the page to mark redactions</p>
+                </div>
 
-                    <!-- Right: controls -->
-                    <div class="redaction-controls">
-                        <div class="control-group">
-                            <label for="redactionReason">Redaction Reason</label>
-                            <select id="redactionReason">
-                                <option value="ATTORNEY-CLIENT PRIVILEGE">Attorney-Client Privilege</option>
-                                <option value="WORK PRODUCT">Work Product Doctrine</option>
-                                <option value="CONFIDENTIAL">Confidential / Proprietary</option>
-                                <option value="PERSONAL INFORMATION">Privacy / Personal Information</option>
-                                <option value="TRADE SECRET">Trade Secret</option>
-                                <option value="custom">Custom Label...</option>
-                            </select>
-                        </div>
-                        <div class="control-group hidden" id="customReasonGroup">
-                            <label for="customReason">Custom label</label>
-                            <input type="text" id="customReason" placeholder="Enter redaction label" maxlength="40">
-                        </div>
+                <!-- Full-width page viewer -->
+                <div class="redaction-viewer">
+                    <div class="page-nav">
+                        <button type="button" id="prevPage" aria-label="Previous page">&#8592; Prev</button>
+                        <span id="pageInfo" aria-live="polite">Page 1 of 1</span>
+                        <button type="button" id="nextPage" aria-label="Next page">Next &#8594;</button>
+                    </div>
+                    <div class="canvas-container" id="canvasContainer">
+                        <canvas id="pdfCanvas" aria-label="PDF page preview"></canvas>
+                        <canvas id="drawCanvas" aria-label="Redaction drawing overlay" role="img"></canvas>
+                    </div>
+                </div>
 
-                        <!-- Redaction list -->
-                        <h3 class="redaction-list-title">Redactions (<span id="redactionCount">0</span>)</h3>
-                        <div id="redactionList" class="redaction-list" role="list" aria-label="Redaction list">
-                            <p class="redaction-list-empty">Draw rectangles on the page to add redactions</p>
-                        </div>
+                <!-- Redaction list (below canvas) -->
+                <div class="redaction-list-section">
+                    <h3 class="redaction-list-title">Redactions (<span id="redactionCount">0</span>)</h3>
+                    <div id="redactionList" class="redaction-list" role="list" aria-label="Redaction list">
+                        <p class="redaction-list-empty">No redactions yet</p>
                     </div>
                 </div>
             </div>
@@ -287,7 +283,7 @@
             document.getElementById('redactBtn').disabled = true;
             document.getElementById('progressContainer').classList.add('hidden');
             document.getElementById('progressBar').style.width = '0%';
-            document.getElementById('redactionList').innerHTML = '<p class="redaction-list-empty">Draw rectangles on the page to add redactions</p>';
+            document.getElementById('redactionList').innerHTML = '<p class="redaction-list-empty">No redactions yet</p>';
             document.getElementById('redactionCount').textContent = '0';
 
             try {
@@ -370,20 +366,26 @@
                 ctx.fillRect(canvasX, canvasY, canvasW, canvasH);
 
                 // White text label (centered in the box)
-                if (canvasH >= 12) {
+                if (canvasH >= 10 && canvasW >= 20) {
                     ctx.fillStyle = 'white';
-                    var labelSize = Math.max(10, Math.min(canvasH * 0.3, 16));
+                    // Size label to fit: start from height-based size, shrink to fit width
+                    var labelText = box.reason;
+                    var labelSize = Math.max(7, Math.min(canvasH * 0.4, 14));
                     ctx.font = labelSize + 'px sans-serif';
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
 
-                    var labelText = box.reason;
-                    // Truncate label if wider than box
-                    while (labelText.length > 3 && ctx.measureText(labelText).width > canvasW - 8) {
-                        labelText = labelText.slice(0, -1);
+                    // Shrink font until text fits, minimum 7px
+                    while (labelSize > 7 && ctx.measureText(labelText).width > canvasW - 6) {
+                        labelSize--;
+                        ctx.font = labelSize + 'px sans-serif';
                     }
-                    if (labelText !== box.reason && labelText.length > 3) {
-                        labelText = labelText.slice(0, -1) + '…';
+                    // Truncate only if still too wide at minimum size
+                    if (ctx.measureText(labelText).width > canvasW - 6) {
+                        while (labelText.length > 3 && ctx.measureText(labelText + '…').width > canvasW - 6) {
+                            labelText = labelText.slice(0, -1);
+                        }
+                        labelText = labelText + '…';
                     }
                     ctx.fillText(labelText, canvasX + canvasW / 2, canvasY + canvasH / 2);
                     ctx.textAlign = 'start';
@@ -521,12 +523,12 @@
         // Custom reason show/hide
         // ---------------------------------------------------------------
         document.getElementById('redactionReason').addEventListener('change', function() {
-            var customGroup = document.getElementById('customReasonGroup');
+            var customInput = document.getElementById('customReason');
             if (this.value === 'custom') {
-                customGroup.classList.remove('hidden');
-                document.getElementById('customReason').focus();
+                customInput.classList.remove('hidden');
+                customInput.focus();
             } else {
-                customGroup.classList.add('hidden');
+                customInput.classList.add('hidden');
             }
         });
 
@@ -571,7 +573,7 @@
             countEl.textContent = totalCount;
 
             if (totalCount === 0) {
-                listEl.innerHTML = '<p class="redaction-list-empty">Draw rectangles on the page to add redactions</p>';
+                listEl.innerHTML = '<p class="redaction-list-empty">No redactions yet</p>';
                 return;
             }
 
@@ -696,17 +698,23 @@
 
                         // White label text centered in the box
                         ctx.fillStyle = 'white';
-                        var labelSize = Math.max(12, Math.min(rh * 0.25, 24));
+                        var labelText = box.reason;
+                        var labelSize = Math.max(8, Math.min(rh * 0.4, 20));
                         ctx.font = 'bold ' + labelSize + 'px Helvetica, Arial, sans-serif';
                         ctx.textAlign = 'center';
                         ctx.textBaseline = 'middle';
 
-                        var labelText = box.reason;
-                        while (labelText.length > 3 && ctx.measureText(labelText).width > rw - 16) {
-                            labelText = labelText.slice(0, -1);
+                        // Shrink font until text fits, minimum 8px
+                        while (labelSize > 8 && ctx.measureText(labelText).width > rw - 10) {
+                            labelSize--;
+                            ctx.font = 'bold ' + labelSize + 'px Helvetica, Arial, sans-serif';
                         }
-                        if (labelText !== box.reason && labelText.length > 3) {
-                            labelText = labelText.slice(0, -1) + '…';
+                        // Truncate only if still too wide at minimum size
+                        if (ctx.measureText(labelText).width > rw - 10) {
+                            while (labelText.length > 3 && ctx.measureText(labelText + '…').width > rw - 10) {
+                                labelText = labelText.slice(0, -1);
+                            }
+                            labelText = labelText + '…';
                         }
                         ctx.fillText(labelText, rx + rw / 2, ry + rh / 2);
                         ctx.textAlign = 'start';

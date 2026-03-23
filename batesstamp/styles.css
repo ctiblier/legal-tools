@@ -1015,13 +1015,59 @@
    Privilege Redaction Tool — workspace layout
    ========================================================================== */
 
-.redaction-workspace {
-    display: grid;
-    grid-template-columns: 1fr 300px;
-    gap: 20px;
-    padding: 20px 0;
+/* -- Redaction toolbar (reason selector + hint) -- */
+.redaction-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 16px;
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-md);
+    margin-bottom: 12px;
 }
 
+.redaction-toolbar-reason {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.redaction-toolbar-reason label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-heading);
+    white-space: nowrap;
+}
+
+.redaction-toolbar-reason select {
+    font-size: 0.85rem;
+    padding: 5px 10px;
+    border: 1px solid var(--gray-300);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    background: var(--white);
+}
+
+.redaction-toolbar-reason input[type="text"] {
+    font-size: 0.85rem;
+    padding: 5px 10px;
+    border: 1px solid var(--gray-300);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    width: 160px;
+}
+
+.redaction-toolbar-hint {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    margin: 0;
+    white-space: nowrap;
+}
+
+/* -- Full-width page viewer -- */
 .redaction-viewer {
     min-width: 0;
 }
@@ -1083,14 +1129,13 @@
     text-align: center;
 }
 
-.redaction-controls {
-    position: sticky;
-    top: 20px;
-    align-self: start;
+/* -- Redaction list (below canvas) -- */
+.redaction-list-section {
+    margin-top: 16px;
 }
 
 .redaction-list {
-    max-height: 400px;
+    max-height: 240px;
     overflow-y: auto;
     border: 1px solid var(--gray-200);
     border-radius: var(--radius-md);
@@ -1102,7 +1147,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px;
+    padding: 6px 8px;
     border-bottom: 1px solid var(--gray-100);
     font-size: 0.85rem;
 }
@@ -1128,7 +1173,7 @@
 .redaction-item-page {
     color: var(--text-muted);
     font-size: 0.78rem;
-    margin-top: 2px;
+    margin-top: 1px;
 }
 
 .redaction-item button {
@@ -1150,7 +1195,7 @@
 .redaction-list-empty {
     color: var(--text-muted);
     text-align: center;
-    padding: 20px;
+    padding: 16px;
     font-size: 0.88rem;
     margin: 0;
 }
@@ -1159,21 +1204,19 @@
     font-size: 0.95rem;
     font-weight: 600;
     color: var(--text-heading);
-    margin: 16px 0 8px;
+    margin: 0 0 8px;
     font-family: var(--font-body);
 }
 
 @media (max-width: 768px) {
-    .redaction-workspace {
-        grid-template-columns: 1fr;
+    .redaction-toolbar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
     }
 
-    .redaction-controls {
-        position: static;
-    }
-
-    .redaction-list {
-        max-height: 250px;
+    .redaction-toolbar-hint {
+        white-space: normal;
     }
 }
 
