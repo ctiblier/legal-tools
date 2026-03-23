@@ -77,7 +77,7 @@
   // options: {
   //   accept:    ['.pdf']           // allowed extensions (lower-case, with dot)
   //   multiple:  false              // allow multiple files
-  //   maxSizeMB: 100                // max size per file, in MB
+  //   maxSizeMB: 0                  // max size per file in MB (0 = no limit, 2 GB browser cap always enforced)
   //   onFile:    (file) => {}       // called in single-file mode
   //   onFiles:   (files) => {}      // called in multiple-file mode
   // }
@@ -87,7 +87,7 @@
 
     var accept    = options.accept    || [];
     var multiple  = !!options.multiple;
-    var maxSizeMB = (options.maxSizeMB != null) ? options.maxSizeMB : 100;
+    var maxSizeMB = (options.maxSizeMB != null) ? options.maxSizeMB : 0;
     var onFile    = options.onFile    || null;
     var onFiles   = options.onFiles   || null;
 
@@ -111,6 +111,8 @@
     // Validation
     // ------------------------------------------------------------------
 
+    var BROWSER_MAX_BYTES = 2 * 1024 * 1024 * 1024; // 2 GB ArrayBuffer limit
+
     /**
      * Returns null if the file passes all checks, or an error string.
      */
@@ -125,6 +127,16 @@
         }
       }
 
+      // Hard block: browser ArrayBuffer limit
+      if (file.size > BROWSER_MAX_BYTES) {
+        return (
+          'File is too large (' +
+          window.formatFileSize(file.size) +
+          '). Browsers cannot process files over 2 GB.'
+        );
+      }
+
+      // Hard block: tool-specific cap (if set)
       if (maxSizeMB > 0 && file.size > maxSizeMB * 1024 * 1024) {
         return (
           'File is too large (' +
@@ -133,6 +145,21 @@
         );
       }
 
+      return null;
+    }
+
+    /**
+     * Returns a warning string for large files, or null.
+     * Non-blocking — file still processes.
+     */
+    function sizeWarning(file) {
+      var mb = file.size / (1024 * 1024);
+      if (mb >= 500) {
+        return 'Very large file — may be slow on some devices';
+      }
+      if (mb >= 100) {
+        return 'Large file — processing may take a moment';
+      }
       return null;
     }
 
@@ -156,12 +183,22 @@
       }
     }
 
+    function showWarning(message) {
+      if (hintEl) {
+        hintEl.textContent = message;
+        hintEl.style.color = 'var(--warning, #b45309)';
+      }
+    }
+
     function clearError() {
       if (textEl) {
         textEl.style.color = '';
       }
       if (iconEl) {
         iconEl.style.color = '';
+      }
+      if (hintEl) {
+        hintEl.style.color = '';
       }
     }
 
@@ -224,6 +261,15 @@
       var filesArray = Array.prototype.slice.call(fileList);
 
       showSuccess(filesArray);
+
+      // Show non-blocking size warning (if any) after success display
+      for (var w = 0; w < filesArray.length; w++) {
+        var warn = sizeWarning(filesArray[w]);
+        if (warn) {
+          showWarning(warn);
+          break;
+        }
+      }
 
       if (!multiple && onFile) {
         onFile(filesArray[0]);

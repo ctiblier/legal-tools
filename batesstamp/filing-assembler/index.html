@@ -271,7 +271,6 @@
         // ---------------------------------------------------------------
         initFileDropZone('mainDocZone', {
             accept: ['.pdf', '.jpg', '.jpeg', '.png'],
-            maxSizeMB: 200,
             onFile: handleMainDoc
         });
 
@@ -297,7 +296,6 @@
         initFileDropZone('exhibitZone', {
             accept: ['.pdf', '.jpg', '.jpeg', '.png'],
             multiple: true,
-            maxSizeMB: 200,
             onFiles: function(files) {
                 addExhibits(files);
             }
