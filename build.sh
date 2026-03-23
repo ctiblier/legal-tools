@@ -11,7 +11,7 @@ cp shared/brand.css batesstamp/
 
 # Copy shared JS modules (only if they exist — allows incremental development)
 mkdir -p batesstamp/shared
-for f in file-handler.js nav.js tools.js session-files.js pdf-worker.js; do
+for f in file-handler.js nav.js tools.js session-files.js session-worker.js pdf-worker.js; do
   if [ -f "shared/$f" ]; then
     cp "shared/$f" "batesstamp/shared/"
   fi
