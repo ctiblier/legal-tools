@@ -68,6 +68,48 @@
     }
     </script>
 
+    <!-- FAQ Schema for Featured Snippets -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What metadata is hidden in a PDF?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "PDFs can contain hidden metadata including the author's name, the software used to create the file, creation and modification dates, the organization name, comments, revision history, and even GPS coordinates from scanned documents. This information is often invisible to users but easily extractable."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Why should I strip metadata from legal documents?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Metadata can inadvertently reveal privileged information such as the drafting attorney's identity, internal revision history, or the software and systems used by your firm. Stripping metadata before producing documents in discovery or filing with a court protects against unintentional disclosure."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does this tool remove all metadata from a PDF?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. This tool removes the title, author, subject, keywords, creator, producer, creation date, and modification date from the PDF's document information dictionary. The cleaned PDF retains all visible content but contains no identifying metadata."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Are my documents uploaded to a server when stripping metadata?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. All metadata removal happens entirely in your browser. Your PDF is never uploaded to any server, making this tool safe for privileged, confidential, and sensitive legal documents."
+          }
+        }
+      ]
+    }
+    </script>
+
     <!-- Favicons -->
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">

@@ -67,6 +67,56 @@
     }
     </script>
 
+    <!-- FAQ Schema for Featured Snippets -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "How do I properly redact a PDF?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Proper redaction requires permanently destroying the underlying text, not just covering it with a black box. This tool rasterizes each page at 300 DPI after applying redaction boxes, converting the page to a flat image where the original text is irrecoverably removed. A black rectangle drawn in a PDF editor is NOT true redaction because the text underneath can still be extracted."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What is privilege redaction?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Privilege redaction is the process of removing protected content from documents before producing them in discovery. Each redaction box is labeled with the applicable privilege reason — such as Attorney-Client Privilege, Work Product Doctrine, or Confidential — so the receiving party can see why content was withheld."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is a black box in Adobe Acrobat the same as redaction?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. Drawing a black rectangle over text in a PDF editor only hides the text visually. The original text remains in the file and can be extracted by copying, searching, or inspecting the PDF structure. True redaction permanently destroys the underlying content so it cannot be recovered by any means."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Are my documents safe when using this redaction tool?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. All processing happens entirely in your browser. Your PDF is never uploaded to any server. This makes it safe for attorney-client privileged materials, work product, trade secrets, and other sensitive documents."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I redact a PDF for free?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. This tool is completely free with no registration, no watermarks on output, and no limits on the number of redactions. It produces permanently redacted PDFs suitable for court filings and discovery productions."
+          }
+        }
+      ]
+    }
+    </script>
+
     <!-- Favicons -->
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">

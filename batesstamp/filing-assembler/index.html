@@ -67,6 +67,56 @@
     }
     </script>
 
+    <!-- FAQ Schema for Featured Snippets -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is a court filing assembler?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "A filing assembler combines a main document (such as a motion or brief) with supporting exhibits into a single PDF, adding exhibit separator pages with labeled tabs (Exhibit A, Exhibit B, etc.). This is the standard format required for court filings and discovery productions."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How do I combine exhibits into a single PDF for court?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Upload your main document, then add your exhibit files (PDFs or images) in order. The tool automatically generates labeled exhibit separator pages and merges everything into one court-ready PDF with proper exhibit tabs."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Are my documents uploaded to a server?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. All document assembly happens entirely in your browser using JavaScript. Your files are never uploaded to any server, making this tool safe for confidential legal documents, privileged materials, and sensitive client files."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What file types can I use as exhibits?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "The filing assembler accepts PDF, JPG, JPEG, and PNG files as exhibits. Images are automatically embedded into the PDF at their original dimensions. Each exhibit gets a labeled separator page (Exhibit A, Exhibit B, etc.)."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does this tool support more than 26 exhibits?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. After Exhibit Z, the tool continues with double-letter labels: Exhibit AA, Exhibit AB, and so on. There is no practical limit to the number of exhibits you can include in a single filing."
+          }
+        }
+      ]
+    }
+    </script>
+
     <!-- Favicons -->
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">

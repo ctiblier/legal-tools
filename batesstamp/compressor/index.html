@@ -66,6 +66,56 @@
     }
     </script>
 
+    <!-- FAQ Schema for Featured Snippets -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "How do I reduce the file size of a PDF?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Upload your PDF and choose a compression level (light, medium, or heavy). The tool re-renders each page as a compressed JPEG image at the quality you select, then rebuilds the PDF. This is especially effective for scanned documents and image-heavy PDFs."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Why are my legal PDFs so large?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Large PDF file sizes are usually caused by scanned pages stored as uncompressed images, embedded fonts, high-resolution graphics, or multiple layers from document editing. Scanned legal documents are the most common culprit — a single scanned page can be 5-10 MB without compression."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Will compressing a PDF reduce its quality?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Light compression preserves high readability suitable for court filings. Medium compression provides a good balance of size reduction and clarity. Heavy compression significantly reduces file size but may affect fine text readability. The tool renders at 150-300 DPI depending on the level chosen."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is this PDF compressor private and secure?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. All compression happens entirely in your browser. Your PDF is never uploaded to any server, making this safe for confidential legal documents, court filings, and privileged materials."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I compress a PDF for e-filing?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Many courts impose file size limits for electronic filing (commonly 25-50 MB). This tool can significantly reduce file sizes to meet those limits while maintaining readability for the court."
+          }
+        }
+      ]
+    }
+    </script>
+
     <!-- Favicons -->
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
