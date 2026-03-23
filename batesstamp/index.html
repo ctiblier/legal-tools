@@ -134,22 +134,27 @@
             if (!grid || typeof TOOLS === 'undefined') return;
 
             TOOLS.forEach(function(tool) {
-                var card = document.createElement('div');
+                var card = document.createElement('a');
+                card.href = tool.path;
                 card.className = 'tool-card' + (tool.flagship ? ' flagship' : '') + (tool.external ? ' external' : '');
+                if (tool.external) {
+                    card.target = '_blank';
+                    card.rel = 'noopener noreferrer';
+                }
 
-                var linkTarget = tool.external ? ' target="_blank" rel="noopener noreferrer"' : '';
                 var externalBadge = tool.external ? '<span class="external-badge">Opens pfscalculator.com</span>' : '';
                 var flagshipBadge = tool.flagship ? '<span class="flagship-badge">Most Popular</span>' : '';
+                var iconSvg = (typeof TOOL_ICONS !== 'undefined' && TOOL_ICONS[tool.id]) || '';
 
                 card.innerHTML =
                     '<div class="tool-card-header">' +
                         flagshipBadge +
-                        '<span class="tool-card-icon">' + tool.icon + '</span>' +
+                        '<span class="tool-card-icon">' + iconSvg + '</span>' +
                         '<h3>' + tool.name + '</h3>' +
                     '</div>' +
                     '<p>' + tool.description + '</p>' +
                     externalBadge +
-                    '<a href="' + tool.path + '" class="tool-card-link"' + linkTarget + '>Use Tool &rarr;</a>';
+                    '<span class="tool-card-cta">Use Tool &rarr;</span>';
 
                 grid.appendChild(card);
             });
