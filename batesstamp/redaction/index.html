@@ -159,7 +159,7 @@
                         <!-- Redaction list -->
                         <h3 class="redaction-list-title">Redactions (<span id="redactionCount">0</span>)</h3>
                         <div id="redactionList" class="redaction-list" role="list" aria-label="Redaction list">
-                            <p class="redaction-list-empty" id="redactionListEmpty">Draw rectangles on the page to add redactions</p>
+                            <p class="redaction-list-empty">Draw rectangles on the page to add redactions</p>
                         </div>
                     </div>
                 </div>
@@ -288,7 +288,7 @@
             document.getElementById('redactBtn').disabled = true;
             document.getElementById('progressContainer').classList.add('hidden');
             document.getElementById('progressBar').style.width = '0%';
-            document.getElementById('redactionList').innerHTML = '<p class="redaction-list-empty" id="redactionListEmpty">Draw rectangles on the page to add redactions</p>';
+            document.getElementById('redactionList').innerHTML = '<p class="redaction-list-empty">Draw rectangles on the page to add redactions</p>';
             document.getElementById('redactionCount').textContent = '0';
 
             try {
@@ -572,7 +572,7 @@
             countEl.textContent = totalCount;
 
             if (totalCount === 0) {
-                listEl.innerHTML = '<p class="redaction-list-empty" id="redactionListEmpty">Draw rectangles on the page to add redactions</p>';
+                listEl.innerHTML = '<p class="redaction-list-empty">Draw rectangles on the page to add redactions</p>';
                 return;
             }
 
