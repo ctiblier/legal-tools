@@ -299,3 +299,18 @@
   };
 
 }());
+
+// -------------------------------------------------------------------------
+// escapeHtml(str) — XSS-safe HTML entity encoding
+// Escapes &, <, >, ", and ' (5 characters).
+// Exposed as a global so all tool pages and session-files.js can share it.
+// -------------------------------------------------------------------------
+window.escapeHtml = function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+};

@@ -680,6 +680,9 @@
                 const pages = pdfDoc.getPages();
                 const totalPages = pages.length;
 
+                // Embed Helvetica for accurate text-width measurements
+                const font = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+
                 setStatus('Processing ' + totalPages + ' page(s)...', 'processing');
 
                 // Get opacity setting (convert from 0-100 to 0-1)
@@ -723,7 +726,7 @@
                         // Calculate position
                         let x, y;
                         const margin = 30;
-                        const batesWidth = batesNumber.length * fontSize * 0.6;
+                        const batesWidth = font.widthOfTextAtSize(batesNumber, fontSize);
 
                         switch(position) {
                             case 'bottom-right':
@@ -757,6 +760,7 @@
                             x: x,
                             y: y,
                             size: fontSize,
+                            font: font,
                             color: textColorRgb,
                             opacity: textOpacity,
                         });
@@ -772,7 +776,7 @@
                             const exhibitValue = document.getElementById('exhibitValue').value;
                             const exhibitText = exhibitLabel + ' ' + exhibitValue;
                             const exhibitFontSize = parseInt(document.getElementById('exhibitFontSize').value);
-                            const exhibitWidth = exhibitText.length * exhibitFontSize * 0.6;
+                            const exhibitWidth = font.widthOfTextAtSize(exhibitText, exhibitFontSize);
                             const exhibitPosition = document.getElementById('exhibitPosition').value;
 
                             let exhibitX, exhibitY;
@@ -813,6 +817,7 @@
                                 x: exhibitX,
                                 y: exhibitY,
                                 size: exhibitFontSize,
+                                font: font,
                                 color: exhibitRgb,
                                 opacity: textOpacity,
                             });
@@ -835,7 +840,7 @@
                             }
 
                             const confidentialityFontSize = parseInt(document.getElementById('confidentialityFontSize').value);
-                            const confidentialityWidth = confidentialityText.length * confidentialityFontSize * 0.6;
+                            const confidentialityWidth = font.widthOfTextAtSize(confidentialityText, confidentialityFontSize);
                             const confidentialityPosition = document.getElementById('confidentialityPosition').value;
 
                             let confidentialityX, confidentialityY;
@@ -876,6 +881,7 @@
                                 x: confidentialityX,
                                 y: confidentialityY,
                                 size: confidentialityFontSize,
+                                font: font,
                                 color: confidentialityRgb,
                                 opacity: textOpacity,
                             });
@@ -910,35 +916,7 @@
                 setStatus('Stamped ' + totalPages + ' page(s) — saved as ' + outputFilename, 'success');
 
                 // Show pipeline suggestions
-                if (typeof showPipelineSuggestions === 'function') {
-                    showPipelineSuggestions('bates-stamp');
-                } else {
-                    (function() {
-                        function showPipelineSuggestions(currentToolId) {
-                            if (typeof TOOL_PIPELINE === 'undefined' || typeof TOOLS === 'undefined') return;
-                            var suggestions = TOOL_PIPELINE[currentToolId];
-                            if (!suggestions || suggestions.length === 0) return;
-                            var existing = document.querySelector('.pipeline-suggestions');
-                            if (existing) existing.remove();
-                            var html = '<div class="pipeline-suggestions">';
-                            html += '<p class="pipeline-title">Open your result in another tool:</p>';
-                            html += '<div class="pipeline-links">';
-                            for (var i = 0; i < suggestions.length; i++) {
-                                var toolId = suggestions[i];
-                                for (var j = 0; j < TOOLS.length; j++) {
-                                    if (TOOLS[j].id === toolId) {
-                                        html += '<a href="' + TOOLS[j].path + '" class="pipeline-link">' + TOOLS[j].name + ' &rarr;</a>';
-                                        break;
-                                    }
-                                }
-                            }
-                            html += '</div></div>';
-                            var statusEl = document.getElementById('status');
-                            if (statusEl) statusEl.insertAdjacentHTML('afterend', html);
-                        }
-                        showPipelineSuggestions('bates-stamp');
-                    })();
-                }
+                showPipelineSuggestions('bates-stamp');
 
             } catch (error) {
                 console.error('Error:', error);

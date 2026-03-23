@@ -99,3 +99,33 @@ const TOOL_PIPELINE = {
   'watermark': ['compressor'],
   'pleading-paper': []
 };
+
+// showPipelineSuggestions(currentToolId)
+// Renders "Open your result in another tool" links after the #status element.
+// Depends on TOOL_PIPELINE and TOOLS being defined (both declared above).
+function showPipelineSuggestions(currentToolId) {
+    if (typeof TOOL_PIPELINE === 'undefined' || typeof TOOLS === 'undefined') return;
+    var suggestions = TOOL_PIPELINE[currentToolId];
+    if (!suggestions || suggestions.length === 0) return;
+
+    var html = '<div class="pipeline-suggestions">';
+    html += '<p class="pipeline-title">Open your result in another tool:</p>';
+    html += '<div class="pipeline-links">';
+
+    for (var i = 0; i < suggestions.length; i++) {
+        var toolId = suggestions[i];
+        var tool = TOOLS.find(function(t) { return t.id === toolId; });
+        if (tool) {
+            html += '<a href="' + tool.path + '" class="pipeline-link">' + tool.name + ' &rarr;</a>';
+        }
+    }
+
+    html += '</div></div>';
+
+    var statusEl = document.getElementById('status');
+    if (statusEl) {
+        var existing = document.querySelector('.pipeline-suggestions');
+        if (existing) existing.remove();
+        statusEl.insertAdjacentHTML('afterend', html);
+    }
+}
