@@ -228,6 +228,7 @@
     <script src="/shared/tools.js"></script>
     <script src="/shared/nav.js"></script>
     <script src="/shared/file-handler.js"></script>
+    <script src="/shared/session-files.js"></script>
 
     <script>
         // ---------------------------------------------------------------
@@ -369,6 +370,12 @@
                 var filename = selectedFile.name.replace(/\.pdf$/i, '') + '_compressed.pdf';
                 downloadPdf(pdfBytes, filename);
 
+                // Add to session files
+                if (typeof sessionFiles !== 'undefined') {
+                    var blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                    sessionFiles.add(filename, blob, 'compressor');
+                }
+
                 // Complete
                 progressBar.style.width = '100%';
                 progressText.textContent = 'Done!';
@@ -378,12 +385,45 @@
 
                 showCompressionResults(originalSize, compressedSize);
 
+                // Show pipeline suggestions (compressor has none, but call for consistency)
+                showPipelineSuggestions('compressor');
+
             } catch (err) {
                 statusEl.className = 'status status-error';
                 statusEl.textContent = 'Error: ' + err.message;
                 progressContainer.classList.add('hidden');
             } finally {
                 btn.disabled = false;
+            }
+        }
+
+        // ---------------------------------------------------------------
+        // Pipeline suggestions
+        // ---------------------------------------------------------------
+        function showPipelineSuggestions(currentToolId) {
+            if (typeof TOOL_PIPELINE === 'undefined') return;
+            var suggestions = TOOL_PIPELINE[currentToolId];
+            if (!suggestions || suggestions.length === 0) return;
+
+            var html = '<div class="pipeline-suggestions">';
+            html += '<p class="pipeline-title">Open your result in another tool:</p>';
+            html += '<div class="pipeline-links">';
+
+            for (var i = 0; i < suggestions.length; i++) {
+                var toolId = suggestions[i];
+                var tool = TOOLS.find(function(t) { return t.id === toolId; });
+                if (tool) {
+                    html += '<a href="' + tool.path + '" class="pipeline-link">' + tool.name + ' &rarr;</a>';
+                }
+            }
+
+            html += '</div></div>';
+
+            var statusEl = document.getElementById('status');
+            if (statusEl) {
+                var existing = document.querySelector('.pipeline-suggestions');
+                if (existing) existing.remove();
+                statusEl.insertAdjacentHTML('afterend', html);
             }
         }
 

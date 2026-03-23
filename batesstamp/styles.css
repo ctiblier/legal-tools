@@ -1164,3 +1164,47 @@
         max-height: 250px;
     }
 }
+
+/* ==========================================================================
+   Pipeline suggestions
+   ========================================================================== */
+
+.pipeline-suggestions {
+    text-align: center;
+    padding: 16px;
+    margin: 12px 0;
+    background: var(--gold-muted);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--gold-light);
+}
+
+.pipeline-title {
+    font-size: 0.88rem;
+    color: var(--text-muted);
+    margin: 0 0 10px;
+}
+
+.pipeline-links {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.pipeline-link {
+    display: inline-block;
+    padding: 8px 16px;
+    background: white;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-sm);
+    color: var(--navy-mid);
+    text-decoration: none;
+    font-size: 0.88rem;
+    font-weight: 500;
+    transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.pipeline-link:hover {
+    border-color: var(--navy-mid);
+    box-shadow: var(--shadow-sm);
+}
