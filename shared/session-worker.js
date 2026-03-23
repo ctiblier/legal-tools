@@ -30,13 +30,13 @@ self.addEventListener('connect', function (e) {
         while (ids.length > 10) {
           delete store[ids.shift()];
         }
-        port.postMessage({ op: 'added', id: id });
+        port.postMessage({ op: 'added', id: id, _cbId: msg._cbId });
         break;
       }
 
       case 'get': {
         var entry = store[msg.id] || null;
-        port.postMessage({ op: 'got', id: msg.id, entry: entry });
+        port.postMessage({ op: 'got', id: msg.id, entry: entry, _cbId: msg._cbId });
         break;
       }
 
@@ -44,24 +44,24 @@ self.addEventListener('connect', function (e) {
         var all = Object.keys(store).map(Number).sort(function (a, b) { return a - b; }).map(function (id) {
           return store[id];
         });
-        port.postMessage({ op: 'gotAll', entries: all });
+        port.postMessage({ op: 'gotAll', entries: all, _cbId: msg._cbId });
         break;
       }
 
       case 'remove': {
         delete store[msg.id];
-        port.postMessage({ op: 'removed', id: msg.id });
+        port.postMessage({ op: 'removed', id: msg.id, _cbId: msg._cbId });
         break;
       }
 
       case 'clear': {
         store = {};
-        port.postMessage({ op: 'cleared' });
+        port.postMessage({ op: 'cleared', _cbId: msg._cbId });
         break;
       }
 
       default:
-        port.postMessage({ op: 'error', message: 'Unknown op: ' + msg.op });
+        port.postMessage({ op: 'error', message: 'Unknown op: ' + msg.op, _cbId: msg._cbId });
     }
   });
 
