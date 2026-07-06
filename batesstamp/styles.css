@@ -216,38 +216,51 @@
 
 .file-list {
     list-style: none;
-    margin: 12px 0 0 0;
+    margin: 16px 0 0 0;
     padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
 }
 
 .file-list-item {
     display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 12px;
-    background: var(--gray-50, #f6f3ec);
-    border: 1px solid var(--gray-200, #e5ddd0);
-    border-radius: 6px;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 12px 4px;
+    border-bottom: 1px solid var(--gray-200, #e5ddd0);
+    transition: background-color 0.12s ease;
+}
+
+.file-list-item:last-child {
+    border-bottom: none;
+}
+
+.file-list-item:hover {
+    background: rgba(0, 0, 0, 0.015);
 }
 
 .file-list-item-error {
-    background: #fbeae5;
-    border-color: #e5b0a1;
+    background: rgba(197, 48, 48, 0.04);
 }
 
 .file-list-num {
-    font-weight: 700;
-    color: var(--gray-500, #7a6f60);
+    font-weight: 500;
+    color: var(--gray-400, #a89e8f);
     font-variant-numeric: tabular-nums;
-    min-width: 24px;
+    min-width: 20px;
+    text-align: right;
+    font-size: 0.9em;
+    padding-top: 2px;
 }
 
 .file-list-main {
     flex: 1;
     min-width: 0;
+}
+
+.file-list-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    justify-content: space-between;
 }
 
 .file-list-name {
@@ -256,45 +269,68 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    min-width: 0;
+    flex: 1;
+}
+
+.file-list-tag {
+    display: inline-block;
+    background: var(--brand, #b8895a);
+    color: white;
+    font-size: 0.75em;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    padding: 3px 9px;
+    border-radius: 3px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .file-list-meta {
-    font-size: 0.85em;
+    font-size: 0.82em;
     color: var(--gray-500, #7a6f60);
-    margin-top: 2px;
+    margin-top: 3px;
+}
+
+.file-list-item-error .file-list-meta {
+    color: #c53030;
 }
 
 .file-list-remove {
     background: none;
     border: none;
-    color: var(--gray-500, #7a6f60);
-    font-size: 22px;
-    line-height: 1;
-    cursor: pointer;
-    padding: 4px 10px;
+    color: var(--gray-300, #c9beac);
+    padding: 4px;
     border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.12s ease, background-color 0.12s ease;
 }
 
 .file-list-remove:hover {
-    background: rgba(0,0,0,0.06);
     color: #c53030;
+    background: rgba(197, 48, 48, 0.08);
 }
 
 .file-list-clear {
-    margin-top: 10px;
+    margin-top: 12px;
     background: none;
-    border: 1px solid var(--gray-200, #e5ddd0);
+    border: none;
     color: var(--gray-500, #7a6f60);
-    font-size: 0.85em;
-    padding: 6px 12px;
-    border-radius: 4px;
+    font-size: 0.82em;
+    padding: 4px 0;
     cursor: pointer;
+    text-decoration: underline;
+    text-decoration-color: var(--gray-300, #c9beac);
+    text-underline-offset: 3px;
 }
 
 .file-list-clear:hover {
-    background: var(--gray-50, #f6f3ec);
     color: #c53030;
-    border-color: #c53030;
+    text-decoration-color: #c53030;
 }
 
 /* ==========================================================================
