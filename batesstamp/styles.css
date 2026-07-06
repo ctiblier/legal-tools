@@ -15,24 +15,6 @@
    Opacity control (stamp settings)
    ========================================================================== */
 
-.opacity-control {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.opacity-control input[type="range"] {
-    flex: 1;
-    accent-color: var(--navy-mid);
-}
-
-.opacity-control span {
-    min-width: 45px;
-    font-weight: 600;
-    color: var(--navy);
-    font-variant-numeric: tabular-nums;
-}
-
 /* ==========================================================================
    File upload drop zone
    ========================================================================== */

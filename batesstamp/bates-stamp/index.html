@@ -391,14 +391,6 @@
                     <p class="info-text">Distance from the page edge to the stamp. Increase if stamps overlap existing text (72 points = 1 inch). Default: 30.</p>
                 </div>
 
-                <div class="control-group">
-                    <label for="textOpacity">Text Opacity (prevents covering content):</label>
-                    <div class="opacity-control">
-                        <input type="range" id="textOpacity" min="50" max="100" value="90" aria-valuenow="90" aria-valuemin="50" aria-valuemax="100">
-                        <span id="opacityDisplay" aria-live="polite">90%</span>
-                    </div>
-                    <p class="info-text">90% recommended - stamps are visible but won't completely obscure text underneath. Lower = more transparent.</p>
-                </div>
             </div>
 
             <!-- Action Button -->
@@ -581,7 +573,6 @@
         document.getElementById('addExhibit').addEventListener('change', toggleExhibitOptions);
         document.getElementById('addConfidentiality').addEventListener('change', toggleConfidentialityOptions);
         document.getElementById('confidentialityText').addEventListener('change', updateConfidentialityPreview);
-        document.getElementById('textOpacity').addEventListener('input', updateOpacityDisplay);
         document.getElementById('stampBtn').addEventListener('click', stampPDF);
 
         function toggleBatesOptions() {
@@ -612,13 +603,6 @@
             const select = document.getElementById('confidentialityText');
             const customGroup = document.getElementById('customConfidentialityGroup');
             customGroup.classList.toggle('hidden', select.value !== 'custom');
-        }
-
-        function updateOpacityDisplay() {
-            const slider = document.getElementById('textOpacity');
-            const display = document.getElementById('opacityDisplay');
-            display.textContent = slider.value + '%';
-            slider.setAttribute('aria-valuenow', slider.value);
         }
 
         function hexToRgb(hex) {
@@ -753,8 +737,6 @@
                     const fileExhibitValue = addExhibit ? incrementExhibitValue(baseExhibitValue, fileIdx) : '';
 
                 // Get opacity setting (convert from 0-100 to 0-1)
-                const textOpacity = parseInt(document.getElementById('textOpacity').value) / 100;
-
                 // Convert hex color to RGB for Bates numbers
                 let textColorRgb;
                 if (addBates) {
@@ -829,7 +811,6 @@
                             size: fontSize,
                             font: font,
                             color: textColorRgb,
-                            opacity: textOpacity,
                         });
                     }
 
@@ -885,8 +866,7 @@
                                 size: exhibitFontSize,
                                 font: font,
                                 color: exhibitRgb,
-                                opacity: textOpacity,
-                            });
+                                });
                         }
                     }
 
@@ -949,8 +929,7 @@
                                 size: confidentialityFontSize,
                                 font: font,
                                 color: confidentialityRgb,
-                                opacity: textOpacity,
-                            });
+                                });
                         }
                     }
                 }
