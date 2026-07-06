@@ -22,7 +22,7 @@
 .file-drop-zone {
     border: 2px dashed var(--gray-300);
     border-radius: var(--radius-md);
-    padding: 32px 24px;
+    padding: 18px 20px;
     text-align: center;
     cursor: pointer;
     transition: all var(--transition);
@@ -57,12 +57,17 @@
 }
 
 .drop-zone-icon {
-    margin-bottom: 10px;
+    margin-bottom: 6px;
     color: var(--gray-400);
     transition: color var(--transition);
     line-height: 1;
     display: flex;
     justify-content: center;
+}
+
+.drop-zone-icon svg {
+    width: 28px;
+    height: 28px;
 }
 
 .file-drop-zone:hover .drop-zone-icon {
