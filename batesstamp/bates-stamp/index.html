@@ -232,6 +232,30 @@
                             <p class="info-text">Number of digits (e.g., 4 = 0001)</p>
                         </div>
                     </div>
+
+                    <div class="three-column">
+                        <div class="control-group">
+                            <label for="position">Position:</label>
+                            <select id="position">
+                                <option value="bottom-right">Bottom Right</option>
+                                <option value="bottom-center">Bottom Center</option>
+                                <option value="bottom-left">Bottom Left</option>
+                                <option value="top-right">Top Right</option>
+                                <option value="top-center">Top Center</option>
+                                <option value="top-left">Top Left</option>
+                            </select>
+                        </div>
+
+                        <div class="control-group">
+                            <label for="fontSize">Font Size:</label>
+                            <input type="number" id="fontSize" value="10" min="6" max="24">
+                        </div>
+
+                        <div class="control-group">
+                            <label for="textColor">Text Color:</label>
+                            <input type="color" id="textColor" value="#000000">
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -278,6 +302,18 @@
                                 <option value="top-left">Top Left</option>
                                 <option value="center">Page Center</option>
                             </select>
+                        </div>
+                    </div>
+
+                    <div class="two-column">
+                        <div class="control-group">
+                            <label for="exhibitFontSize">Font Size:</label>
+                            <input type="number" id="exhibitFontSize" value="24" min="12" max="48">
+                        </div>
+
+                        <div class="control-group">
+                            <label for="exhibitColor">Color:</label>
+                            <input type="color" id="exhibitColor" value="#000000">
                         </div>
                     </div>
                 </div>
@@ -332,60 +368,24 @@
                             </select>
                         </div>
                     </div>
+
+                    <div class="two-column">
+                        <div class="control-group">
+                            <label for="confidentialityFontSize">Font Size:</label>
+                            <input type="number" id="confidentialityFontSize" value="16" min="10" max="36">
+                        </div>
+
+                        <div class="control-group">
+                            <label for="confidentialityColor">Color:</label>
+                            <input type="color" id="confidentialityColor" value="#FF0000">
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Appearance Settings -->
+            <!-- Page Layout Settings -->
             <div class="section">
-                <h2 class="section-title">5. Appearance</h2>
-
-                <div class="three-column" id="batesAppearance">
-                    <div class="control-group">
-                        <label for="position">Bates Number Position:</label>
-                        <select id="position">
-                            <option value="bottom-right">Bottom Right</option>
-                            <option value="bottom-center">Bottom Center</option>
-                            <option value="bottom-left">Bottom Left</option>
-                            <option value="top-right">Top Right</option>
-                            <option value="top-center">Top Center</option>
-                            <option value="top-left">Top Left</option>
-                        </select>
-                    </div>
-
-                    <div class="control-group">
-                        <label for="fontSize">Bates Font Size:</label>
-                        <input type="number" id="fontSize" value="10" min="6" max="24">
-                    </div>
-
-                    <div class="control-group">
-                        <label for="textColor">Bates Text Color:</label>
-                        <input type="color" id="textColor" value="#000000">
-                    </div>
-                </div>
-
-                <div class="two-column hidden" id="exhibitAppearance">
-                    <div class="control-group">
-                        <label for="exhibitFontSize">Exhibit Font Size:</label>
-                        <input type="number" id="exhibitFontSize" value="24" min="12" max="48">
-                    </div>
-
-                    <div class="control-group">
-                        <label for="exhibitColor">Exhibit Color:</label>
-                        <input type="color" id="exhibitColor" value="#000000">
-                    </div>
-                </div>
-
-                <div class="two-column hidden" id="confidentialityAppearance">
-                    <div class="control-group">
-                        <label for="confidentialityFontSize">Confidentiality Font Size:</label>
-                        <input type="number" id="confidentialityFontSize" value="16" min="10" max="36">
-                    </div>
-
-                    <div class="control-group">
-                        <label for="confidentialityColor">Confidentiality Color:</label>
-                        <input type="color" id="confidentialityColor" value="#FF0000">
-                    </div>
-                </div>
+                <h2 class="section-title">5. Page Layout</h2>
 
                 <div class="control-group">
                     <label for="stampMargin">Margin from Page Edge (points):</label>
@@ -741,26 +741,17 @@
 
         function toggleBatesOptions() {
             const checkbox = document.getElementById('addBates');
-            const options = document.getElementById('batesOptions');
-            const appearance = document.getElementById('batesAppearance');
-            options.classList.toggle('hidden', !checkbox.checked);
-            appearance.classList.toggle('hidden', !checkbox.checked);
+            document.getElementById('batesOptions').classList.toggle('hidden', !checkbox.checked);
         }
 
         function toggleExhibitOptions() {
             const checkbox = document.getElementById('addExhibit');
-            const options = document.getElementById('exhibitOptions');
-            const appearance = document.getElementById('exhibitAppearance');
-            options.classList.toggle('hidden', !checkbox.checked);
-            appearance.classList.toggle('hidden', !checkbox.checked);
+            document.getElementById('exhibitOptions').classList.toggle('hidden', !checkbox.checked);
         }
 
         function toggleConfidentialityOptions() {
             const checkbox = document.getElementById('addConfidentiality');
-            const options = document.getElementById('confidentialityOptions');
-            const appearance = document.getElementById('confidentialityAppearance');
-            options.classList.toggle('hidden', !checkbox.checked);
-            appearance.classList.toggle('hidden', !checkbox.checked);
+            document.getElementById('confidentialityOptions').classList.toggle('hidden', !checkbox.checked);
         }
 
         function toggleWhitespaceBorderOptions() {
