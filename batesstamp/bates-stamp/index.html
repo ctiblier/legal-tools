@@ -192,7 +192,7 @@
                         <div class="drop-zone-text" id="dropText">Choose PDF files or drag them here</div>
                         <div class="drop-zone-hint" id="dropHint">Select one file — or several for batch stamping with continuous numbering (up to 100). Your documents never leave your browser.</div>
                     </div>
-                    <ul id="fileList" class="file-list" aria-live="polite"></ul>
+                    <div id="fileList" class="file-list" aria-live="polite"></div>
                     <button type="button" id="clearFilesBtn" class="file-list-clear hidden">Clear all files</button>
                 </div>
             </div>
@@ -616,73 +616,112 @@
             var padding = parseInt(document.getElementById('padding').value) || 4;
             var baseExhibit = document.getElementById('exhibitValue').value;
 
+            var PDF_ICON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+            var X_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+
+            var table = document.createElement('table');
+            table.className = 'file-table';
+
+            var thead = document.createElement('thead');
+            var headRow = document.createElement('tr');
+            var headers = ['File', 'Size', 'Pages'];
+            if (addBates) headers.push('Bates Range');
+            if (addExhibit) headers.push('Exhibit');
+            headers.push('');
+            headers.forEach(function(h) {
+                var th = document.createElement('th');
+                th.textContent = h;
+                headRow.appendChild(th);
+            });
+            thead.appendChild(headRow);
+            table.appendChild(thead);
+
+            var tbody = document.createElement('tbody');
             var counter = startNumber;
+
             selectedFiles.forEach(function(entry, idx) {
-                var li = document.createElement('li');
-                li.className = 'file-list-item';
-                if (entry.error) li.classList.add('file-list-item-error');
+                var tr = document.createElement('tr');
+                if (entry.error) tr.className = 'file-row-error';
 
-                var num = document.createElement('span');
-                num.className = 'file-list-num';
-                num.textContent = (idx + 1);
+                // File cell (icon + filename)
+                var tdFile = document.createElement('td');
+                tdFile.className = 'file-col-name';
+                var icon = document.createElement('span');
+                icon.className = 'file-col-icon';
+                icon.innerHTML = PDF_ICON;
+                var nameSpan = document.createElement('span');
+                nameSpan.className = 'file-col-filename';
+                nameSpan.textContent = entry.file.name;
+                nameSpan.title = entry.file.name;
+                tdFile.appendChild(icon);
+                tdFile.appendChild(nameSpan);
+                tr.appendChild(tdFile);
 
-                var main = document.createElement('div');
-                main.className = 'file-list-main';
+                // Size cell
+                var tdSize = document.createElement('td');
+                tdSize.className = 'file-col-num';
+                tdSize.textContent = (entry.file.size / (1024 * 1024)).toFixed(1) + ' MB';
+                tr.appendChild(tdSize);
 
-                var topRow = document.createElement('div');
-                topRow.className = 'file-list-top';
-
-                var name = document.createElement('span');
-                name.className = 'file-list-name';
-                name.textContent = entry.file.name;
-                topRow.appendChild(name);
-
-                if (!entry.error && entry.pageCount !== null && addBates) {
-                    var startPad = counter.toString().padStart(padding, '0');
-                    var endPad = (counter + entry.pageCount - 1).toString().padStart(padding, '0');
-                    var tag = document.createElement('span');
-                    tag.className = 'file-list-tag';
-                    tag.textContent = prefix + startPad + suffix + '–' + prefix + endPad + suffix;
-                    topRow.appendChild(tag);
-                }
-
-                var meta = document.createElement('div');
-                meta.className = 'file-list-meta';
-
-                var sizeMB = (entry.file.size / (1024 * 1024)).toFixed(1) + ' MB';
-                var parts = [sizeMB];
-
+                // Pages cell (or status)
+                var tdPages = document.createElement('td');
+                tdPages.className = 'file-col-num';
                 if (entry.error === 'password-protected') {
-                    parts.push('password-protected — cannot stamp');
+                    tdPages.textContent = 'password-protected';
+                    tdPages.classList.add('file-col-error');
+                    tdPages.colSpan = headers.length - 2;
                 } else if (entry.error === 'unreadable') {
-                    parts.push('unreadable — cannot stamp');
+                    tdPages.textContent = 'unreadable';
+                    tdPages.classList.add('file-col-error');
+                    tdPages.colSpan = headers.length - 2;
                 } else if (entry.pageCount === null) {
-                    parts.push('reading pages…');
+                    tdPages.textContent = '…';
+                    tdPages.classList.add('file-col-pending');
                 } else {
-                    parts.push(entry.pageCount + ' page' + (entry.pageCount === 1 ? '' : 's'));
-                    if (addExhibit) {
-                        parts.push('EXHIBIT ' + incrementExhibitValue(baseExhibit || 'A', idx));
+                    tdPages.textContent = entry.pageCount;
+                }
+                tr.appendChild(tdPages);
+
+                // Only add subsequent cells if no error (else colspan covered them)
+                if (!entry.error) {
+                    if (addBates) {
+                        var tdBates = document.createElement('td');
+                        tdBates.className = 'file-col-bates';
+                        if (entry.pageCount !== null) {
+                            var startPad = counter.toString().padStart(padding, '0');
+                            var endPad = (counter + entry.pageCount - 1).toString().padStart(padding, '0');
+                            tdBates.textContent = prefix + startPad + suffix + '–' + prefix + endPad + suffix;
+                        }
+                        tr.appendChild(tdBates);
                     }
-                    counter += entry.pageCount;
+                    if (addExhibit) {
+                        var tdEx = document.createElement('td');
+                        tdEx.className = 'file-col-num';
+                        if (entry.pageCount !== null) {
+                            tdEx.textContent = incrementExhibitValue(baseExhibit || 'A', idx);
+                        }
+                        tr.appendChild(tdEx);
+                    }
+                    if (entry.pageCount !== null) counter += entry.pageCount;
                 }
 
-                meta.textContent = parts.join(' · ');
-
-                main.appendChild(topRow);
-                main.appendChild(meta);
-
+                // Remove button cell
+                var tdRemove = document.createElement('td');
+                tdRemove.className = 'file-col-action';
                 var removeBtn = document.createElement('button');
                 removeBtn.type = 'button';
-                removeBtn.className = 'file-list-remove';
+                removeBtn.className = 'file-row-remove';
                 removeBtn.setAttribute('aria-label', 'Remove ' + entry.file.name);
-                removeBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+                removeBtn.innerHTML = X_ICON;
                 removeBtn.addEventListener('click', function() { removeFileAt(idx); });
+                tdRemove.appendChild(removeBtn);
+                tr.appendChild(tdRemove);
 
-                li.appendChild(num);
-                li.appendChild(main);
-                li.appendChild(removeBtn);
-                list.appendChild(li);
+                tbody.appendChild(tr);
             });
+
+            table.appendChild(tbody);
+            list.appendChild(table);
         }
 
         // Drag-and-drop file upload

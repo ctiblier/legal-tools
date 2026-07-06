@@ -215,102 +215,114 @@
 }
 
 .file-list {
-    list-style: none;
     margin: 16px 0 0 0;
     padding: 0;
 }
 
-.file-list-item {
-    display: flex;
-    align-items: flex-start;
-    gap: 14px;
-    padding: 12px 4px;
+.file-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9em;
+    table-layout: auto;
+}
+
+.file-table thead th {
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.75em;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--gray-500, #7a6f60);
+    padding: 6px 10px 8px;
     border-bottom: 1px solid var(--gray-200, #e5ddd0);
-    transition: background-color 0.12s ease;
+    white-space: nowrap;
 }
 
-.file-list-item:last-child {
-    border-bottom: none;
+.file-table thead th:first-child { padding-left: 4px; }
+.file-table thead th:last-child { padding-right: 4px; }
+
+.file-table tbody td {
+    padding: 10px;
+    border-bottom: 1px solid var(--gray-100, #efe9dc);
+    vertical-align: middle;
+    color: var(--ink, #2d2620);
 }
 
-.file-list-item:hover {
+.file-table tbody td:first-child { padding-left: 4px; }
+.file-table tbody td:last-child { padding-right: 4px; }
+
+.file-table tbody tr:last-child td { border-bottom: none; }
+
+.file-table tbody tr:hover {
     background: rgba(0, 0, 0, 0.015);
 }
 
-.file-list-item-error {
+.file-table tbody tr.file-row-error {
     background: rgba(197, 48, 48, 0.04);
 }
 
-.file-list-num {
-    font-weight: 500;
+.file-col-name {
+    max-width: 340px;
+}
+
+.file-col-icon {
+    display: inline-flex;
+    vertical-align: middle;
     color: var(--gray-400, #a89e8f);
-    font-variant-numeric: tabular-nums;
-    min-width: 20px;
-    text-align: right;
-    font-size: 0.9em;
-    padding-top: 2px;
+    margin-right: 8px;
 }
 
-.file-list-main {
-    flex: 1;
-    min-width: 0;
-}
-
-.file-list-top {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    justify-content: space-between;
-}
-
-.file-list-name {
-    font-weight: 600;
-    color: var(--ink, #2d2620);
+.file-col-filename {
+    display: inline-block;
+    vertical-align: middle;
+    font-weight: 500;
+    max-width: calc(100% - 30px);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    min-width: 0;
-    flex: 1;
 }
 
-.file-list-tag {
-    display: inline-block;
-    background: var(--brand, #b8895a);
-    color: white;
-    font-size: 0.75em;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    padding: 3px 9px;
-    border-radius: 3px;
+.file-col-num,
+.file-col-bates {
     font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-    flex-shrink: 0;
-}
-
-.file-list-meta {
-    font-size: 0.82em;
     color: var(--gray-500, #7a6f60);
-    margin-top: 3px;
+    white-space: nowrap;
 }
 
-.file-list-item-error .file-list-meta {
+.file-col-bates {
+    color: var(--ink, #2d2620);
+    font-weight: 500;
+}
+
+.file-col-pending {
+    color: var(--gray-400, #a89e8f);
+}
+
+.file-col-error {
     color: #c53030;
+    font-style: italic;
+    white-space: normal;
 }
 
-.file-list-remove {
+.file-col-action {
+    width: 32px;
+    text-align: right;
+}
+
+.file-row-remove {
     background: none;
     border: none;
     color: var(--gray-300, #c9beac);
     padding: 4px;
     border-radius: 4px;
     cursor: pointer;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     transition: color 0.12s ease, background-color 0.12s ease;
 }
 
-.file-list-remove:hover {
+.file-row-remove:hover {
     color: #c53030;
     background: rgba(197, 48, 48, 0.08);
 }
