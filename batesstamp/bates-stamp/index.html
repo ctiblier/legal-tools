@@ -157,6 +157,9 @@
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"
             integrity="sha384-weMABwrltA6jWR8DDe9Jp5blk+tZQh7ugpCsF3JwSA53WZM9/14PjS5LAJNHNjAI"
             crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/jszip@3.10.1/dist/jszip.min.js"
+            integrity="sha384-+mbV2IY1Zk/X1p/nWllGySJSUN8uMs+gUAN10Or95UBH0fpj6GfKgPmgC5EXieXG"
+            crossorigin="anonymous"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -179,15 +182,15 @@
 
             <!-- File Upload Section -->
             <div class="section">
-                <h2 class="section-title">1. Select Document</h2>
+                <h2 class="section-title">1. Select Documents</h2>
                 <div class="control-group">
                     <div class="file-drop-zone" id="dropZone">
-                        <input type="file" id="pdfFile" accept=".pdf" aria-label="Choose PDF file">
+                        <input type="file" id="pdfFile" accept=".pdf" aria-label="Choose PDF files" multiple>
                         <div class="drop-zone-icon" id="dropIcon">
                             <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/></svg>
                         </div>
-                        <div class="drop-zone-text" id="dropText">Choose a PDF file or drag it here</div>
-                        <div class="drop-zone-hint" id="dropHint">Your document never leaves your browser.</div>
+                        <div class="drop-zone-text" id="dropText">Choose PDF files or drag them here</div>
+                        <div class="drop-zone-hint" id="dropHint">Batch up to 100 files. Your documents never leave your browser.</div>
                     </div>
                 </div>
             </div>
@@ -202,6 +205,7 @@
                 </div>
 
                 <div id="batesOptions" class="option-panel">
+                    <p class="info-text batch-hint hidden" id="batesBatchHint">Batch mode: numbering runs continuously across files in the order shown above (e.g., file 1 = 0001–0050, file 2 = 0051–0120).</p>
                     <div class="two-column">
                         <div class="control-group">
                             <label for="prefix">Prefix:</label>
@@ -239,6 +243,7 @@
                 </div>
 
                 <div id="exhibitOptions" class="option-panel hidden">
+                    <p class="info-text batch-hint hidden" id="exhibitBatchHint"><strong>Batch mode:</strong> the exhibit value auto-increments per file starting from the value you enter (A → B → C, or 1 → 2 → 3). Files are processed in the order shown in section 1.</p>
                     <div class="two-column">
                         <div class="control-group">
                             <label for="exhibitLabel">Exhibit Label:</label>
@@ -381,6 +386,12 @@
                 </div>
 
                 <div class="control-group">
+                    <label for="stampMargin">Margin from Page Edge (points):</label>
+                    <input type="number" id="stampMargin" value="30" min="0" max="200" step="1">
+                    <p class="info-text">Distance from the page edge to the stamp. Increase if stamps overlap existing text (72 points = 1 inch). Default: 30.</p>
+                </div>
+
+                <div class="control-group">
                     <label for="textOpacity">Text Opacity (prevents covering content):</label>
                     <div class="opacity-control">
                         <input type="range" id="textOpacity" min="50" max="100" value="90" aria-valuenow="90" aria-valuemin="50" aria-valuemax="100">
@@ -496,19 +507,35 @@
             var checkSvg = '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
 
             function updateFileDisplay() {
-                if (fileInput.files && fileInput.files[0]) {
-                    var name = fileInput.files[0].name;
-                    var sizeMB = (fileInput.files[0].size / (1024 * 1024)).toFixed(1);
-                    dropZone.classList.add('has-file');
-                    dropIcon.innerHTML = checkSvg;
-                    dropText.textContent = name;
-                    dropHint.textContent = sizeMB + ' MB';
-                } else {
+                var files = fileInput.files;
+                var batesHint = document.getElementById('batesBatchHint');
+                var exhibitHint = document.getElementById('exhibitBatchHint');
+                var isBatch = files && files.length > 1;
+                if (batesHint) batesHint.classList.toggle('hidden', !isBatch);
+                if (exhibitHint) exhibitHint.classList.toggle('hidden', !isBatch);
+
+                if (!files || files.length === 0) {
                     dropZone.classList.remove('has-file');
                     dropIcon.innerHTML = uploadSvg;
-                    dropText.textContent = 'Choose a PDF file or drag it here';
-                    dropHint.textContent = 'Your document never leaves your browser.';
+                    dropText.textContent = 'Choose PDF files or drag them here';
+                    dropHint.textContent = 'Batch up to 100 files. Your documents never leave your browser.';
+                    return;
                 }
+                if (files.length === 1) {
+                    var sizeMB = (files[0].size / (1024 * 1024)).toFixed(1);
+                    dropZone.classList.add('has-file');
+                    dropIcon.innerHTML = checkSvg;
+                    dropText.textContent = files[0].name;
+                    dropHint.textContent = sizeMB + ' MB';
+                    return;
+                }
+                var totalMB = 0;
+                for (var i = 0; i < files.length; i++) totalMB += files[i].size;
+                totalMB = (totalMB / (1024 * 1024)).toFixed(1);
+                dropZone.classList.add('has-file');
+                dropIcon.innerHTML = checkSvg;
+                dropText.textContent = files.length + ' files selected';
+                dropHint.textContent = totalMB + ' MB total — files will be processed in the order shown';
             }
 
             fileInput.addEventListener('change', updateFileDisplay);
@@ -531,12 +558,21 @@
 
             dropZone.addEventListener('drop', function(e) {
                 var files = e.dataTransfer.files;
-                if (files.length > 0 && files[0].type === 'application/pdf') {
-                    fileInput.files = files;
-                    updateFileDisplay();
-                } else if (files.length > 0) {
-                    setStatus('Please select a PDF file.', 'error');
+                if (!files || files.length === 0) return;
+                var pdfs = [];
+                for (var i = 0; i < files.length; i++) {
+                    if (files[i].type === 'application/pdf' || /\.pdf$/i.test(files[i].name)) {
+                        pdfs.push(files[i]);
+                    }
                 }
+                if (pdfs.length === 0) {
+                    setStatus('Please select PDF files.', 'error');
+                    return;
+                }
+                var dt = new DataTransfer();
+                pdfs.forEach(function(f) { dt.items.add(f); });
+                fileInput.files = dt.files;
+                updateFileDisplay();
             });
         })();
 
@@ -616,6 +652,30 @@
             }
         }
 
+        // Increment an exhibit value: "A" -> "B", "Z" -> "AA", "1" -> "2", "EX-1" -> "EX-2".
+        function incrementExhibitValue(base, offset) {
+            if (offset === 0) return base;
+            const trailing = base.match(/^(.*?)(\d+)$/);
+            if (trailing) {
+                const num = parseInt(trailing[2], 10) + offset;
+                return trailing[1] + num.toString().padStart(trailing[2].length, '0');
+            }
+            if (/^[A-Za-z]+$/.test(base)) {
+                const upper = base === base.toUpperCase();
+                let n = 0;
+                for (const c of base.toUpperCase()) n = n * 26 + (c.charCodeAt(0) - 64);
+                n += offset;
+                let s = '';
+                while (n > 0) {
+                    const r = (n - 1) % 26;
+                    s = String.fromCharCode(65 + r) + s;
+                    n = Math.floor((n - r) / 26);
+                }
+                return upper ? s : s.toLowerCase();
+            }
+            return base + '-' + (offset + 1);
+        }
+
         async function stampPDF() {
             const fileInput = document.getElementById('pdfFile');
             const addBates = document.getElementById('addBates').checked;
@@ -631,22 +691,22 @@
             const stampBtn = document.getElementById('stampBtn');
 
             // Validation
-            if (!fileInput.files || !fileInput.files[0]) {
+            if (!fileInput.files || fileInput.files.length === 0) {
                 setStatus('Please select a PDF file first.', 'error');
                 return;
             }
 
-            // Check file size
-            const file = fileInput.files[0];
-            const fileSizeMB = file.size / (1024 * 1024);
+            const files = Array.from(fileInput.files);
 
-            if (fileSizeMB > 100) {
-                setStatus('File too large for browser processing. Maximum file size is 100MB. Your file is ' + fileSizeMB.toFixed(1) + 'MB.', 'error');
+            if (files.length > 100) {
+                setStatus('Maximum 100 files per batch. You selected ' + files.length + '.', 'error');
                 return;
             }
 
-            if (fileSizeMB > 50) {
-                setStatus('Large file (' + fileSizeMB.toFixed(1) + 'MB) — processing may take longer than usual...', 'processing');
+            const oversized = files.filter(function(f) { return f.size / (1024 * 1024) > 100; });
+            if (oversized.length > 0) {
+                setStatus('File too large for browser processing (max 100MB): ' + oversized[0].name + ' (' + (oversized[0].size / (1024 * 1024)).toFixed(1) + ' MB).', 'error');
+                return;
             }
 
             // Check that at least one stamp type is selected
@@ -655,35 +715,42 @@
                 return;
             }
 
+            const isBatch = files.length > 1;
+            const baseExhibitValue = addExhibit ? document.getElementById('exhibitValue').value : '';
+
             try {
-                // Disable button and show progress
                 stampBtn.disabled = true;
-                setStatus('Processing PDF...', 'processing');
+                setStatus(isBatch ? ('Processing ' + files.length + ' files...') : 'Processing PDF...', 'processing');
 
-                // Read the PDF file
-                const arrayBuffer = await readFileAsArrayBuffer(file);
+                const zip = isBatch ? new JSZip() : null;
+                const stampedResults = [];
+                let batesCounter = startNumber;
 
-                // Load the PDF with pdf-lib
-                let pdfDoc;
-                try {
-                    pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
-                } catch (loadError) {
-                    if (loadError.message && loadError.message.includes('encrypt')) {
-                        setStatus('This PDF appears to be password-protected. Please remove the password protection and try again.', 'error');
-                    } else {
-                        setStatus('Unable to read this PDF file. It may be corrupted or in an unsupported format.', 'error');
+                for (let fileIdx = 0; fileIdx < files.length; fileIdx++) {
+                    const file = files[fileIdx];
+                    if (isBatch) {
+                        setStatus('Processing file ' + (fileIdx + 1) + ' of ' + files.length + ': ' + file.name, 'processing');
                     }
-                    return;
-                }
 
-                // Get all pages
-                const pages = pdfDoc.getPages();
-                const totalPages = pages.length;
+                    const arrayBuffer = await readFileAsArrayBuffer(file);
 
-                // Embed Helvetica for accurate text-width measurements
-                const font = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+                    let pdfDoc;
+                    try {
+                        pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
+                    } catch (loadError) {
+                        if (loadError.message && loadError.message.includes('encrypt')) {
+                            setStatus('Password-protected PDF (' + file.name + '). Remove protection and try again.', 'error');
+                        } else {
+                            setStatus('Unable to read PDF: ' + file.name + '. It may be corrupted or in an unsupported format.', 'error');
+                        }
+                        return;
+                    }
 
-                setStatus('Processing ' + totalPages + ' page(s)...', 'processing');
+                    const pages = pdfDoc.getPages();
+                    const totalPages = pages.length;
+                    const font = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+                    const fileStartBates = batesCounter;
+                    const fileExhibitValue = addExhibit ? incrementExhibitValue(baseExhibitValue, fileIdx) : '';
 
                 // Get opacity setting (convert from 0-100 to 0-1)
                 const textOpacity = parseInt(document.getElementById('textOpacity').value) / 100;
@@ -718,14 +785,14 @@
 
                     // Add Bates number if enabled
                     if (addBates) {
-                        // Calculate the Bates number for this page
-                        const pageNumber = startNumber + i;
+                        // Calculate the Bates number for this page (continuous across batch)
+                        const pageNumber = fileStartBates + i;
                         const paddedNumber = pageNumber.toString().padStart(padding, '0');
                         const batesNumber = prefix + paddedNumber + suffix;
 
                         // Calculate position
                         let x, y;
-                        const margin = 30;
+                        const margin = parseInt(document.getElementById('stampMargin').value) || 30;
                         const batesWidth = font.widthOfTextAtSize(batesNumber, fontSize);
 
                         switch(position) {
@@ -773,14 +840,13 @@
 
                         if (shouldStampExhibit) {
                             const exhibitLabel = document.getElementById('exhibitLabel').value;
-                            const exhibitValue = document.getElementById('exhibitValue').value;
-                            const exhibitText = exhibitLabel + ' ' + exhibitValue;
+                            const exhibitText = exhibitLabel + ' ' + fileExhibitValue;
                             const exhibitFontSize = parseInt(document.getElementById('exhibitFontSize').value);
                             const exhibitWidth = font.widthOfTextAtSize(exhibitText, exhibitFontSize);
                             const exhibitPosition = document.getElementById('exhibitPosition').value;
 
                             let exhibitX, exhibitY;
-                            const exhibitMargin = 30;
+                            const exhibitMargin = parseInt(document.getElementById('stampMargin').value) || 30;
 
                             switch(exhibitPosition) {
                                 case 'bottom-center':
@@ -844,7 +910,7 @@
                             const confidentialityPosition = document.getElementById('confidentialityPosition').value;
 
                             let confidentialityX, confidentialityY;
-                            const confidentialityMargin = 30;
+                            const confidentialityMargin = parseInt(document.getElementById('stampMargin').value) || 30;
 
                             switch(confidentialityPosition) {
                                 case 'top-center':
@@ -889,33 +955,55 @@
                     }
                 }
 
-                // Save the modified PDF
-                const pdfBytes = await pdfDoc.save();
+                    // Save the modified PDF
+                    const pdfBytes = await pdfDoc.save();
+                    const originalName = file.name.replace(/\.pdf$/i, '');
+                    const outputFilename = originalName + '_stamped.pdf';
+                    stampedResults.push({ name: outputFilename, bytes: pdfBytes, pageCount: totalPages });
 
-                // Create a download link
-                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-                const url = URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = url;
+                    if (isBatch) {
+                        zip.file(outputFilename, pdfBytes);
+                    }
 
-                // Generate filename
-                const originalName = file.name.replace(/\.pdf$/i, '');
-                const outputFilename = originalName + '_stamped.pdf';
-                link.download = outputFilename;
-                link.click();
+                    batesCounter += totalPages;
+                }
+                // End of file loop
 
-                // Clean up after download has started
-                setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+                if (!isBatch) {
+                    const single = stampedResults[0];
+                    const blob = new Blob([single.bytes], { type: 'application/pdf' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = single.name;
+                    link.click();
+                    setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
 
-                // Add to session files for cross-tool pipeline
-                if (typeof sessionFiles !== 'undefined') {
-                    var sessionBlob = new Blob([pdfBytes], { type: 'application/pdf' });
-                    sessionFiles.add(outputFilename, sessionBlob, 'bates-stamp');
+                    if (typeof sessionFiles !== 'undefined') {
+                        var sessionBlob = new Blob([single.bytes], { type: 'application/pdf' });
+                        sessionFiles.add(single.name, sessionBlob, 'bates-stamp');
+                    }
+
+                    setStatus('Stamped ' + single.pageCount + ' page(s) — saved as ' + single.name, 'success');
+                } else {
+                    setStatus('Building ZIP of ' + stampedResults.length + ' files...', 'processing');
+                    const zipBlob = await zip.generateAsync({ type: 'blob' });
+                    const zipName = 'bates-stamped-' + new Date().toISOString().slice(0, 10) + '.zip';
+                    const url = URL.createObjectURL(zipBlob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = zipName;
+                    link.click();
+                    setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+
+                    if (typeof sessionFiles !== 'undefined') {
+                        sessionFiles.add(zipName, zipBlob, 'bates-stamp');
+                    }
+
+                    const totalPagesAll = stampedResults.reduce(function(s, r) { return s + r.pageCount; }, 0);
+                    setStatus('Stamped ' + stampedResults.length + ' files (' + totalPagesAll + ' pages) — saved as ' + zipName, 'success');
                 }
 
-                setStatus('Stamped ' + totalPages + ' page(s) — saved as ' + outputFilename, 'success');
-
-                // Show pipeline suggestions
                 showPipelineSuggestions('bates-stamp');
 
             } catch (error) {

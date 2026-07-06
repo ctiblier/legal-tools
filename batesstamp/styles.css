@@ -224,6 +224,14 @@
     line-height: 1.5;
 }
 
+.batch-hint {
+    background: var(--gray-50, #f6f3ec);
+    border-left: 3px solid var(--brand, #b8895a);
+    padding: 10px 14px;
+    margin: 0 0 16px 0;
+    color: var(--ink, #2d2620);
+}
+
 /* ==========================================================================
    Button
    ========================================================================== */
