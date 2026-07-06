@@ -190,8 +190,10 @@
                             <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/></svg>
                         </div>
                         <div class="drop-zone-text" id="dropText">Choose PDF files or drag them here</div>
-                        <div class="drop-zone-hint" id="dropHint">Batch up to 100 files. Your documents never leave your browser.</div>
+                        <div class="drop-zone-hint" id="dropHint">Select one file — or several for batch stamping with continuous numbering (up to 100). Your documents never leave your browser.</div>
                     </div>
+                    <ul id="fileList" class="file-list" aria-live="polite"></ul>
+                    <button type="button" id="clearFilesBtn" class="file-list-clear hidden">Clear all files</button>
                 </div>
             </div>
 
@@ -501,49 +503,191 @@
             });
         }
 
+        // Selected files (source of truth for batch processing)
+        var selectedFiles = [];
+        var UPLOAD_SVG = '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/></svg>';
+        var CHECK_SVG = '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
+
+        function fileKey(f) { return f.name + '|' + f.size + '|' + (f.lastModified || 0); }
+
+        async function addFiles(newFiles) {
+            var existing = {};
+            selectedFiles.forEach(function(e) { existing[fileKey(e.file)] = true; });
+
+            var toAdd = [];
+            var rejectedNonPdf = 0;
+            for (var i = 0; i < newFiles.length; i++) {
+                var f = newFiles[i];
+                if (f.type !== 'application/pdf' && !/\.pdf$/i.test(f.name)) { rejectedNonPdf++; continue; }
+                if (existing[fileKey(f)]) continue;
+                toAdd.push({ file: f, pageCount: null, error: null });
+            }
+
+            if (toAdd.length === 0) {
+                if (rejectedNonPdf > 0) setStatus('Only PDF files are accepted.', 'error');
+                return;
+            }
+
+            if (selectedFiles.length + toAdd.length > 100) {
+                setStatus('Maximum 100 files per batch. You already have ' + selectedFiles.length + '; tried to add ' + toAdd.length + '.', 'error');
+                return;
+            }
+
+            selectedFiles = selectedFiles.concat(toAdd);
+            renderFileList();
+
+            // Read page counts sequentially so the preview populates progressively
+            for (var j = 0; j < toAdd.length; j++) {
+                var entry = toAdd[j];
+                try {
+                    var buf = await entry.file.arrayBuffer();
+                    var doc = await PDFLib.PDFDocument.load(buf, { updateMetadata: false });
+                    entry.pageCount = doc.getPageCount();
+                } catch (err) {
+                    entry.pageCount = 0;
+                    entry.error = (err && err.message && err.message.indexOf('encrypt') !== -1)
+                        ? 'password-protected'
+                        : 'unreadable';
+                }
+                renderFileList();
+            }
+        }
+
+        function removeFileAt(index) {
+            selectedFiles.splice(index, 1);
+            renderFileList();
+        }
+
+        function clearAllFiles() {
+            selectedFiles = [];
+            renderFileList();
+        }
+
+        function updateDropSummary() {
+            var dropZone = document.getElementById('dropZone');
+            var dropIcon = document.getElementById('dropIcon');
+            var dropText = document.getElementById('dropText');
+            var dropHint = document.getElementById('dropHint');
+            var count = selectedFiles.length;
+
+            if (count === 0) {
+                dropZone.classList.remove('has-file');
+                dropIcon.innerHTML = UPLOAD_SVG;
+                dropText.textContent = 'Choose PDF files or drag them here';
+                dropHint.textContent = 'Select one file — or several for batch stamping with continuous numbering (up to 100). Your documents never leave your browser.';
+                return;
+            }
+
+            var totalBytes = 0;
+            for (var i = 0; i < selectedFiles.length; i++) totalBytes += selectedFiles[i].file.size;
+            var totalMB = (totalBytes / (1024 * 1024)).toFixed(1);
+            dropZone.classList.add('has-file');
+            dropIcon.innerHTML = CHECK_SVG;
+            if (count === 1) {
+                dropText.textContent = selectedFiles[0].file.name;
+                dropHint.textContent = totalMB + ' MB — click or drop again to add more files';
+            } else {
+                dropText.textContent = count + ' files selected';
+                dropHint.textContent = totalMB + ' MB total — click or drop again to add more files';
+            }
+        }
+
+        function renderFileList() {
+            var list = document.getElementById('fileList');
+            var clearBtn = document.getElementById('clearFilesBtn');
+            var batesHint = document.getElementById('batesBatchHint');
+            var exhibitHint = document.getElementById('exhibitBatchHint');
+            var isBatch = selectedFiles.length > 1;
+
+            if (batesHint) batesHint.classList.toggle('hidden', !isBatch);
+            if (exhibitHint) exhibitHint.classList.toggle('hidden', !isBatch);
+            clearBtn.classList.toggle('hidden', selectedFiles.length === 0);
+
+            updateDropSummary();
+
+            list.innerHTML = '';
+            if (selectedFiles.length === 0) return;
+
+            var addBates = document.getElementById('addBates').checked;
+            var addExhibit = document.getElementById('addExhibit').checked;
+            var prefix = document.getElementById('prefix').value;
+            var suffix = document.getElementById('suffix').value;
+            var startNumber = parseInt(document.getElementById('startNumber').value) || 1;
+            var padding = parseInt(document.getElementById('padding').value) || 4;
+            var baseExhibit = document.getElementById('exhibitValue').value;
+
+            var counter = startNumber;
+            selectedFiles.forEach(function(entry, idx) {
+                var li = document.createElement('li');
+                li.className = 'file-list-item';
+                if (entry.error) li.classList.add('file-list-item-error');
+
+                var num = document.createElement('span');
+                num.className = 'file-list-num';
+                num.textContent = (idx + 1) + '.';
+
+                var main = document.createElement('div');
+                main.className = 'file-list-main';
+
+                var name = document.createElement('div');
+                name.className = 'file-list-name';
+                name.textContent = entry.file.name;
+
+                var meta = document.createElement('div');
+                meta.className = 'file-list-meta';
+
+                var sizeMB = (entry.file.size / (1024 * 1024)).toFixed(1) + ' MB';
+                var parts = [sizeMB];
+
+                if (entry.error === 'password-protected') {
+                    parts.push('password-protected — cannot stamp');
+                } else if (entry.error === 'unreadable') {
+                    parts.push('unreadable — cannot stamp');
+                } else if (entry.pageCount === null) {
+                    parts.push('reading pages…');
+                } else {
+                    parts.push(entry.pageCount + ' page' + (entry.pageCount === 1 ? '' : 's'));
+                    if (addBates) {
+                        var startPad = counter.toString().padStart(padding, '0');
+                        var endPad = (counter + entry.pageCount - 1).toString().padStart(padding, '0');
+                        parts.push(prefix + startPad + suffix + '–' + prefix + endPad + suffix);
+                    }
+                    if (addExhibit) {
+                        parts.push('EXHIBIT ' + incrementExhibitValue(baseExhibit || 'A', idx));
+                    }
+                    counter += entry.pageCount;
+                }
+
+                meta.textContent = parts.join(' · ');
+
+                main.appendChild(name);
+                main.appendChild(meta);
+
+                var removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'file-list-remove';
+                removeBtn.setAttribute('aria-label', 'Remove ' + entry.file.name);
+                removeBtn.textContent = '×';
+                removeBtn.addEventListener('click', function() { removeFileAt(idx); });
+
+                li.appendChild(num);
+                li.appendChild(main);
+                li.appendChild(removeBtn);
+                list.appendChild(li);
+            });
+        }
+
         // Drag-and-drop file upload
         (function() {
             var dropZone = document.getElementById('dropZone');
             var fileInput = document.getElementById('pdfFile');
-            var dropIcon = document.getElementById('dropIcon');
-            var dropText = document.getElementById('dropText');
-            var dropHint = document.getElementById('dropHint');
-            var uploadSvg = '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/></svg>';
-            var checkSvg = '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
 
-            function updateFileDisplay() {
-                var files = fileInput.files;
-                var batesHint = document.getElementById('batesBatchHint');
-                var exhibitHint = document.getElementById('exhibitBatchHint');
-                var isBatch = files && files.length > 1;
-                if (batesHint) batesHint.classList.toggle('hidden', !isBatch);
-                if (exhibitHint) exhibitHint.classList.toggle('hidden', !isBatch);
-
-                if (!files || files.length === 0) {
-                    dropZone.classList.remove('has-file');
-                    dropIcon.innerHTML = uploadSvg;
-                    dropText.textContent = 'Choose PDF files or drag them here';
-                    dropHint.textContent = 'Batch up to 100 files. Your documents never leave your browser.';
-                    return;
+            fileInput.addEventListener('change', function() {
+                if (fileInput.files && fileInput.files.length > 0) {
+                    addFiles(Array.from(fileInput.files));
+                    fileInput.value = ''; // reset so the same file can be re-selected later
                 }
-                if (files.length === 1) {
-                    var sizeMB = (files[0].size / (1024 * 1024)).toFixed(1);
-                    dropZone.classList.add('has-file');
-                    dropIcon.innerHTML = checkSvg;
-                    dropText.textContent = files[0].name;
-                    dropHint.textContent = sizeMB + ' MB';
-                    return;
-                }
-                var totalMB = 0;
-                for (var i = 0; i < files.length; i++) totalMB += files[i].size;
-                totalMB = (totalMB / (1024 * 1024)).toFixed(1);
-                dropZone.classList.add('has-file');
-                dropIcon.innerHTML = checkSvg;
-                dropText.textContent = files.length + ' files selected';
-                dropHint.textContent = totalMB + ' MB total — files will be processed in the order shown';
-            }
-
-            fileInput.addEventListener('change', updateFileDisplay);
+            });
 
             ['dragenter', 'dragover'].forEach(function(evt) {
                 dropZone.addEventListener(evt, function(e) {
@@ -564,21 +708,19 @@
             dropZone.addEventListener('drop', function(e) {
                 var files = e.dataTransfer.files;
                 if (!files || files.length === 0) return;
-                var pdfs = [];
-                for (var i = 0; i < files.length; i++) {
-                    if (files[i].type === 'application/pdf' || /\.pdf$/i.test(files[i].name)) {
-                        pdfs.push(files[i]);
-                    }
-                }
-                if (pdfs.length === 0) {
-                    setStatus('Please select PDF files.', 'error');
-                    return;
-                }
-                var dt = new DataTransfer();
-                pdfs.forEach(function(f) { dt.items.add(f); });
-                fileInput.files = dt.files;
-                updateFileDisplay();
+                addFiles(Array.from(files));
             });
+
+            document.getElementById('clearFilesBtn').addEventListener('click', clearAllFiles);
+
+            // Re-render preview when Bates/exhibit settings change
+            ['addBates', 'addExhibit', 'prefix', 'suffix', 'startNumber', 'padding', 'exhibitValue'].forEach(function(id) {
+                var el = document.getElementById(id);
+                if (el) el.addEventListener('input', renderFileList);
+                if (el && (el.type === 'checkbox' || el.tagName === 'SELECT')) el.addEventListener('change', renderFileList);
+            });
+
+            renderFileList();
         })();
 
         // Event listeners (W11: no inline handlers)
@@ -681,7 +823,6 @@
         }
 
         async function stampPDF() {
-            const fileInput = document.getElementById('pdfFile');
             const addBates = document.getElementById('addBates').checked;
             const prefix = document.getElementById('prefix').value;
             const startNumber = parseInt(document.getElementById('startNumber').value);
@@ -695,12 +836,18 @@
             const stampBtn = document.getElementById('stampBtn');
 
             // Validation
-            if (!fileInput.files || fileInput.files.length === 0) {
+            if (selectedFiles.length === 0) {
                 setStatus('Please select a PDF file first.', 'error');
                 return;
             }
 
-            const files = Array.from(fileInput.files);
+            const badFiles = selectedFiles.filter(function(e) { return e.error; });
+            if (badFiles.length > 0) {
+                setStatus('Remove or replace unreadable/password-protected files before stamping: ' + badFiles[0].file.name, 'error');
+                return;
+            }
+
+            const files = selectedFiles.map(function(e) { return e.file; });
 
             if (files.length > 100) {
                 setStatus('Maximum 100 files per batch. You selected ' + files.length + '.', 'error');

@@ -214,6 +214,89 @@
     color: var(--ink, #2d2620);
 }
 
+.file-list {
+    list-style: none;
+    margin: 12px 0 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.file-list-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    background: var(--gray-50, #f6f3ec);
+    border: 1px solid var(--gray-200, #e5ddd0);
+    border-radius: 6px;
+}
+
+.file-list-item-error {
+    background: #fbeae5;
+    border-color: #e5b0a1;
+}
+
+.file-list-num {
+    font-weight: 700;
+    color: var(--gray-500, #7a6f60);
+    font-variant-numeric: tabular-nums;
+    min-width: 24px;
+}
+
+.file-list-main {
+    flex: 1;
+    min-width: 0;
+}
+
+.file-list-name {
+    font-weight: 600;
+    color: var(--ink, #2d2620);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.file-list-meta {
+    font-size: 0.85em;
+    color: var(--gray-500, #7a6f60);
+    margin-top: 2px;
+}
+
+.file-list-remove {
+    background: none;
+    border: none;
+    color: var(--gray-500, #7a6f60);
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 4px 10px;
+    border-radius: 4px;
+}
+
+.file-list-remove:hover {
+    background: rgba(0,0,0,0.06);
+    color: #c53030;
+}
+
+.file-list-clear {
+    margin-top: 10px;
+    background: none;
+    border: 1px solid var(--gray-200, #e5ddd0);
+    color: var(--gray-500, #7a6f60);
+    font-size: 0.85em;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.file-list-clear:hover {
+    background: var(--gray-50, #f6f3ec);
+    color: #c53030;
+    border-color: #c53030;
+}
+
 /* ==========================================================================
    Button
    ========================================================================== */
