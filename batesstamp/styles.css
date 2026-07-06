@@ -215,8 +215,38 @@
 }
 
 .file-list {
-    margin: 16px 0 0 0;
+    margin: 20px 0 0 0;
     padding: 0;
+}
+
+.file-table-wrap {
+    background: white;
+    border: 1px solid var(--gray-200, #e5ddd0);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.file-table-caption {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 12px 16px;
+    background: var(--gray-50, #f6f3ec);
+    border-bottom: 1px solid var(--gray-200, #e5ddd0);
+}
+
+.file-table-caption-title {
+    font-weight: 700;
+    font-size: 0.78em;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--brand, #b8895a);
+}
+
+.file-table-caption-sub {
+    font-size: 0.85em;
+    color: var(--gray-500, #7a6f60);
 }
 
 .file-table {
@@ -233,23 +263,24 @@
     letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--gray-500, #7a6f60);
-    padding: 6px 10px 8px;
+    padding: 10px 12px;
     border-bottom: 1px solid var(--gray-200, #e5ddd0);
+    background: white;
     white-space: nowrap;
 }
 
-.file-table thead th:first-child { padding-left: 4px; }
-.file-table thead th:last-child { padding-right: 4px; }
+.file-table thead th:first-child { padding-left: 16px; }
+.file-table thead th:last-child { padding-right: 16px; }
 
 .file-table tbody td {
-    padding: 10px;
+    padding: 12px;
     border-bottom: 1px solid var(--gray-100, #efe9dc);
     vertical-align: middle;
     color: var(--ink, #2d2620);
 }
 
-.file-table tbody td:first-child { padding-left: 4px; }
-.file-table tbody td:last-child { padding-right: 4px; }
+.file-table tbody td:first-child { padding-left: 16px; }
+.file-table tbody td:last-child { padding-right: 16px; }
 
 .file-table tbody tr:last-child td { border-bottom: none; }
 
@@ -291,7 +322,28 @@
 
 .file-col-bates {
     color: var(--ink, #2d2620);
-    font-weight: 500;
+    font-weight: 600;
+    font-family: 'SF Mono', 'Menlo', 'Monaco', 'Consolas', monospace;
+    font-size: 0.92em;
+    letter-spacing: -0.01em;
+}
+
+.file-col-exhibit {
+    white-space: nowrap;
+}
+
+.file-exhibit-badge {
+    display: inline-block;
+    background: var(--brand, #b8895a);
+    color: white;
+    font-weight: 700;
+    font-size: 0.85em;
+    letter-spacing: 0.02em;
+    padding: 3px 10px;
+    border-radius: 4px;
+    min-width: 28px;
+    text-align: center;
+    box-shadow: 0 1px 2px rgba(184, 137, 90, 0.2);
 }
 
 .file-col-pending {
