@@ -928,12 +928,16 @@
 
 .exhibit-table .drag-handle {
     cursor: grab;
-    color: var(--gray-400);
-    font-size: 1.15rem;
-    line-height: 1;
+    color: var(--gray-300);
+    line-height: 0;
     user-select: none;
     display: inline-flex;
     align-items: center;
+    transition: color var(--transition);
+}
+
+.exhibit-table tr:hover .drag-handle {
+    color: var(--gray-400);
 }
 
 .exhibit-table .drag-handle:active {
