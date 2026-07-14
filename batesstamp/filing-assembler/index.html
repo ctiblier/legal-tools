@@ -173,8 +173,24 @@
             <!-- 2. Exhibits -->
             <div class="section">
                 <h2 class="section-title">2. Exhibits</h2>
-                <div id="exhibitList" class="exhibit-list" role="list" aria-label="Exhibit list">
-                    <p class="exhibit-list-empty" id="emptyMessage">No exhibits added yet</p>
+                <p class="exhibit-list-empty" id="emptyMessage">No exhibits added yet</p>
+                <div class="file-table-wrap exhibit-table-wrap hidden" id="exhibitTableWrap">
+                    <div class="file-table-caption">
+                        <span class="file-table-caption-title">Exhibits</span>
+                        <span class="file-table-caption-sub" id="exhibitCaptionSub">0 exhibits</span>
+                    </div>
+                    <table class="file-table exhibit-table">
+                        <thead>
+                            <tr>
+                                <th class="exhibit-col-drag"><span class="sr-only">Reorder</span></th>
+                                <th class="exhibit-col-label">Exhibit</th>
+                                <th>File</th>
+                                <th class="file-col-num">Pages</th>
+                                <th class="exhibit-col-action"><span class="sr-only">Remove</span></th>
+                            </tr>
+                        </thead>
+                        <tbody id="exhibitList" role="list" aria-label="Exhibit list"></tbody>
+                    </table>
                 </div>
                 <div class="file-drop-zone" id="exhibitZone">
                     <input type="file" accept=".pdf,.jpg,.jpeg,.png" multiple aria-label="Add exhibits">
@@ -369,6 +385,7 @@
                     reordered.push(exhibits[idx]);
                 }
                 exhibits = reordered;
+                updateExhibitLabels(); // re-letter A/B/C to match the new order
                 renderExhibitList();
                 updateSummary();
             }
@@ -459,39 +476,52 @@
         // ---------------------------------------------------------------
         // Render exhibit list
         // ---------------------------------------------------------------
+        var PDF_ICON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+        var IMG_ICON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>';
+        var X_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+
         function renderExhibitList() {
             var list = document.getElementById('exhibitList');
             var emptyMsg = document.getElementById('emptyMessage');
+            var tableWrap = document.getElementById('exhibitTableWrap');
 
-            // Remove all exhibit items (but not the empty message)
-            var existingItems = list.querySelectorAll('.exhibit-item');
-            for (var i = 0; i < existingItems.length; i++) {
-                list.removeChild(existingItems[i]);
-            }
+            // Clear existing rows
+            list.innerHTML = '';
 
             if (exhibits.length === 0) {
                 emptyMsg.style.display = '';
+                tableWrap.classList.add('hidden');
                 return;
             }
 
             emptyMsg.style.display = 'none';
+            tableWrap.classList.remove('hidden');
+            document.getElementById('exhibitCaptionSub').textContent =
+                exhibits.length + ' exhibit' + (exhibits.length === 1 ? '' : 's') + ' — drag to reorder';
 
             for (var i = 0; i < exhibits.length; i++) {
                 var exhibit = exhibits[i];
-                var item = document.createElement('div');
-                item.className = 'exhibit-item';
-                item.setAttribute('data-index', i);
-                item.setAttribute('role', 'listitem');
-
+                var isImage = exhibit.file.type !== 'application/pdf';
                 var pageWord = exhibit.pages === 1 ? 'page' : 'pages';
-                item.innerHTML =
-                    '<span class="drag-handle" aria-hidden="true">&#10783;</span>' +
-                    '<input type="text" class="exhibit-label" value="' + escapeAttr(exhibit.label) + '" ' +
-                        'aria-label="Label for ' + escapeAttr(exhibit.file.name) + '">' +
-                    '<span class="exhibit-info">' + escapeHtml(exhibit.file.name) + ' (' + exhibit.pages + ' ' + pageWord + ')</span>' +
-                    '<button type="button" class="exhibit-remove" aria-label="Remove ' + escapeAttr(exhibit.label) + '" data-idx="' + i + '">&times;</button>';
 
-                list.insertBefore(item, emptyMsg);
+                var row = document.createElement('tr');
+                row.className = 'exhibit-item';
+                row.setAttribute('data-index', i);
+                row.setAttribute('role', 'listitem');
+
+                row.innerHTML =
+                    '<td class="exhibit-col-drag"><span class="drag-handle" aria-hidden="true">&#10783;</span></td>' +
+                    '<td class="exhibit-col-label">' +
+                        '<input type="text" class="exhibit-label" value="' + escapeAttr(exhibit.label) + '" ' +
+                            'aria-label="Label for ' + escapeAttr(exhibit.file.name) + '"></td>' +
+                    '<td class="file-col-name">' +
+                        '<span class="file-col-icon">' + (isImage ? IMG_ICON : PDF_ICON) + '</span>' +
+                        '<span class="file-col-filename" title="' + escapeAttr(exhibit.file.name) + '">' + escapeHtml(exhibit.file.name) + '</span></td>' +
+                    '<td class="file-col-num">' + exhibit.pages + ' ' + pageWord + '</td>' +
+                    '<td class="exhibit-col-action">' +
+                        '<button type="button" class="file-row-remove" aria-label="Remove ' + escapeAttr(exhibit.label) + '" data-idx="' + i + '">' + X_ICON + '</button></td>';
+
+                list.appendChild(row);
             }
 
             // Attach label change listeners
@@ -505,7 +535,7 @@
             }
 
             // Attach remove button listeners
-            var removeBtns = list.querySelectorAll('.exhibit-remove');
+            var removeBtns = list.querySelectorAll('.file-row-remove');
             for (var k = 0; k < removeBtns.length; k++) {
                 (function(btn) {
                     btn.addEventListener('click', function() {
