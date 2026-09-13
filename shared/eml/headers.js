@@ -5,7 +5,7 @@
 // chain rebuilt from a parser's model proves nothing about what the mail servers
 // actually wrote.
 
-const MAX_HEADER_SCAN = 1024 * 1024; // 1 MB; no legitimate header block is larger
+export const MAX_HEADER_SCAN = 1024 * 1024; // 1 MB; no legitimate header block is larger
 
 function decodeAscii(bytes) {
   return new TextDecoder('utf-8', { fatal: false }).decode(bytes);

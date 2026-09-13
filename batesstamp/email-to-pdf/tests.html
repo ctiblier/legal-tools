@@ -24,6 +24,7 @@
         // Each test module registers its cases on import.
         // Later tasks append their module to this list.
         await import('/shared/eml/headers.test.js');
+        await import('/shared/eml/parse.test.js');
         await runAll();
     </script>
 </body>
