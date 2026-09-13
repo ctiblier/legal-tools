@@ -31,6 +31,14 @@ function drawWrapped(writer, runs, { x, size, color, indent }) {
   if (!lines.length) writer.moveDown(writer.lineHeight(size));
 }
 
+/** Height drawWrapped will consume for these runs, without drawing anything. */
+function measureWrapped(writer, runs, { x, size, indent }) {
+  const startX = x != null ? x : writer.left;
+  const width = writer.contentWidth - (startX - writer.left) - (indent || 0);
+  const lines = wrapTokens(tokenizeRuns(runs), width, (t) => writer.measureToken(t, size));
+  return Math.max(1, lines.length) * writer.lineHeight(size);
+}
+
 // ---------------------------------------------------------------------------
 // mail-client — echoes how the message looked on screen
 // ---------------------------------------------------------------------------
@@ -40,36 +48,41 @@ function drawMailClientHeader(writer, record) {
   const bandLeft = t.page.margin.left - 12;
   const bandWidth = writer.contentWidth + 24;
 
-  // Estimate the band's height before drawing it: the tint has to be painted
-  // first so the text sits on top, but it must be as tall as the text it holds.
   const subject = record.subject || '(no subject)';
   const fromName = record.from ? (record.from.name || record.from.address) : '(unknown sender)';
   const fromAddr = record.from ? record.from.address : '';
   const toLine = 'to ' + (addressLine(record.to) || '(undisclosed recipients)');
   const ccLine = record.cc.length ? 'cc ' + addressLine(record.cc) : null;
-  const lineCount = 3 + (ccLine ? 1 : 0);
-  const estimate = t.size.h2 * t.leading + lineCount * t.size.small * t.leading + 26;
 
-  writer.ensure(estimate + 20);
+  // The band has to be painted before the text, so its height cannot be a
+  // guess: build the field list once, measure it with the same width math
+  // drawWrapped uses, then draw the same runs — measurement and drawing can
+  // never drift apart because they share one list.
+  const lines = [];
+  lines.push({ runs: [run(subject, { bold: true })], size: t.size.h2, color: t.color.bandText });
+  lines.push({ runs: [run(fromName, { bold: true })], size: t.size.body, color: t.color.bandText });
+  if (fromAddr && fromAddr !== fromName) {
+    lines.push({ runs: [run(fromAddr)], size: t.size.small, color: t.color.muted });
+  }
+  lines.push({ runs: [run(toLine)], size: t.size.small, color: t.color.muted });
+  if (ccLine) lines.push({ runs: [run(ccLine)], size: t.size.small, color: t.color.muted });
+  // The date prints exactly as received, offset intact — never localised.
+  lines.push({ runs: [run(record.date.raw || '(no date header)')],
+               size: t.size.small, color: t.color.muted });
+
+  const PAD_TOP = 10;
+  const PAD_BOTTOM = 12;
+  const bandHeight = PAD_TOP + PAD_BOTTOM +
+    lines.reduce((sum, l) => sum + measureWrapped(writer, l.runs, { size: l.size }), 0);
+
+  writer.ensure(bandHeight + 20);
   writer.drawRect({
-    x: bandLeft, y: writer.y + 14 - estimate, width: bandWidth, height: estimate,
+    x: bandLeft, y: writer.y + 14 - bandHeight, width: bandWidth, height: bandHeight,
     color: t.color.band
   });
 
-  writer.moveDown(4);
-  drawWrapped(writer, [run(subject, { bold: true })],
-    { size: t.size.h2, color: t.color.bandText });
-  writer.moveDown(4);
-  drawWrapped(writer, [run(fromName, { bold: true })],
-    { size: t.size.body, color: t.color.bandText });
-  if (fromAddr && fromAddr !== fromName) {
-    drawWrapped(writer, [run(fromAddr)], { size: t.size.small, color: t.color.muted });
-  }
-  drawWrapped(writer, [run(toLine)], { size: t.size.small, color: t.color.muted });
-  if (ccLine) drawWrapped(writer, [run(ccLine)], { size: t.size.small, color: t.color.muted });
-  // The date prints exactly as received, offset intact — never localised.
-  drawWrapped(writer, [run(record.date.raw || '(no date header)')],
-    { size: t.size.small, color: t.color.muted });
+  writer.moveDown(PAD_TOP - 6);
+  for (const l of lines) drawWrapped(writer, l.runs, { size: l.size, color: l.color });
   writer.moveDown(16);
 }
 
@@ -99,17 +112,22 @@ function drawExhibitHeader(writer, record) {
 
   const labelWidth = 78;
   for (const [label, value] of fields) {
-    const before = writer.y;
-    drawWrapped(writer, [run(value)],
-      { x: writer.left + labelWidth, size: t.size.body, color: t.color.text });
-    // Draw the label after the value so it aligns with the value's first line.
+    // Reserve one line so the label and the value's first line cannot end up
+    // on different pages, then draw the label BEFORE the value. Drawing the
+    // label does not move the cursor, so they still align — and there is no
+    // window in which the value's own pagination can invalidate the label's
+    // page or y (drawWrapped can call ensure()/newPage() internally, which
+    // reassigns writer.page and resets writer.y).
+    writer.ensure(writer.lineHeight(t.size.body));
     writer.page.drawText(label, {
       x: writer.left,
-      y: before - t.size.body,
+      y: writer.y - t.size.body,
       size: t.size.small,
       font: writer.fontSet.font('bold'),
       color: PDFLib.rgb(t.color.muted[0], t.color.muted[1], t.color.muted[2])
     });
+    drawWrapped(writer, [run(value)],
+      { x: writer.left + labelWidth, size: t.size.body, color: t.color.text });
     writer.moveDown(3);
     writer.drawRule({ color: t.color.rule, thickness: 0.4 });
     writer.moveDown(7);
@@ -134,16 +152,19 @@ function drawMinimalHeader(writer, record) {
 
   const labelWidth = 52;
   for (const [label, value] of fields) {
-    const before = writer.y;
-    drawWrapped(writer, [run(value)],
-      { x: writer.left + labelWidth, size: t.size.body, color: t.color.text });
+    // Same inversion as the exhibit theme: reserve a line, draw the label
+    // first at a known-good position, then draw the value (which may paginate
+    // on its own via drawWrapped/drawLine and move to a new page).
+    writer.ensure(writer.lineHeight(t.size.body));
     writer.page.drawText(label, {
       x: writer.left,
-      y: before - t.size.body,
+      y: writer.y - t.size.body,
       size: t.size.small,
       font: writer.fontSet.font('regular'),
       color: PDFLib.rgb(t.color.muted[0], t.color.muted[1], t.color.muted[2])
     });
+    drawWrapped(writer, [run(value)],
+      { x: writer.left + labelWidth, size: t.size.body, color: t.color.text });
     writer.moveDown(5);
   }
 

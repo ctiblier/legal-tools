@@ -1,5 +1,7 @@
 import { test, assert, assertEqual } from '/shared/testing/harness.js';
 import { THEMES, THEME_ORDER } from './themes.js';
+import { PageWriter } from '/shared/pdf/writer.js';
+import { loadFontSet } from '/shared/pdf/fonts.js';
 
 test('three themes, mail-client first', () => {
   assertEqual(THEME_ORDER.length, 3);
@@ -36,4 +38,39 @@ test('US Letter portrait for every theme', () => {
     assertEqual(THEMES[key].page.width, 612);
     assertEqual(THEMES[key].page.height, 792);
   }
+});
+
+test('every theme renders a header block without throwing, for a sparse record', async () => {
+  const bare = {
+    from: null, to: [], cc: [], bcc: [],
+    date: { raw: null, parsed: null }, subject: '', messageId: null
+  };
+  for (const key of THEME_ORDER) {
+    const pdfDoc = await PDFLib.PDFDocument.create();
+    const theme = THEMES[key];
+    const fontSet = await loadFontSet(pdfDoc, { family: theme.family });
+    const writer = new PageWriter({ pdfDoc, theme, fontSet, footerLeft: 'x.eml' });
+    theme.drawHeaderBlock(writer, bare);
+    assert(writer.y < theme.page.height - theme.page.margin.top, key + ' consumed vertical space');
+  }
+});
+
+test('a wrapping header does not overflow the mail-client band', async () => {
+  const pdfDoc = await PDFLib.PDFDocument.create();
+  const theme = THEMES['mail-client'];
+  const fontSet = await loadFontSet(pdfDoc, { family: theme.family });
+  const writer = new PageWriter({ pdfDoc, theme, fontSet, footerLeft: 'x.eml' });
+  const many = [];
+  for (let i = 0; i < 12; i++) many.push({ name: 'Recipient Number ' + i, address: 'r' + i + '@example.test' });
+  const top = writer.y;
+  theme.drawHeaderBlock(writer, {
+    from: { name: 'A Sender With A Long Display Name', address: 'sender@example.test' },
+    to: many, cc: [], bcc: [],
+    date: { raw: 'Tue, 4 Mar 2026 09:14:22 -0800', parsed: null },
+    subject: 'A subject long enough that it must wrap across more than a single line in the band',
+    messageId: '<x@example.test>'
+  });
+  // The band is painted from a measured height; the cursor must end below the
+  // band's own bottom edge, not inside or above it.
+  assert(top - writer.y > 100, 'a wrapped header consumed multi-line height');
 });

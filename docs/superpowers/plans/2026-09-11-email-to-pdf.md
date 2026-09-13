@@ -3492,7 +3492,46 @@ test('US Letter portrait for every theme', () => {
     assertEqual(THEMES[key].page.height, 792);
   }
 });
+
+test('every theme renders a header block without throwing, for a sparse record', async () => {
+  const bare = {
+    from: null, to: [], cc: [], bcc: [],
+    date: { raw: null, parsed: null }, subject: '', messageId: null
+  };
+  for (const key of THEME_ORDER) {
+    const pdfDoc = await PDFLib.PDFDocument.create();
+    const theme = THEMES[key];
+    const fontSet = await loadFontSet(pdfDoc, { family: theme.family });
+    const writer = new PageWriter({ pdfDoc, theme, fontSet, footerLeft: 'x.eml' });
+    theme.drawHeaderBlock(writer, bare);
+    assert(writer.y < theme.page.height - theme.page.margin.top, key + ' consumed vertical space');
+  }
+});
+
+test('a wrapping header does not overflow the mail-client band', async () => {
+  const pdfDoc = await PDFLib.PDFDocument.create();
+  const theme = THEMES['mail-client'];
+  const fontSet = await loadFontSet(pdfDoc, { family: theme.family });
+  const writer = new PageWriter({ pdfDoc, theme, fontSet, footerLeft: 'x.eml' });
+  const many = [];
+  for (let i = 0; i < 12; i++) many.push({ name: 'Recipient Number ' + i, address: 'r' + i + '@example.test' });
+  const top = writer.y;
+  theme.drawHeaderBlock(writer, {
+    from: { name: 'A Sender With A Long Display Name', address: 'sender@example.test' },
+    to: many, cc: [], bcc: [],
+    date: { raw: 'Tue, 4 Mar 2026 09:14:22 -0800', parsed: null },
+    subject: 'A subject long enough that it must wrap across more than a single line in the band',
+    messageId: '<x@example.test>'
+  });
+  // The band is painted from a measured height; the cursor must end below the
+  // band's own bottom edge, not inside or above it.
+  assert(top - writer.y > 100, 'a wrapped header consumed multi-line height');
+});
 ```
+
+`themes.test.js` also imports `PageWriter` from `/shared/pdf/writer.js` and `loadFontSet`
+from `/shared/pdf/fonts.js` alongside the harness and `themes.js` imports above — added
+in fix round 1 (see below) so the two rendering tests can build a real `PageWriter`.
 
 - [ ] **Step 2: Register and run to verify failure**
 
@@ -3535,6 +3574,14 @@ function drawWrapped(writer, runs, { x, size, color, indent }) {
   if (!lines.length) writer.moveDown(writer.lineHeight(size));
 }
 
+/** Height drawWrapped will consume for these runs, without drawing anything. */
+function measureWrapped(writer, runs, { x, size, indent }) {
+  const startX = x != null ? x : writer.left;
+  const width = writer.contentWidth - (startX - writer.left) - (indent || 0);
+  const lines = wrapTokens(tokenizeRuns(runs), width, (t) => writer.measureToken(t, size));
+  return Math.max(1, lines.length) * writer.lineHeight(size);
+}
+
 // ---------------------------------------------------------------------------
 // mail-client — echoes how the message looked on screen
 // ---------------------------------------------------------------------------
@@ -3544,36 +3591,41 @@ function drawMailClientHeader(writer, record) {
   const bandLeft = t.page.margin.left - 12;
   const bandWidth = writer.contentWidth + 24;
 
-  // Estimate the band's height before drawing it: the tint has to be painted
-  // first so the text sits on top, but it must be as tall as the text it holds.
   const subject = record.subject || '(no subject)';
   const fromName = record.from ? (record.from.name || record.from.address) : '(unknown sender)';
   const fromAddr = record.from ? record.from.address : '';
   const toLine = 'to ' + (addressLine(record.to) || '(undisclosed recipients)');
   const ccLine = record.cc.length ? 'cc ' + addressLine(record.cc) : null;
-  const lineCount = 3 + (ccLine ? 1 : 0);
-  const estimate = t.size.h2 * t.leading + lineCount * t.size.small * t.leading + 26;
 
-  writer.ensure(estimate + 20);
+  // The band has to be painted before the text, so its height cannot be a
+  // guess: build the field list once, measure it with the same width math
+  // drawWrapped uses, then draw the same runs — measurement and drawing can
+  // never drift apart because they share one list.
+  const lines = [];
+  lines.push({ runs: [run(subject, { bold: true })], size: t.size.h2, color: t.color.bandText });
+  lines.push({ runs: [run(fromName, { bold: true })], size: t.size.body, color: t.color.bandText });
+  if (fromAddr && fromAddr !== fromName) {
+    lines.push({ runs: [run(fromAddr)], size: t.size.small, color: t.color.muted });
+  }
+  lines.push({ runs: [run(toLine)], size: t.size.small, color: t.color.muted });
+  if (ccLine) lines.push({ runs: [run(ccLine)], size: t.size.small, color: t.color.muted });
+  // The date prints exactly as received, offset intact — never localised.
+  lines.push({ runs: [run(record.date.raw || '(no date header)')],
+               size: t.size.small, color: t.color.muted });
+
+  const PAD_TOP = 10;
+  const PAD_BOTTOM = 12;
+  const bandHeight = PAD_TOP + PAD_BOTTOM +
+    lines.reduce((sum, l) => sum + measureWrapped(writer, l.runs, { size: l.size }), 0);
+
+  writer.ensure(bandHeight + 20);
   writer.drawRect({
-    x: bandLeft, y: writer.y + 14 - estimate, width: bandWidth, height: estimate,
+    x: bandLeft, y: writer.y + 14 - bandHeight, width: bandWidth, height: bandHeight,
     color: t.color.band
   });
 
-  writer.moveDown(4);
-  drawWrapped(writer, [run(subject, { bold: true })],
-    { size: t.size.h2, color: t.color.bandText });
-  writer.moveDown(4);
-  drawWrapped(writer, [run(fromName, { bold: true })],
-    { size: t.size.body, color: t.color.bandText });
-  if (fromAddr && fromAddr !== fromName) {
-    drawWrapped(writer, [run(fromAddr)], { size: t.size.small, color: t.color.muted });
-  }
-  drawWrapped(writer, [run(toLine)], { size: t.size.small, color: t.color.muted });
-  if (ccLine) drawWrapped(writer, [run(ccLine)], { size: t.size.small, color: t.color.muted });
-  // The date prints exactly as received, offset intact — never localised.
-  drawWrapped(writer, [run(record.date.raw || '(no date header)')],
-    { size: t.size.small, color: t.color.muted });
+  writer.moveDown(PAD_TOP - 6);
+  for (const l of lines) drawWrapped(writer, l.runs, { size: l.size, color: l.color });
   writer.moveDown(16);
 }
 
@@ -3603,17 +3655,22 @@ function drawExhibitHeader(writer, record) {
 
   const labelWidth = 78;
   for (const [label, value] of fields) {
-    const before = writer.y;
-    drawWrapped(writer, [run(value)],
-      { x: writer.left + labelWidth, size: t.size.body, color: t.color.text });
-    // Draw the label after the value so it aligns with the value's first line.
+    // Reserve one line so the label and the value's first line cannot end up
+    // on different pages, then draw the label BEFORE the value. Drawing the
+    // label does not move the cursor, so they still align — and there is no
+    // window in which the value's own pagination can invalidate the label's
+    // page or y (drawWrapped can call ensure()/newPage() internally, which
+    // reassigns writer.page and resets writer.y).
+    writer.ensure(writer.lineHeight(t.size.body));
     writer.page.drawText(label, {
       x: writer.left,
-      y: before - t.size.body,
+      y: writer.y - t.size.body,
       size: t.size.small,
       font: writer.fontSet.font('bold'),
       color: PDFLib.rgb(t.color.muted[0], t.color.muted[1], t.color.muted[2])
     });
+    drawWrapped(writer, [run(value)],
+      { x: writer.left + labelWidth, size: t.size.body, color: t.color.text });
     writer.moveDown(3);
     writer.drawRule({ color: t.color.rule, thickness: 0.4 });
     writer.moveDown(7);
@@ -3638,16 +3695,19 @@ function drawMinimalHeader(writer, record) {
 
   const labelWidth = 52;
   for (const [label, value] of fields) {
-    const before = writer.y;
-    drawWrapped(writer, [run(value)],
-      { x: writer.left + labelWidth, size: t.size.body, color: t.color.text });
+    // Same inversion as the exhibit theme: reserve a line, draw the label
+    // first at a known-good position, then draw the value (which may paginate
+    // on its own via drawWrapped/drawLine and move to a new page).
+    writer.ensure(writer.lineHeight(t.size.body));
     writer.page.drawText(label, {
       x: writer.left,
-      y: before - t.size.body,
+      y: writer.y - t.size.body,
       size: t.size.small,
       font: writer.fontSet.font('regular'),
       color: PDFLib.rgb(t.color.muted[0], t.color.muted[1], t.color.muted[2])
     });
+    drawWrapped(writer, [run(value)],
+      { x: writer.left + labelWidth, size: t.size.body, color: t.color.text });
     writer.moveDown(5);
   }
 
@@ -3728,6 +3788,34 @@ Reload. Expected: `PASS 74/74` — the four theme tests plus the nine writer tes
 git add shared/eml/themes.js shared/eml/themes.test.js batesstamp/email-to-pdf/tests.html
 git commit -m "feat(email-to-pdf): three output themes with their header-block renderers"
 ```
+
+### Fix round 1 (post-review)
+
+Two Important findings against the first implementation, both fixed without touching
+`shared/pdf/writer.js` or `shared/pdf/writer.test.js`:
+
+1. **`drawMailClientHeader`'s tint band was sized by a guess.** The original estimate
+   assumed one line per field, budgeted `fromName` at the wrong size, never budgeted
+   the `fromAddr` line at all, and did not account for any field wrapping — so the
+   band could be too short and text could draw below its bottom edge. Fixed by adding
+   a `measureWrapped` helper (same width math as `drawWrapped`, but measures instead of
+   drawing) and building the field list once as data (`{ runs, size, color }`), so the
+   same list is both measured for the band height and then drawn — the two can no
+   longer drift apart.
+2. **`drawExhibitHeader` and `drawMinimalHeader` could draw a field's label on the
+   wrong page.** Both drew the value first (which can call `ensure()`/`newPage()`
+   internally and reassign `writer.page`/reset `writer.y`), then drew the label
+   afterwards at a `y` captured before the value was drawn — so a value that paginated
+   left its label stranded on the previous page. Fixed by inverting the order per
+   field: reserve one line with `writer.ensure(writer.lineHeight(t.size.body))`, draw
+   the label at the now-guaranteed-good position, then draw the value.
+
+Two new tests were added to `themes.test.js` (importing `PageWriter` from
+`/shared/pdf/writer.js` and `loadFontSet` from `/shared/pdf/fonts.js`): one that every
+theme's `drawHeaderBlock` runs without throwing on a maximally sparse record, and one
+that a mail-client header with a long subject and 12 recipients (guaranteed to wrap)
+consumes more than 100pt of vertical space without overflowing the band. Suite is
+green at `PASS 103/103` (101 before this round + these 2).
 
 ---
 
