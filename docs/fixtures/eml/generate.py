@@ -317,4 +317,31 @@ Inner body text.
 --inline-fwd--
 """)
 
+# 12 ------------------------------------------ corrupt PDF attachment
+bad_pdf = b"%PDF-1.4\nthis is not a parseable PDF body\n%%EOF\n"
+bad_b64 = base64.b64encode(bad_pdf).decode("ascii")
+write("12-corrupt-pdf-attachment.eml", f"""\
+Message-ID: <20260315090000.FCADB@acme-manufacturing.example>
+Date: Sun, 15 Mar 2026 09:00:00 -0700
+From: John Smith <jsmith@acme-manufacturing.example>
+To: Robert Jones <counsel@firm.example>
+Subject: Damaged attachment
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="bad-pdf"
+
+--bad-pdf
+Content-Type: text/plain; charset=utf-8
+
+The attached file did not survive transfer.
+
+--bad-pdf
+Content-Type: application/pdf; name="damaged.pdf"
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="damaged.pdf"
+
+{bad_b64}
+
+--bad-pdf--
+""")
+
 print("done")

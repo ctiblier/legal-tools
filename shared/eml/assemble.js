@@ -130,6 +130,11 @@ export async function convertEmail(record, options = {}) {
   const stats = Object.assign({}, EMPTY_STATS);
 
   await drawRecord(writer, record, ctx, stats);
+  // The certificate's field is labelled "Pages of message content", excluding the
+  // manifest, appendix and the certificate itself. Capture it here — reading
+  // writer.pageCount later counts everything drawn since, which is the opposite
+  // of what the label claims.
+  const messageContentPages = writer.pageCount;
 
   // Dispositions are decided before the manifest is drawn, because the manifest
   // states them and the certificate repeats them. One decision, three readers.
@@ -200,10 +205,11 @@ export async function convertEmail(record, options = {}) {
 
   if (opts.certificate) {
     writer.newPage();
-    // The page count includes this page, which is being written now — so count
-    // the pages that exist plus nothing, and let finalize() stamp the real total.
+    // messageContentPages was captured before the manifest, appendix and this
+    // page were drawn — the certificate's footer total (from finalize()) still
+    // covers the whole document; only this field is scoped to message content.
     await drawBlocks(writer, certificateBlocks(record, {
-      pageCount: writer.pageCount,
+      pageCount: messageContentPages,
       bodyPartUsed: record.bodyPartUsed,
       sanitizeStats: stats,
       substitutions: fontSet.substitutions,
@@ -234,7 +240,7 @@ export async function convertEmail(record, options = {}) {
     pageCount: pdfDoc.getPageCount(),
     zipFiles,
     summary: {
-      pageCount: pdfDoc.getPageCount(),
+      pageCount: messageContentPages,
       bodyPartUsed: record.bodyPartUsed,
       sanitizeStats: stats,
       substitutions: fontSet.substitutions,

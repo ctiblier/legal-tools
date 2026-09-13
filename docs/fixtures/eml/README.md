@@ -16,6 +16,7 @@ Re-running produces byte-identical output so fixture changes are reviewable diff
 | `09-remote-images.eml` | tracking pixel and remote images blocked; `<script>` stripped |
 | `10-headers-only.eml` | empty body, header-only rendering |
 | `11-inline-forwarded.eml` | message/rfc822 with no Content-Disposition — the inline default |
+| `12-corrupt-pdf-attachment.eml` | attachment claims `application/pdf` but is not a loadable PDF — merge failure disclosure |
 
 No fixture contains a real person's data or a real domain; all use
 `.example` reserved domains per RFC 2606.

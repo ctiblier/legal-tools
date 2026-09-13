@@ -1,4 +1,4 @@
-import { test, assert, assertEqual } from '/shared/testing/harness.js';
+import { test, assert, assertEqual, extractPdfText } from '/shared/testing/harness.js';
 import { loadFixture } from '/shared/testing/fixtures.js';
 import { parseEml } from './parse.js';
 import { convertEmail, DEFAULT_OPTIONS } from './assemble.js';
@@ -13,6 +13,14 @@ test('produces a loadable PDF from a plain-text email', async () => {
   const doc = await PDFLib.PDFDocument.load(out.bytes);
   assert(doc.getPageCount() >= 2, 'body plus certificate and appendix');
   assertEqual(doc.getPageCount(), out.pageCount);
+});
+
+test('the certificate reports message-content pages, not the whole document', async () => {
+  const out = await convertFixture('01-plain-text.eml');
+  const doc = await PDFLib.PDFDocument.load(out.bytes);
+  assert(out.summary.pageCount < doc.getPageCount(),
+    'message-content pages (' + out.summary.pageCount + ') must be fewer than the ' +
+    'document total (' + doc.getPageCount() + '), which includes appendix and certificate');
 });
 
 test('turning off the appendix and certificate makes a shorter document', async () => {
@@ -50,7 +58,11 @@ test('non-appendable attachments land in the ZIP list', async () => {
 test('an inline cid image is embedded rather than placeheld', async () => {
   const out = await convertFixture('03-inline-cid-image.eml');
   assertEqual(out.summary.sanitizeStats.unresolvedCidImages, 0);
-  assert(out.bytes.length > 2000, 'produced a real document');
+  const text = await extractPdfText(out.bytes);
+  // The placeholder label is what a failed embed draws. Its absence is the
+  // only evidence that the image actually made it into the page.
+  assert(!text.includes('image could not be rendered'),
+    'no placeholder was drawn for a resolvable inline image');
 });
 
 test('blocked remote images are counted into the summary', async () => {
@@ -86,8 +98,26 @@ test('a headers-only email still converts', async () => {
 
 test('a forwarded message renders its nested record', async () => {
   const out = await convertFixture('06-forwarded-message.eml');
-  assert(out.pageCount >= 1, 'produced pages');
-  assert(out.bytes.length > 2000, 'nested content rendered');
+  const text = await extractPdfText(out.bytes);
+  assert(text.includes('Delivery schedule'), "the nested message's subject rendered");
+  // The nested message's own date, with its own offset, is the evidence that
+  // matters most in a forwarded chain.
+  assert(text.includes('Tue, 4 Mar 2026 09:14:22 -0800'),
+    "the nested message's own date rendered verbatim");
+});
+
+test('an unmergeable PDF attachment is disclosed, not silently dropped', async () => {
+  const rec = await parseEml(await loadFixture('12-corrupt-pdf-attachment.eml'),
+    { filename: '12-corrupt-pdf-attachment.eml' });
+  const out = await convertEmail(rec, DEFAULT_OPTIONS);
+  const att = rec.attachments.find((a) => a.filename === 'damaged.pdf');
+  assert(att, 'the attachment is still listed on the record');
+  assertEqual(out.summary.dispositions.get(att.sha256), 'unreadable');
+  assert(att.error, 'an error was recorded on the attachment');
+  assert(out.summary.defects.some((d) => d.code === 'ATTACHMENT_UNREADABLE'),
+    'a defect reached the certificate');
+  assert(out.zipFiles.some((z) => z.name === 'damaged.pdf'),
+    'the bytes still reach the user via the ZIP');
 });
 
 test('the summary carries everything the certificate needs', async () => {

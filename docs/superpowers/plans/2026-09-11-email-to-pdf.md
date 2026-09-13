@@ -643,8 +643,41 @@ Inner body text.
 --inline-fwd--
 """)
 
+# 12 ------------------------------------------ corrupt PDF attachment
+bad_pdf = b"%PDF-1.4\nthis is not a parseable PDF body\n%%EOF\n"
+bad_b64 = base64.b64encode(bad_pdf).decode("ascii")
+write("12-corrupt-pdf-attachment.eml", f"""\
+Message-ID: <20260315090000.FCADB@acme-manufacturing.example>
+Date: Sun, 15 Mar 2026 09:00:00 -0700
+From: John Smith <jsmith@acme-manufacturing.example>
+To: Robert Jones <counsel@firm.example>
+Subject: Damaged attachment
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="bad-pdf"
+
+--bad-pdf
+Content-Type: text/plain; charset=utf-8
+
+The attached file did not survive transfer.
+
+--bad-pdf
+Content-Type: application/pdf; name="damaged.pdf"
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="damaged.pdf"
+
+{bad_b64}
+
+--bad-pdf--
+""")
+
 print("done")
 ```
+
+Added in Task 14's review fix round (finding 2): a twelfth fixture whose
+attachment claims `application/pdf` but is not a loadable PDF, exercising the
+PDF-merge failure disclosure path (`att.error`, `ATTACHMENT_UNREADABLE`
+defect, `'unreadable'` disposition, ZIP fallback) that Task 14 owns but had
+left untested.
 
 - [ ] **Step 2: Generate the corpus and confirm it is deterministic**
 
@@ -716,6 +749,7 @@ Re-running produces byte-identical output so fixture changes are reviewable diff
 | `09-remote-images.eml` | tracking pixel and remote images blocked; `<script>` stripped |
 | `10-headers-only.eml` | empty body, header-only rendering |
 | `11-inline-forwarded.eml` | message/rfc822 with no Content-Disposition — the inline default |
+| `12-corrupt-pdf-attachment.eml` | attachment claims `application/pdf` but is not a loadable PDF — merge failure disclosure |
 
 No fixture contains a real person's data or a real domain; all use
 `.example` reserved domains per RFC 2606.
@@ -5179,6 +5213,70 @@ Confirm before continuing: the header block renders, the body is selectable text
 git add shared/eml/assemble.js shared/eml/assemble.test.js batesstamp/email-to-pdf/tests.html
 git commit -m "feat(email-to-pdf): assemble complete evidence-grade PDFs from parsed email"
 ```
+
+### Review fix round 1 (post-implementation)
+
+A review after Step 6 raised four Important findings, addressed as follows.
+The code above (Step 3) reflects the pre-fix version; the actual committed
+`assemble.js` differs from it in the ways described here.
+
+1. **Certificate page count contradicted its own label.** Task 13 relabelled
+   the certificate field to "Pages of message content ... (excluding this
+   certificate, the manifest and any appendix)", but Step 3's implementation
+   still read `writer.pageCount` *after* the certificate's own `newPage()`,
+   so the field counted everything drawn since the body — the opposite of
+   what the label claims, and on a false statement the certificate makes
+   about itself. Fix: capture `const messageContentPages = writer.pageCount`
+   immediately after `drawRecord()` (the body draw) and before the manifest,
+   attachments, appendix or certificate are drawn; pass that captured value
+   into `certificateBlocks(...)` and into `summary.pageCount` instead of
+   `writer.pageCount` / `pdfDoc.getPageCount()`. New test: "the certificate
+   reports message-content pages, not the whole document" — asserts
+   `out.summary.pageCount < doc.getPageCount()`. Confirmed RED against the
+   pre-fix code (`message-content pages (3) must be fewer than the document
+   total (3)`) before applying the fix.
+
+2. **The PDF-merge failure path had no test.** Added fixture
+   `docs/fixtures/eml/12-corrupt-pdf-attachment.eml` (Task 2, generator
+   entry `# 12`) — an attachment declared `application/pdf` whose bytes are
+   not a loadable PDF. New test "an unmergeable PDF attachment is disclosed,
+   not silently dropped" asserts all four effects of that branch: the
+   disposition is re-marked `'unreadable'`, `att.error` is set, an
+   `ATTACHMENT_UNREADABLE` defect reaches `summary.defects`, and the raw
+   bytes still reach the ZIP.
+
+3 & 4. **Two tests asserted nothing meaningful.** "an inline cid image is
+   embedded rather than placeheld" and "a forwarded message renders its
+   nested record" only checked byte-length and page-count floors that any
+   conversion would satisfy. Both now extract real PDF text via pdf.js and
+   assert on it: the first asserts the placeholder label
+   ("image could not be rendered") is *absent*; the second asserts the
+   nested message's own subject and verbatim date appear on the page.
+   `shared/testing/harness.js` gained an `extractPdfText(bytes)` helper for
+   this, and `batesstamp/email-to-pdf/tests.html` now also loads pdf.js
+   3.11.174 (same version/CDN already used elsewhere) alongside pdf-lib and
+   fontkit.
+
+   One necessary deviation from the review's literal suggestion:
+   `extractPdfText` collapses each page's joined text-item strings through
+   `.replace(/\s+/g, ' ').trim()`. Without it, pdf.js's per-run text items
+   join into strings with doubled/tripled internal spaces (confirmed by
+   direct inspection — e.g. `"Delivery   schedule"`), so a plain multi-word
+   substring match like `'Delivery schedule'` fails against *any* correctly
+   rendered PDF, not only a broken one. Normalizing whitespace in the shared
+   helper (rather than in each test) is what makes the substring-match
+   technique reliable at all.
+
+   Both tests were confirmed to go genuinely RED when the behaviour they
+   name is removed: the nested-record test failed when the `for (const
+   nested of record.nested || [])` loop body was replaced with an empty
+   iterable; the inline-image test failed when `embedImage()`'s embed step
+   was forced to always return `null`. Both reverts were temporary,
+   diff-verified back to identical content afterward, and never committed.
+
+Verification: `.superpowers/sdd/2026-09-11-email-to-pdf/run-tests` (`BUDGET`
+raised to 4,000,000 by the reviewer after this task's initial report) —
+**PASS 138/138**.
 
 ---
 

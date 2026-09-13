@@ -1,0 +1,21 @@
+Message-ID: <20260315090000.FCADB@acme-manufacturing.example>
+Date: Sun, 15 Mar 2026 09:00:00 -0700
+From: John Smith <jsmith@acme-manufacturing.example>
+To: Robert Jones <counsel@firm.example>
+Subject: Damaged attachment
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="bad-pdf"
+
+--bad-pdf
+Content-Type: text/plain; charset=utf-8
+
+The attached file did not survive transfer.
+
+--bad-pdf
+Content-Type: application/pdf; name="damaged.pdf"
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="damaged.pdf"
+
+JVBERi0xLjQKdGhpcyBpcyBub3QgYSBwYXJzZWFibGUgUERGIGJvZHkKJSVFT0YK
+
+--bad-pdf--

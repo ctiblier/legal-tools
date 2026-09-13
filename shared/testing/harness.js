@@ -87,3 +87,20 @@ export async function runAll() {
   }
   return summary;
 }
+
+/** Extract all text from a PDF's pages, for asserting on what actually rendered. */
+export async function extractPdfText(bytes) {
+  const doc = await pdfjsLib.getDocument({ data: bytes }).promise;
+  const pages = [];
+  for (let i = 1; i <= doc.numPages; i++) {
+    const content = await (await doc.getPage(i)).getTextContent();
+    // pdf.js reports one item per run (often per word), each already carrying its
+    // own trailing space; joining them with another space and collapsing the
+    // result is what makes a plain substring match reliable — without it, every
+    // multi-word phrase comes back with doubled or tripled internal spaces and
+    // no literal substring assertion can ever match, regardless of what the PDF
+    // actually contains.
+    pages.push(content.items.map((it) => it.str).join(' ').replace(/\s+/g, ' ').trim());
+  }
+  return pages.join('\n');
+}
