@@ -780,6 +780,22 @@ test('sha256Hex returns 64 lowercase hex characters', async () => {
   assertEqual(hex, 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad');
   assertEqual(shortHash(hex), 'ba7816bf8f01');
 });
+
+test('a continuation after a malformed line does not corrupt the previous header', () => {
+  const rows = unfoldHeaders(
+    'Good1: value1\r\nBadLineNoColon\r\n continuation of BadLine\r\nGood2: value2\r\n'
+  );
+  assertDeepEqual(rows, [
+    { key: 'Good1', rawValue: 'value1' },
+    { key: 'Good2', rawValue: 'value2' }
+  ]);
+});
+
+test('a continuation line before any header is dropped, not crashed on', () => {
+  assertDeepEqual(unfoldHeaders(' orphaned continuation\r\nSubject: Hello\r\n'), [
+    { key: 'Subject', rawValue: 'Hello' }
+  ]);
+});
 ```
 
 - [ ] **Step 2: Register the test module and run it to verify it fails**
@@ -865,16 +881,32 @@ export function extractRawHeaderBlock(bytes) {
  */
 export function unfoldHeaders(block) {
   const rows = [];
+  let lastLineWasHeader = false;
+
   for (const line of block.split(/\r?\n/)) {
     if (line === '') continue;
+
     if (/^[ \t]/.test(line)) {
-      if (rows.length) rows[rows.length - 1].rawValue += ' ' + line.trim();
+      // A folded line continues the line directly above it. If that line was
+      // malformed and skipped, this continuation has no header to join —
+      // appending it to the last *valid* row would silently corrupt an
+      // unrelated header's value.
+      if (lastLineWasHeader && rows.length) {
+        rows[rows.length - 1].rawValue += ' ' + line.trim();
+      }
       continue;
     }
+
     const idx = line.indexOf(':');
-    if (idx === -1) continue; // malformed line; the appendix still prints it verbatim
+    if (idx === -1) {
+      lastLineWasHeader = false; // malformed; the appendix still prints it verbatim
+      continue;
+    }
+
     rows.push({ key: line.slice(0, idx).trim(), rawValue: line.slice(idx + 1).trim() });
+    lastLineWasHeader = true;
   }
+
   return rows;
 }
 
@@ -891,7 +923,7 @@ export function rawHeaderValue(block, name) {
 - [ ] **Step 4: Run the tests to verify they pass**
 
 Reload `http://localhost:8788/email-to-pdf/tests.html`.
-Expected: tab title `PASS 7/7`, green summary banner reading "all 7 passed".
+Expected: tab title `PASS 9/9`, green summary banner reading "all 9 passed".
 
 - [ ] **Step 5: Commit**
 

@@ -35,16 +35,32 @@ export function extractRawHeaderBlock(bytes) {
  */
 export function unfoldHeaders(block) {
   const rows = [];
+  let lastLineWasHeader = false;
+
   for (const line of block.split(/\r?\n/)) {
     if (line === '') continue;
+
     if (/^[ \t]/.test(line)) {
-      if (rows.length) rows[rows.length - 1].rawValue += ' ' + line.trim();
+      // A folded line continues the line directly above it. If that line was
+      // malformed and skipped, this continuation has no header to join —
+      // appending it to the last *valid* row would silently corrupt an
+      // unrelated header's value.
+      if (lastLineWasHeader && rows.length) {
+        rows[rows.length - 1].rawValue += ' ' + line.trim();
+      }
       continue;
     }
+
     const idx = line.indexOf(':');
-    if (idx === -1) continue; // malformed line; the appendix still prints it verbatim
+    if (idx === -1) {
+      lastLineWasHeader = false; // malformed; the appendix still prints it verbatim
+      continue;
+    }
+
     rows.push({ key: line.slice(0, idx).trim(), rawValue: line.slice(idx + 1).trim() });
+    lastLineWasHeader = true;
   }
+
   return rows;
 }
 
