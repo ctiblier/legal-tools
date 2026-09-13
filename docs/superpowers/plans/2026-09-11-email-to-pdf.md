@@ -6,7 +6,7 @@
 
 **Architecture:** A five-stage pipeline — `.eml` bytes → `EmailRecord` → sanitized DOM → block IR → drawn PDF pages. The middle stage is a pure function with no PDF knowledge and no I/O, which is where the real tests live. The renderer has no email knowledge and is driven by a swappable theme object.
 
-**Tech Stack:** Vanilla ES modules (no build step, no npm), pdf-lib 1.17.1 + `@pdf-lib/fontkit` for PDF construction and TTF subsetting, postal-mime 2.x for MIME parsing, JSZip 3.10.1 for attachment bundles, `crypto.subtle` for hashing.
+**Tech Stack:** Vanilla ES modules (no build step, no npm), pdf-lib 1.17.1 + `@pdf-lib/fontkit` 1.1.1 for PDF construction and TTF subsetting, postal-mime 3.0.0 for MIME parsing, JSZip 3.10.1 for attachment bundles, `crypto.subtle` for hashing.
 
 **Spec:** `docs/superpowers/specs/2026-09-10-email-to-pdf-design.md` — read it before Task 1. The plan argues from the spec; where the plan appears to contradict it, the spec wins and the discrepancy is a bug in this plan.
 
@@ -51,7 +51,7 @@ Every task's requirements implicitly include all of these.
 | `shared/testing/fixtures.js` | Fixture base path and loader. |
 | `batesstamp/email-to-pdf/index.html` | The tool page: markup, options, preview, batch driver. |
 | `batesstamp/email-to-pdf/tests.html` | Test runner page. `noindex`, disallowed in robots.txt. |
-| `batesstamp/vendor/postal-mime.mjs` | Vendored parser. |
+| `batesstamp/vendor/postal-mime/` | Vendored parser (unbundled ESM, 10 files). |
 | `batesstamp/vendor/fontkit.umd.js` | Vendored fontkit for pdf-lib. |
 | `batesstamp/fonts/*.ttf` | TTF faces for embedding (the existing woff2 files stay for the site's own CSS). |
 | `docs/fixtures/eml/` | Fixture corpus + its generator. |
@@ -182,13 +182,13 @@ export function assertEqual(actual, expected, msg) {
   }
 }
 
+// Structural comparison by serialisation. Key order matters, which is fine here:
+// every value compared in these tests is built by our own code in a fixed order.
 export function assertDeepEqual(actual, expected, msg) {
-  const a = JSON.stringify(actual, Object.keys(actual || {}).sort());
-  const b = JSON.stringify(expected, Object.keys(expected || {}).sort());
   if (JSON.stringify(actual) !== JSON.stringify(expected)) {
     throw new AssertionError(
       (msg ? msg + ': ' : '') + 'expected\n' + JSON.stringify(expected, null, 2) +
-      '\nbut got\n' + JSON.stringify(actual, null, 2) + (a === b ? '' : '')
+      '\nbut got\n' + JSON.stringify(actual, null, 2)
     );
   }
 }
@@ -520,6 +520,9 @@ def make_pdf(size_bytes):
     pad = b"% " + b"A" * max(0, size_bytes - len(head) - len(tail) - 3) + b"\n"
     return head + pad + tail
 
+# Large binary fixtures are generated, never committed — see the .gitignore entry
+# for docs/fixtures/eml/07-*.eml. A static-site repository should not carry an
+# 8 MB base64 blob that a script reproduces byte-for-byte in under a second.
 pdf_bytes = make_pdf(6 * 1024 * 1024)
 pdf_b64 = base64.b64encode(pdf_bytes).decode("ascii")
 pdf_b64_wrapped = "\n".join(pdf_b64[i:i + 76] for i in range(0, len(pdf_b64), 76))
@@ -612,11 +615,12 @@ print("done")
 
 ```bash
 cd /home/ctibs/Projects/legal-tools
+TMP=$(mktemp -d)
 python3 docs/fixtures/eml/generate.py
-sha256sum docs/fixtures/eml/*.eml > /tmp/claude-1000/fixtures-1.txt
+sha256sum docs/fixtures/eml/*.eml > "$TMP/fixtures-1.txt"
 python3 docs/fixtures/eml/generate.py
-sha256sum docs/fixtures/eml/*.eml > /tmp/claude-1000/fixtures-2.txt
-diff /tmp/claude-1000/fixtures-1.txt /tmp/claude-1000/fixtures-2.txt && echo "PASS: deterministic"
+sha256sum docs/fixtures/eml/*.eml > "$TMP/fixtures-2.txt"
+diff "$TMP/fixtures-1.txt" "$TMP/fixtures-2.txt" && echo "PASS: deterministic"
 ```
 
 Expected: ten files listed, then `PASS: deterministic`.
@@ -683,8 +687,16 @@ No fixture contains a real person's data or a real domain; all use
 
 - [ ] **Step 5: Commit**
 
+Add to `.gitignore` first — fixture 07 is roughly 8 MB of base64 and is
+regenerated deterministically by the script:
+
+```
+docs/fixtures/eml/07-large-pdf-attachment.eml
+```
+
 ```bash
-git add docs/fixtures/eml/ shared/testing/fixtures.js
+git add .gitignore docs/fixtures/eml/ shared/testing/fixtures.js
+git status --short docs/fixtures/eml/   # confirm 07-* is NOT staged
 git commit -m "test: .eml fixture corpus with deterministic generator"
 ```
 
@@ -889,7 +901,7 @@ git commit -m "feat(email-to-pdf): raw header slicing and SHA-256 hashing"
 ## Task 4: Vendor postal-mime and build the EmailRecord
 
 **Files:**
-- Create: `batesstamp/vendor/postal-mime.mjs` (downloaded)
+- Create: `batesstamp/vendor/postal-mime/` (10 downloaded ESM files)
 - Create: `batesstamp/vendor/README.md`
 - Create: `shared/eml/parse.js`
 - Create: `shared/eml/parse.test.js`
@@ -938,16 +950,34 @@ Defect codes used by this module, and by every later module that reads `defects`
 
 - [ ] **Step 1: Vendor postal-mime**
 
+postal-mime publishes **unbundled ES modules**: `src/postal-mime.js` imports five
+sibling files, which in turn import others. There is no `dist/` bundle. So the
+whole `src/` directory is vendored, and the relative imports resolve as they are.
+
 ```bash
 cd /home/ctibs/Projects/legal-tools
-mkdir -p batesstamp/vendor
-curl -fL -o batesstamp/vendor/postal-mime.mjs \
-  https://cdn.jsdelivr.net/npm/postal-mime@2.4.4/dist/postal-mime.mjs
-head -c 200 batesstamp/vendor/postal-mime.mjs
-sha256sum batesstamp/vendor/postal-mime.mjs
+mkdir -p batesstamp/vendor/postal-mime
+BASE=https://cdn.jsdelivr.net/npm/postal-mime@3.0.0/src
+for f in postal-mime.js mime-node.js text-format.js address-parser.js \
+         decode-strings.js base64-encoder.js base64-decoder.js \
+         qp-decoder.js pass-through-decoder.js html-entities.js; do
+  curl -fL -o "batesstamp/vendor/postal-mime/$f" "$BASE/$f" || echo "MISSING: $f"
+done
+ls -la batesstamp/vendor/postal-mime/
+sha256sum batesstamp/vendor/postal-mime/*.js
 ```
 
-Expected: a JavaScript module, not an HTML error page. If that exact version 404s, list available versions with `curl -s https://data.jsdelivr.com/v1/packages/npm/postal-mime | head -40` and pin the newest 2.x — do not use a floating tag, and do not move to 3.x without re-running this task's tests, because the `parse()` return shape is what every field above depends on.
+Expected: ten JavaScript files, no `MISSING` lines, and no file whose first bytes
+are `<!DOCTYPE` (which would mean an error page was saved). Verify no import
+escapes the vendored directory:
+
+```bash
+grep -rhoE "from '[^']+'" batesstamp/vendor/postal-mime/ | sort -u
+```
+
+Every path must start with `./`. If a new version adds an import of a file not in
+the list above, add it and re-run — a missing sibling fails at page load with a
+bare 404 in the console and no other symptom.
 
 - [ ] **Step 2: Record the provenance of the vendored file**
 
@@ -962,11 +992,16 @@ parser from someone else's server at page load either.
 
 | File | Package | Version | Source | SHA-256 |
 |---|---|---|---|---|
-| `postal-mime.mjs` | postal-mime | 2.4.4 | `https://cdn.jsdelivr.net/npm/postal-mime@2.4.4/dist/postal-mime.mjs` | *(paste the sha256sum output from Task 4 Step 1)* |
+| `postal-mime/*.js` (10 files) | postal-mime | 3.0.0 | `https://cdn.jsdelivr.net/npm/postal-mime@3.0.0/src/` | *(paste the sha256sum output from Task 4 Step 1)* |
+| `fontkit.umd.js` | @pdf-lib/fontkit | 1.1.1 | `https://unpkg.com/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js` | *(paste the sha256sum output from Task 8 Step 1)* |
 
-To update: download the new version, replace the file, record the new hash here,
-and re-run `/email-to-pdf/tests.html` in full before committing. The parser's
-return shape is load-bearing for `shared/eml/parse.js`.
+postal-mime ships unbundled ES modules with relative sibling imports, so the whole
+`src/` directory is vendored rather than a single file.
+
+To update: download the new version, replace the directory, re-run the import
+audit from Task 4 Step 1, record the new hashes here, and re-run
+`/email-to-pdf/tests.html` in full before committing. The parser's return shape is
+load-bearing for `shared/eml/parse.js`.
 ```
 
 - [ ] **Step 3: Write the failing tests**
@@ -1067,7 +1102,7 @@ Reload the test page. Expected: 404 for `/shared/eml/parse.js` in the console.
 // consumes. Swapping in a .msg parser later means writing a module that returns
 // this same shape; nothing downstream changes.
 
-import PostalMime from '/vendor/postal-mime.mjs';
+import PostalMime from '/vendor/postal-mime/postal-mime.js';
 import { sha256Hex } from './hash.js';
 import { extractRawHeaderBlock, unfoldHeaders, rawHeaderValue } from './headers.js';
 
@@ -2945,6 +2980,12 @@ export class PageWriter {
 
   /**
    * Stamp footers and attach annotations. Call exactly once, after all content.
+   *
+   * Footers go on every page, including pages copied in from an attached PDF.
+   * That is deliberate: continuous "page n of N" numbering across the whole
+   * exhibit is what lets a single loose page be placed back in the document. The
+   * cost is that a footer may overprint content sitting in an attachment page's
+   * bottom margin. Task 18's checklist looks for this on the 6 MB PDF fixture.
    */
   finalize() {
     const total = this.pages.length;
@@ -3348,6 +3389,23 @@ test('a table taller than a page splits and repeats its header row', async () =>
   assert(writer.pageCount > 1, 'table split across pages');
 });
 
+test('a single cell taller than the page does not overprint the next row', async () => {
+  const { writer, ctx } = await harness();
+  const tall = [];
+  for (let i = 0; i < 80; i++) tall.push(p('Overflowing cell line ' + i));
+  const rows = [
+    [{ blocks: tall, colspan: 1, rowspan: 1, header: false },
+     { blocks: [p('short')], colspan: 1, rowspan: 1, header: false }],
+    [{ blocks: [p('next row')], colspan: 1, rowspan: 1, header: false },
+     { blocks: [p('next row b')], colspan: 1, rowspan: 1, header: false }]
+  ];
+  await drawBlocks(writer, [{ type: 'table', rows }], ctx);
+  // The cursor must end on the page it is actually drawing on, below the top
+  // margin — not restored to a y captured before the overflow.
+  assert(writer.y <= 792 - writer.theme.page.margin.top, 'cursor is on the live page');
+  assert(writer.y > 0, 'cursor did not run off the bottom of the page');
+});
+
 test('nested blockquotes terminate and consume vertical space', async () => {
   const { writer, ctx } = await harness();
   const deep = { type: 'blockquote', depth: 1, children: [
@@ -3618,24 +3676,32 @@ async function drawTable(writer, block, ctx, x, width) {
   const headerRow = rows[0] && rows[0].some((c) => c.header) ? rows[0] : null;
 
   async function drawRow(row, isHeader) {
-    // Measure by drawing each cell into the same starting y and tracking the
-    // deepest result, so a wrapped cell sets the row height.
+    // Each cell is drawn from the same starting y; the deepest result sets the
+    // row height. But a cell whose content overflows the page starts a new one,
+    // and restoring a y measured on the previous page would then place the next
+    // row's text on top of this row's. So track whether the page changed: if it
+    // did, the row ends wherever the last cell left the cursor, and the columns
+    // after the break are accepted as misaligned rather than overprinted.
     const startY = writer.y;
+    const startPage = writer.pageCount;
     let deepest = startY;
     let cx = x;
+    let brokePage = false;
 
     for (const cell of row) {
       const span = cell.colspan || 1;
-      writer.y = startY;
+      if (!brokePage) writer.y = startY;
+      const pageBefore = writer.pageCount;
       await drawBlocks(writer, cell.blocks, {
         ...ctx,
         indent: (cx - writer.left) + padding
       });
-      if (writer.y < deepest) deepest = writer.y;
+      if (writer.pageCount !== pageBefore) brokePage = true;
+      if (!brokePage && writer.y < deepest) deepest = writer.y;
       cx += colWidth * span;
     }
 
-    writer.y = deepest;
+    if (!brokePage && writer.pageCount === startPage) writer.y = deepest;
     writer.moveDown(2);
     writer.drawRule({ x, width, thickness: isHeader ? 0.8 : 0.3 });
     writer.moveDown(4);
@@ -5016,6 +5082,7 @@ Batch and combined output come in Task 16; this step gets one file working end t
 
             const taken = new Set();
             const zipEntries = [];
+            const pdfEntries = [];
 
             for (let i = 0; i < selectedFiles.length; i++) {
                 const file = selectedFiles[i];
@@ -5028,7 +5095,14 @@ Batch and combined output come in Task 16; this step gets one file working end t
                     const out = await convertEmail(record, options);
                     const name = outputFilename(record, taken);
 
-                    downloadPdf(out.bytes, name);
+                    // Browsers block a page that starts several downloads in a
+                    // row, so a batch is delivered as one ZIP. A single file
+                    // downloads directly, which is what a one-off conversion wants.
+                    if (selectedFiles.length === 1) {
+                        downloadPdf(out.bytes, name);
+                    } else {
+                        pdfEntries.push({ name, bytes: out.bytes });
+                    }
                     if (typeof sessionFiles !== 'undefined') {
                         sessionFiles.add(name,
                             new Blob([out.bytes], { type: 'application/pdf' }), 'email-to-pdf');
@@ -5050,6 +5124,20 @@ Batch and combined output come in Task 16; this step gets one file working end t
                     // One bad file never stops the batch.
                     addResultRow({ name: file.name, note: 'failed — ' + err.message, state: 'error' });
                 }
+            }
+
+            if (pdfEntries.length) {
+                const zip = new JSZip();
+                for (const entry of pdfEntries) zip.file(entry.name, entry.bytes);
+                const blob = await zip.generateAsync({ type: 'blob' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'converted-emails.zip';
+                a.click();
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+                addResultRow({ name: 'converted-emails.zip',
+                               note: pdfEntries.length + ' PDF(s)', state: 'ok' });
             }
 
             if (options.zipOtherAttachments && zipEntries.length) {
@@ -5264,7 +5352,10 @@ export async function convertBatchCombined(records, options = {}) {
   // plus the heading, rounded up.
   const usable = theme.page.height - theme.page.margin.top - theme.page.margin.bottom;
   const perPage = Math.max(1, Math.floor(usable / (writer.lineHeight(theme.size.body) * 2.4)) - 2);
-  const tocPageCount = Math.max(1, Math.ceil(ordered.length / perPage));
+  // Reserve one spare page. Under-reserving is not a cosmetic error: entries that
+  // run past the last reserved page would call ensure(), which appends a page at
+  // the END of the document — a table of contents continuing after the exhibits.
+  const tocPageCount = Math.max(1, Math.ceil(ordered.length / perPage)) + 1;
   const tocIndices = [0].concat(tocPageCount > 1 ? writer.reservePages(tocPageCount - 1) : []);
 
   const perEmail = [];
@@ -5328,11 +5419,24 @@ export async function convertBatchCombined(records, options = {}) {
     { type: 'rule' }
   ], { indent: 0, quoteDepth: 0, images: new Map(), embedCache: new Map() });
 
-  perEmail.forEach((entry, i) => {
+  for (let i = 0; i < perEmail.length; i++) {
+    const entry = perEmail[i];
     const needed = writer.lineHeight(theme.size.body) * 2.4;
-    if (writer.y - needed < writer.bottomLimit && tocCursor + 1 < tocIndices.length) {
-      tocCursor++;
-      writer.useExistingPage(tocIndices[tocCursor]);
+    if (writer.y - needed < writer.bottomLimit) {
+      if (tocCursor + 1 < tocIndices.length) {
+        tocCursor++;
+        writer.useExistingPage(tocIndices[tocCursor]);
+      } else {
+        // Out of reserved space. Stop rather than spill the contents list to the
+        // back of the document, and say so once — an incomplete list that admits
+        // it is incomplete is recoverable; one that silently stops is not.
+        writer.drawLine(
+          tokenizeRunsForToc({ meta: 'Contents continue — ' +
+            (perEmail.length - i) + ' further message(s) are not listed here.' }),
+          { x: writer.left, size: theme.size.small, color: theme.color.muted }
+        );
+        break;
+      }
     }
     const top = writer.y;
     writer.drawLine(
@@ -5347,7 +5451,7 @@ export async function convertBatchCombined(records, options = {}) {
       x: writer.left, y: writer.y, width: writer.contentWidth, height: top - writer.y
     });
     writer.moveDown(4);
-  });
+  }
 
   writer.finalize();
   const bytes = await pdfDoc.save();
@@ -5548,6 +5652,9 @@ at the resulting PDFs, which is the part no driver can do.
 
 ## Automated first
 
+- [ ] `python3 docs/fixtures/eml/generate.py` has been run (fixture 07 is
+      gitignored and absent on a fresh clone; its tests fail with a clear
+      "fixture not found" message until it is generated).
 - [ ] `/email-to-pdf/tests.html` reports PASS with zero failures. Result: __________
 
 ## Rendering — check in all three styles
@@ -5576,6 +5683,8 @@ at the resulting PDFs, which is the part no driver can do.
       including 1 tracking pixel; the body shows labeled placeholders, not gaps.
 - [ ] `07-large-pdf-attachment.eml` — manifest shows the filename, type, size and
       full hash; the attachment's pages follow a labeled separator page.
+- [ ] On those merged attachment pages, the stamped footer does not overprint
+      content already in the page's bottom margin.
 - [ ] Dates print with their original offset. Convert `01-plain-text.eml` in a
       machine set to a non-Pacific time zone and confirm it still reads
       `Tue, 4 Mar 2026 09:14:22 -0800`.
@@ -5594,8 +5703,10 @@ at the resulting PDFs, which is the part no driver can do.
 
 ## Batch
 
-- [ ] All ten fixtures at once, one PDF per email: ten downloads, filenames dated
-      and unique.
+- [ ] All ten fixtures at once, one PDF per email: a single `converted-emails.zip`
+      containing ten PDFs with dated, unique filenames — not ten separate
+      downloads, which the browser would block.
+- [ ] A single file converts to a direct PDF download, not a ZIP.
 - [ ] Same ten combined: TOC first, oldest first, TOC links jump correctly,
       footer numbering continuous.
 - [ ] Introduce a deliberately corrupt file (`head -c 200 /dev/urandom > bad.eml`)
