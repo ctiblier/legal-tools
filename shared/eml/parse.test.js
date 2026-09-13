@@ -66,6 +66,15 @@ test('a malformed body still yields intact headers rather than throwing', async 
   assertEqual(rec.date.raw, 'Fri, 7 Mar 2026 12:00:00 -0800');
 });
 
+test('a forwarded message with no Content-Disposition is still preserved as nested', async () => {
+  const rec = await parseEml(await loadFixture('11-inline-forwarded.eml'),
+    { filename: '11-inline-forwarded.eml' });
+  assertEqual(rec.nested.length, 1);
+  assertEqual(rec.nested[0].subject, 'Delivery schedule');
+  // The forwarded message's own date, with its own offset, is the point.
+  assertEqual(rec.nested[0].date.raw, 'Tue, 4 Mar 2026 09:14:22 -0800');
+});
+
 test('an empty body is reported as such, not as a failure', async () => {
   const rec = await parseEml(await loadFixture('10-headers-only.eml'));
   assertEqual(rec.bodyPartUsed, 'none');

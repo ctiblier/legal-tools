@@ -31,7 +31,9 @@ function toBytes(content) {
     for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
     return out;
   }
-  return new Uint8Array(0);
+  // Never fabricate an empty attachment: a 0-byte file with a valid hash reads
+  // as genuine, and the reader has no way to tell the content was lost.
+  throw new Error('unrecognized attachment content type: ' + Object.prototype.toString.call(content));
 }
 
 /**
@@ -61,7 +63,13 @@ export async function parseEml(bytes, opts = {}) {
 
   let parsed;
   try {
-    parsed = await new PostalMime().parse(bytes);
+    // Without this, postal-mime treats a message/rfc822 part with no
+    // Content-Disposition as inline: it subparses the forwarded message and
+    // merges its body into the parent's text, never surfacing it in
+    // `attachments`. That silently drops the forwarded message's own
+    // From/To/Subject and its own dated UTC offset — frequently the evidence
+    // that matters. Forcing it to an attachment lets the recursion below fire.
+    parsed = await new PostalMime({ forceRfc822Attachments: true }).parse(bytes);
   } catch (err) {
     defects.push({ code: 'BODY_DECODE_FAILED', detail: String(err && err.message || err) });
     parsed = { headers: [], attachments: [], html: null, text: null };

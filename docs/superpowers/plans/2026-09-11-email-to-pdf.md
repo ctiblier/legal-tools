@@ -613,6 +613,36 @@ Content-Type: text/plain; charset=utf-8
 
 """)
 
+# 11 ------------------------------- inline message/rfc822 (no disposition)
+write("11-inline-forwarded.eml", """\
+Message-ID: <20260314090000.EBFCA@firm.example>
+Date: Sat, 14 Mar 2026 09:00:00 -0700
+From: Robert Jones <counsel@firm.example>
+To: Senior Partner <partner@firm.example>
+Subject: Fwd: Delivery schedule (no disposition)
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="inline-fwd"
+
+--inline-fwd
+Content-Type: text/plain; charset=utf-8
+
+Forwarding for your review.
+
+--inline-fwd
+Content-Type: message/rfc822
+
+Message-ID: <20260304171422.A1F9C@acme-manufacturing.example>
+Date: Tue, 4 Mar 2026 09:14:22 -0800
+From: John Smith <jsmith@acme-manufacturing.example>
+To: Robert Jones <counsel@firm.example>
+Subject: Delivery schedule
+Content-Type: text/plain; charset=utf-8
+
+Inner body text.
+
+--inline-fwd--
+""")
+
 print("done")
 ```
 
@@ -685,6 +715,7 @@ Re-running produces byte-identical output so fixture changes are reviewable diff
 | `08-outlook-tables.eml` | nested tables, `<style>` stripping, table pagination |
 | `09-remote-images.eml` | tracking pixel and remote images blocked; `<script>` stripped |
 | `10-headers-only.eml` | empty body, header-only rendering |
+| `11-inline-forwarded.eml` | message/rfc822 with no Content-Disposition — the inline default |
 
 No fixture contains a real person's data or a real domain; all use
 `.example` reserved domains per RFC 2606.
@@ -983,7 +1014,9 @@ git commit -m "feat(email-to-pdf): raw header slicing and SHA-256 hashing"
 ```
 
 Defect codes used by this module, and by every later module that reads `defects`:
-`BODY_DECODE_FAILED`, `NESTED_PARSE_FAILED`, `NEST_DEPTH_EXCEEDED`, `ATTACHMENT_UNREADABLE`, `NO_HEADERS`.
+`BODY_DECODE_FAILED`, `NESTED_PARSE_FAILED`, `NEST_DEPTH_EXCEEDED`, `ATTACHMENT_UNREADABLE`.
+(A file with zero parseable headers is not an email at all — it throws rather
+than recording a defect, since the spec says such a file produces no PDF.)
 
 - [ ] **Step 1: Vendor postal-mime**
 
@@ -1119,6 +1152,15 @@ test('an empty body is reported as such, not as a failure', async () => {
   assertEqual(rec.subject, 'Read receipt');
   assertEqual(rec.defects.length, 0);
 });
+
+test('a forwarded message with no Content-Disposition is still preserved as nested', async () => {
+  const rec = await parseEml(await loadFixture('11-inline-forwarded.eml'),
+    { filename: '11-inline-forwarded.eml' });
+  assertEqual(rec.nested.length, 1);
+  assertEqual(rec.nested[0].subject, 'Delivery schedule');
+  // The forwarded message's own date, with its own offset, is the point.
+  assertEqual(rec.nested[0].date.raw, 'Tue, 4 Mar 2026 09:14:22 -0800');
+});
 ```
 
 - [ ] **Step 4: Register and run to verify failure**
@@ -1168,7 +1210,9 @@ function toBytes(content) {
     for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
     return out;
   }
-  return new Uint8Array(0);
+  // Never fabricate an empty attachment: a 0-byte file with a valid hash reads
+  // as genuine, and the reader has no way to tell the content was lost.
+  throw new Error('unrecognized attachment content type: ' + Object.prototype.toString.call(content));
 }
 
 /**
@@ -1191,7 +1235,13 @@ export async function parseEml(bytes, opts = {}) {
 
   let parsed;
   try {
-    parsed = await new PostalMime().parse(bytes);
+    // Without this, postal-mime treats a message/rfc822 part with no
+    // Content-Disposition as inline: it subparses the forwarded message and
+    // merges its body into the parent's text, never surfacing it in
+    // `attachments`. That silently drops the forwarded message's own
+    // From/To/Subject and its own dated UTC offset — frequently the evidence
+    // that matters. Forcing it to an attachment lets the recursion below fire.
+    parsed = await new PostalMime({ forceRfc822Attachments: true }).parse(bytes);
   } catch (err) {
     defects.push({ code: 'BODY_DECODE_FAILED', detail: String(err && err.message || err) });
     parsed = { headers: [], attachments: [], html: null, text: null };
