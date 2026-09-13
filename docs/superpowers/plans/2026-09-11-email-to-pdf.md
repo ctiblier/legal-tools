@@ -6330,6 +6330,66 @@ git add shared/pdf/writer.js shared/pdf/writer.test.js shared/eml/assemble.js \
 git commit -m "feat(email-to-pdf): combined batch output with a linked table of contents"
 ```
 
+### Fix round 1 (post-implementation review)
+
+Review found one Critical defect in this plan's own Step 4 pseudocode, one
+Important gap, and two small latent-bug cleanups. All four are fixed in the
+shipped code; this plan section is being synced to match, not left to imply
+the original snippets above are what actually ships.
+
+**Critical — `convertBatchCombined` never merged or drew attachments at all.**
+The Step 4 snippet above only ever calls `dispositionFor` to build the
+manifest and ZIP list; it never calls the PDF-merge / image-page logic that
+`convertEmail` has. Concretely, its per-email loop built `dispositions` and
+pushed non-appended attachments straight into `zipFiles`, but nothing ever
+executed the `application/pdf` merge branch or the image-attachment branch —
+so an attachment the manifest labelled `'appended'` was in neither the PDF
+nor the ZIP. Fixed by extracting the attachment-handling block that used to
+live inline in `convertEmail` into a shared module-level helper,
+`appendAttachments(writer, pdfDoc, record, opts, dispositions, zipFiles, ctx)`,
+called from both `convertEmail` (in place of its old inline loop) and
+`convertBatchCombined`'s per-email loop (right after that email's manifest is
+drawn). Same separator page, same PDF-merge failure handling (mark
+`'unreadable'`, record `ATTACHMENT_UNREADABLE`, fall back to the ZIP), same
+image-attachment page, in both callers now — one implementation, so the two
+paths cannot diverge again. Covered by two new `assemble.test.js` tests:
+`'a combined PDF appends attachments, and the manifest does not lie'` and
+`'a combined PDF discloses an unmergeable attachment rather than dropping it'`.
+Confirmed RED against the pre-fix code (both failed; every other test still
+passed) before extracting the helper, then GREEN after.
+
+**Important — a batch where every file fails reported success.** In
+`batesstamp/email-to-pdf/index.html`, both the combined path (`if
+(records.length)` skipped, nothing built) and the separate-file path (an
+empty-looking `pdfEntries`/`zipEntries` case) fell through to a green
+"Conversion complete." banner even when every input file errored and every
+result row was red. Fixed in both branches: the combined path now checks
+`if (!records.length)` and shows `status-error` — "No files could be
+converted. See the errors above." — before attempting anything, and the
+separate-file path now tracks a `successCount` incremented alongside each
+`addResultRow(..., state: 'ok'/'defect')` and shows the same error status if
+it stays zero. Both return early rather than reaching the ZIP/download and
+"Done" code.
+
+**Minor — `markDestination` still keyed on `this.pages.length - 1`.** `linkTo`
+and `linkToDestination` were switched to `this.currentPageIndex` in Step 3,
+but `markDestination` (used to record each email's TOC target) was missed —
+harmless only because it happens to always be called immediately after
+`newPage()`. Changed to `this.currentPageIndex` for the same reason the other
+two were changed, so the invariant doesn't have to be re-verified by hand at
+every call site.
+
+**Minor — the TOC test never looked at the TOC.** `'a combined PDF contains
+every email and starts with a table of contents'` only asserted page counts,
+which would pass even against a blank TOC page. Added
+`'the combined table of contents actually renders each email's entry'`, using
+the `extractPdfText` harness to assert the "Contents" heading and every
+email's subject actually render in the output bytes.
+
+Test count after fix round 1: **153/153** (150 after the original Task 16
+implementation, +3 for this round: the TOC-content test and the two
+attachment tests).
+
 ---
 
 ## Task 17: Site integration

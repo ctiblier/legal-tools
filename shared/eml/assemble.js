@@ -107,6 +107,59 @@ async function drawRecord(writer, record, ctx, stats) {
 }
 
 /**
+ * Merge or draw this record's attachments, and collect the rest for the ZIP.
+ * Shared by convertEmail and convertBatchCombined — they diverged once, and a
+ * manifest that says "appended to this PDF" while the bytes are in neither the
+ * PDF nor the ZIP is the document lying about itself.
+ */
+async function appendAttachments(writer, pdfDoc, record, opts, dispositions, zipFiles, ctx) {
+  for (const att of record.attachments || []) {
+    const disposition = dispositions.get(att.sha256);
+    if (disposition !== 'appended') {
+      if (opts.zipOtherAttachments && !att.error) {
+        zipFiles.push({ name: att.filename, bytes: att.bytes });
+      }
+      continue;
+    }
+
+    if (/^application\/pdf$/i.test(att.mimeType)) {
+      try {
+        writer.newPage();
+        await drawBlocks(writer, [
+          { type: 'heading', level: 4, runs: [styleRun('Attachment: ' + att.filename)] },
+          { type: 'paragraph', runs: [styleRun('SHA-256 ' + att.sha256, { sizeScale: 0.8 })] }
+        ], ctx);
+        const src = await PDFLib.PDFDocument.load(att.bytes, { ignoreEncryption: true });
+        const pages = await pdfDoc.copyPages(src, src.getPageIndices());
+        for (const page of pages) pdfDoc.addPage(page);
+        // Copied pages bypass the writer's cursor, so resynchronise it.
+        writer.pages = pdfDoc.getPages();
+        writer.newPage();
+      } catch (err) {
+        dispositions.set(att.sha256, 'unreadable');
+        att.error = 'could not be merged: ' + String(err && err.message || err);
+        record.defects.push({
+          code: 'ATTACHMENT_UNREADABLE',
+          detail: att.filename + ' — ' + att.error
+        });
+        if (opts.zipOtherAttachments) zipFiles.push({ name: att.filename, bytes: att.bytes });
+      }
+      continue;
+    }
+
+    // Images become their own page.
+    writer.newPage();
+    await drawBlocks(writer, [
+      { type: 'heading', level: 4, runs: [styleRun('Attachment: ' + att.filename)] },
+      { type: 'image', alt: att.filename, widthPx: 0, heightPx: 0,
+        ref: { kind: 'cid', contentId: att.contentId || att.sha256 } }
+    ], Object.assign({}, ctx, {
+      images: new Map([[att.contentId || att.sha256, att]])
+    }));
+  }
+}
+
+/**
  * @param {EmailRecord} record
  * @param {Object} options
  */
@@ -152,50 +205,7 @@ export async function convertEmail(record, options = {}) {
 
   // Appended attachments.
   const zipFiles = [];
-  for (const att of record.attachments || []) {
-    const disposition = dispositions.get(att.sha256);
-    if (disposition !== 'appended') {
-      if (opts.zipOtherAttachments && !att.error) {
-        zipFiles.push({ name: att.filename, bytes: att.bytes });
-      }
-      continue;
-    }
-
-    if (/^application\/pdf$/i.test(att.mimeType)) {
-      try {
-        writer.newPage();
-        await drawBlocks(writer, [
-          { type: 'heading', level: 4, runs: [styleRun('Attachment: ' + att.filename)] },
-          { type: 'paragraph', runs: [styleRun('SHA-256 ' + att.sha256, { sizeScale: 0.8 })] }
-        ], ctx);
-        const src = await PDFLib.PDFDocument.load(att.bytes, { ignoreEncryption: true });
-        const pages = await pdfDoc.copyPages(src, src.getPageIndices());
-        for (const page of pages) pdfDoc.addPage(page);
-        // Copied pages bypass the writer's cursor, so resynchronise it.
-        writer.pages = pdfDoc.getPages();
-        writer.newPage();
-      } catch (err) {
-        dispositions.set(att.sha256, 'unreadable');
-        att.error = 'could not be merged: ' + String(err && err.message || err);
-        record.defects.push({
-          code: 'ATTACHMENT_UNREADABLE',
-          detail: att.filename + ' — ' + att.error
-        });
-        if (opts.zipOtherAttachments) zipFiles.push({ name: att.filename, bytes: att.bytes });
-      }
-      continue;
-    }
-
-    // Images become their own page.
-    writer.newPage();
-    await drawBlocks(writer, [
-      { type: 'heading', level: 4, runs: [styleRun('Attachment: ' + att.filename)] },
-      { type: 'image', alt: att.filename, widthPx: 0, heightPx: 0,
-        ref: { kind: 'cid', contentId: att.contentId || att.sha256 } }
-    ], Object.assign({}, ctx, {
-      images: new Map([[att.contentId || att.sha256, att]])
-    }));
-  }
+  await appendAttachments(writer, pdfDoc, record, opts, dispositions, zipFiles, ctx);
 
   if (opts.rawHeaderAppendix) {
     writer.newPage();
@@ -308,9 +318,6 @@ export async function convertBatchCombined(records, options = {}) {
     const dispositions = new Map();
     for (const att of record.attachments || []) {
       dispositions.set(att.sha256, dispositionFor(att, opts));
-      if (dispositions.get(att.sha256) !== 'appended' && opts.zipOtherAttachments && !att.error) {
-        zipFiles.push({ name: att.filename, bytes: att.bytes });
-      }
     }
 
     const manifest = manifestBlocks(record, dispositions);
@@ -318,6 +325,8 @@ export async function convertBatchCombined(records, options = {}) {
       writer.moveDown(theme.spacing.block);
       await drawBlocks(writer, manifest, ctx);
     }
+
+    await appendAttachments(writer, pdfDoc, record, opts, dispositions, zipFiles, ctx);
 
     if (opts.rawHeaderAppendix) {
       writer.newPage();

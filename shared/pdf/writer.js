@@ -258,7 +258,7 @@ export class PageWriter {
 
   /** Record the current position as a named target for a table-of-contents link. */
   markDestination(name) {
-    this.destinations.set(name, { pageIndex: this.pages.length - 1, y: this.y });
+    this.destinations.set(name, { pageIndex: this.currentPageIndex, y: this.y });
   }
 
   linkToDestination(name, rect) {

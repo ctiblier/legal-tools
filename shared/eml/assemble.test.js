@@ -157,3 +157,47 @@ test('an email with no date sorts last rather than crashing the sort', async () 
   assertEqual(out.perEmail.length, 2);
   assertEqual(out.perEmail[1].sourceFilename, 'b.eml');
 });
+
+test('the combined table of contents actually renders each email\'s entry', async () => {
+  const names = ['01-plain-text.eml', '02-html-nested-quotes.eml', '10-headers-only.eml'];
+  const records = [];
+  for (const n of names) records.push(await parseEml(await loadFixture(n), { filename: n }));
+  const out = await convertBatchCombined(records, DEFAULT_OPTIONS);
+  const text = await extractPdfText(out.bytes);
+  assert(text.includes('Contents'), 'the contents heading rendered');
+  for (const e of out.perEmail) {
+    assert(text.includes(e.subject), 'entry rendered for: ' + e.subject);
+  }
+});
+
+test('a combined PDF appends attachments, and the manifest does not lie', async () => {
+  const names = ['07-large-pdf-attachment.eml', '01-plain-text.eml'];
+  const records = [];
+  for (const n of names) records.push(await parseEml(await loadFixture(n), { filename: n }));
+  const out = await convertBatchCombined(records, DEFAULT_OPTIONS);
+  const doc = await PDFLib.PDFDocument.load(out.bytes);
+
+  const withAttachment = records.find((r) => r.attachments.length);
+  const att = withAttachment.attachments[0];
+  assert(att, 'the fixture actually has an attachment to test against');
+
+  const withoutAttachment = await convertBatchCombined(records,
+    Object.assign({}, DEFAULT_OPTIONS, { appendAttachments: false }));
+  const docWithout = await PDFLib.PDFDocument.load(withoutAttachment.bytes);
+  assert(doc.getPageCount() > docWithout.getPageCount(),
+    'the merged attachment added pages: got ' + doc.getPageCount() +
+    ' vs ' + docWithout.getPageCount() + ' without it');
+
+  const text = await extractPdfText(out.bytes);
+  assert(text.includes('executed-agreement.pdf'), 'the attachment is named in the document');
+});
+
+test('a combined PDF discloses an unmergeable attachment rather than dropping it', async () => {
+  const n = '12-corrupt-pdf-attachment.eml';
+  const rec = await parseEml(await loadFixture(n), { filename: n });
+  const out = await convertBatchCombined([rec], DEFAULT_OPTIONS);
+  const att = rec.attachments.find((a) => a.filename === 'damaged.pdf');
+  assert(att.error, 'an error was recorded on the attachment');
+  assert(out.zipFiles.some((z) => z.name === 'damaged.pdf'),
+    'the bytes still reach the user via the ZIP');
+});

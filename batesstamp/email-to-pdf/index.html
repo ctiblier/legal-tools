@@ -424,6 +424,7 @@
             const taken = new Set();
             const zipEntries = [];
             const pdfEntries = [];
+            let successCount = 0;
 
             const combined = document.querySelector('input[name="output"]:checked').value === 'combined';
 
@@ -443,20 +444,27 @@
                     }
                 }
 
-                if (records.length) {
-                    progressText.textContent = 'Building combined PDF';
-                    progressBar.style.width = '75%';
-                    const out = await convertBatchCombined(records, options);
-                    const name = 'combined-emails.pdf';
-                    downloadPdf(out.bytes, name);
-                    if (typeof sessionFiles !== 'undefined') {
-                        sessionFiles.add(name,
-                            new Blob([out.bytes], { type: 'application/pdf' }), 'email-to-pdf');
-                    }
-                    addResultRow({ name, note: out.pageCount + ' pages · ' +
-                        out.perEmail.length + ' messages', state: 'ok' });
-                    for (const entry of out.zipFiles) zipEntries.push(entry);
+                if (!records.length) {
+                    progressContainer.classList.add('hidden');
+                    statusEl.className = 'status status-error';
+                    statusEl.textContent =
+                        'No files could be converted. See the errors above.';
+                    convertBtn.disabled = false;
+                    return;
                 }
+
+                progressText.textContent = 'Building combined PDF';
+                progressBar.style.width = '75%';
+                const out = await convertBatchCombined(records, options);
+                const name = 'combined-emails.pdf';
+                downloadPdf(out.bytes, name);
+                if (typeof sessionFiles !== 'undefined') {
+                    sessionFiles.add(name,
+                        new Blob([out.bytes], { type: 'application/pdf' }), 'email-to-pdf');
+                }
+                addResultRow({ name, note: out.pageCount + ' pages · ' +
+                    out.perEmail.length + ' messages', state: 'ok' });
+                for (const entry of out.zipFiles) zipEntries.push(entry);
 
                 if (options.zipOtherAttachments && zipEntries.length) {
                     const zip = new JSZip();
@@ -517,10 +525,19 @@
                               (defectCount ? ' · ' + defectCount + ' defect(s) noted on the certificate' : ''),
                         state: defectCount ? 'defect' : 'ok'
                     });
+                    successCount++;
                 } catch (err) {
                     // One bad file never stops the batch.
                     addResultRow({ name: file.name, note: 'failed — ' + err.message, state: 'error' });
                 }
+            }
+
+            if (!successCount) {
+                progressContainer.classList.add('hidden');
+                statusEl.className = 'status status-error';
+                statusEl.textContent = 'No files could be converted. See the errors above.';
+                convertBtn.disabled = false;
+                return;
             }
 
             if (pdfEntries.length) {
