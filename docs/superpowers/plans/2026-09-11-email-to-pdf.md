@@ -2543,22 +2543,40 @@ test('the mono style maps to the monospace face', async () => {
 
 test('an astral-plane character counts as one substitution, not two', async () => {
   const fs = await loadFontSet(await newDoc(), { family: 'sans' });
-  // U+1F600 is a single codepoint but two UTF-16 code units. Counting it twice
-  // would overstate on the certificate what the conversion failed to render.
-  const segs = fs.segment('\u{1F600}', 'regular');
+  // U+20000 (CJK Extension B) is a single codepoint but two UTF-16 code units,
+  // and is covered by neither Liberation nor DejaVu. Counting it twice would
+  // overstate on the certificate what the conversion failed to render.
+  // Do not use an emoji here: DejaVu ships real outlines for much of that range
+  // (U+1F600 resolves to a genuine glyph, not .notdef), so an emoji probe tests
+  // coverage rather than substitution.
+  const segs = fs.segment('\u{20000}', 'regular');
   assertEqual(fs.substitutions, 1, 'one codepoint, one substitution');
   assertEqual(Array.from(segs.map((s) => s.text).join('')).length, 1,
     'one character out for one character in');
 });
+
+test('a covered astral character is rendered, not substituted', async () => {
+  const fs = await loadFontSet(await newDoc(), { family: 'sans' });
+  // The fallback face genuinely covers this one. Coverage must mean a real
+  // glyph: if hasGlyphForCodePoint ever started reporting true for .notdef,
+  // the certificate would under-report what could not be rendered.
+  const segs = fs.segment('\u{1F600}', 'regular');
+  assertEqual(fs.substitutions, 0, 'covered codepoint is not substituted');
+  assertEqual(segs[0].faceKey, 'fallback', 'drawn by the fallback face');
+});
 ```
 
-Round-1 review note: on this build machine, DejaVu Sans 2.37 genuinely has real
-glyphs for U+1F600 and U+1F601 (verified with fontkit's `hasGlyphForCodePoint`
-and a non-empty `glyphForCodePoint(...).path`), so `substitutions` is honestly
-0, not 1, and this test fails here for the same reason the CJK test's count
-must never be loosened — it is reporting the true state of the fonts on this
-machine, not a bug in `segment()`. Do not adjust the expected value; if it
-fails elsewhere, report the observed count.
+Round-1 review note, superseded by round 2: the original astral test used
+U+1F600 as the uncovered probe, but on this build machine DejaVu Sans 2.37
+genuinely has real glyphs for U+1F600 and U+1F601 (verified with fontkit's
+`hasGlyphForCodePoint` and a non-empty `glyphForCodePoint(...).path`, plus gid
+5857/`u1F600` — not `.notdef`), so `substitutions` was honestly 0, not 1. The
+test premise, not `segment()`, was wrong. Round 2 replaced the probe codepoint
+with U+20000 (CJK Extension B, verified uncovered by both Liberation and
+DejaVu and far more stable across font versions than an emoji, since emoji
+coverage is exactly what font vendors keep adding) and added a second test
+pinning the U+1F600 case explicitly: coverage must mean a real glyph, not a
+`.notdef` false positive, and it is drawn by the `fallback` face.
 
 - [ ] **Step 4: Load pdf-lib and fontkit on the test page, then run to verify failure**
 

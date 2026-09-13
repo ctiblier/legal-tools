@@ -60,10 +60,24 @@ test('the mono style maps to the monospace face', async () => {
 
 test('an astral-plane character counts as one substitution, not two', async () => {
   const fs = await loadFontSet(await newDoc(), { family: 'sans' });
-  // U+1F600 is a single codepoint but two UTF-16 code units. Counting it twice
-  // would overstate on the certificate what the conversion failed to render.
-  const segs = fs.segment('\u{1F600}', 'regular');
+  // U+20000 (CJK Extension B) is a single codepoint but two UTF-16 code units,
+  // and is covered by neither Liberation nor DejaVu. Counting it twice would
+  // overstate on the certificate what the conversion failed to render.
+  // Do not use an emoji here: DejaVu ships real outlines for much of that range
+  // (U+1F600 resolves to a genuine glyph, not .notdef), so an emoji probe tests
+  // coverage rather than substitution.
+  const segs = fs.segment('\u{20000}', 'regular');
   assertEqual(fs.substitutions, 1, 'one codepoint, one substitution');
   assertEqual(Array.from(segs.map((s) => s.text).join('')).length, 1,
     'one character out for one character in');
+});
+
+test('a covered astral character is rendered, not substituted', async () => {
+  const fs = await loadFontSet(await newDoc(), { family: 'sans' });
+  // The fallback face genuinely covers this one. Coverage must mean a real
+  // glyph: if hasGlyphForCodePoint ever started reporting true for .notdef,
+  // the certificate would under-report what could not be rendered.
+  const segs = fs.segment('\u{1F600}', 'regular');
+  assertEqual(fs.substitutions, 0, 'covered codepoint is not substituted');
+  assertEqual(segs[0].faceKey, 'fallback', 'drawn by the fallback face');
 });
