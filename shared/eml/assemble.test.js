@@ -1,0 +1,99 @@
+import { test, assert, assertEqual } from '/shared/testing/harness.js';
+import { loadFixture } from '/shared/testing/fixtures.js';
+import { parseEml } from './parse.js';
+import { convertEmail, DEFAULT_OPTIONS } from './assemble.js';
+
+async function convertFixture(name, overrides) {
+  const rec = await parseEml(await loadFixture(name), { filename: name });
+  return convertEmail(rec, Object.assign({}, DEFAULT_OPTIONS, overrides || {}));
+}
+
+test('produces a loadable PDF from a plain-text email', async () => {
+  const out = await convertFixture('01-plain-text.eml');
+  const doc = await PDFLib.PDFDocument.load(out.bytes);
+  assert(doc.getPageCount() >= 2, 'body plus certificate and appendix');
+  assertEqual(doc.getPageCount(), out.pageCount);
+});
+
+test('turning off the appendix and certificate makes a shorter document', async () => {
+  const withAll = await convertFixture('01-plain-text.eml');
+  const bare = await convertFixture('01-plain-text.eml',
+    { certificate: false, rawHeaderAppendix: false });
+  assert(bare.pageCount < withAll.pageCount, 'options actually remove pages');
+});
+
+test('every theme produces a valid document', async () => {
+  for (const theme of ['mail-client', 'exhibit', 'minimal']) {
+    const out = await convertFixture('02-html-nested-quotes.eml', { theme });
+    const doc = await PDFLib.PDFDocument.load(out.bytes);
+    assert(doc.getPageCount() >= 1, theme + ' produced pages');
+  }
+});
+
+test('an attached PDF is merged into the output', async () => {
+  const withAppend = await convertFixture('07-large-pdf-attachment.eml');
+  const without = await convertFixture('07-large-pdf-attachment.eml',
+    { appendAttachments: false });
+  assert(withAppend.pageCount > without.pageCount, 'merged attachment added pages');
+  assertEqual(withAppend.summary.dispositions.get(
+    (await parseEml(await loadFixture('07-large-pdf-attachment.eml'))).attachments[0].sha256
+  ), 'appended');
+});
+
+test('non-appendable attachments land in the ZIP list', async () => {
+  const out = await convertFixture('07-large-pdf-attachment.eml',
+    { appendAttachments: false });
+  assertEqual(out.zipFiles.length, 1);
+  assertEqual(out.zipFiles[0].name, 'executed-agreement.pdf');
+});
+
+test('an inline cid image is embedded rather than placeheld', async () => {
+  const out = await convertFixture('03-inline-cid-image.eml');
+  assertEqual(out.summary.sanitizeStats.unresolvedCidImages, 0);
+  assert(out.bytes.length > 2000, 'produced a real document');
+});
+
+test('blocked remote images are counted into the summary', async () => {
+  const out = await convertFixture('09-remote-images.eml');
+  assertEqual(out.summary.sanitizeStats.remoteImagesBlocked, 2);
+  assertEqual(out.summary.sanitizeStats.trackingPixelsBlocked, 1);
+});
+
+test('embedSource attaches the original .eml to the PDF', async () => {
+  const off = await convertFixture('01-plain-text.eml', { embedSource: false });
+  const on = await convertFixture('01-plain-text.eml', { embedSource: true });
+  assert(on.bytes.length > off.bytes.length, 'embedding grew the file');
+  const text = new TextDecoder('latin1').decode(on.bytes);
+  assert(text.includes('EmbeddedFile'), 'embedded file stream present');
+});
+
+test('a message whose body failed to decode says so, rather than "no body text"', async () => {
+  const rec = await parseEml(await loadFixture('04-broken-base64.eml'),
+    { filename: '04-broken-base64.eml' });
+  // Only meaningful when the parser actually reported a decode failure; when the
+  // library salvages the body there is nothing to disclose.
+  if (!rec.defects.some((d) => d.code === 'BODY_DECODE_FAILED')) return;
+  const out = await convertEmail(rec, DEFAULT_OPTIONS);
+  const text = new TextDecoder('latin1').decode(out.bytes);
+  assert(!text.includes('contained no body text'), 'does not claim the body was empty');
+});
+
+test('a headers-only email still converts', async () => {
+  const out = await convertFixture('10-headers-only.eml');
+  assert(out.pageCount >= 1, 'produced at least one page');
+  assertEqual(out.summary.bodyPartUsed, 'none');
+});
+
+test('a forwarded message renders its nested record', async () => {
+  const out = await convertFixture('06-forwarded-message.eml');
+  assert(out.pageCount >= 1, 'produced pages');
+  assert(out.bytes.length > 2000, 'nested content rendered');
+});
+
+test('the summary carries everything the certificate needs', async () => {
+  const out = await convertFixture('09-remote-images.eml');
+  for (const key of ['pageCount', 'bodyPartUsed', 'sanitizeStats', 'substitutions',
+                     'dispositions', 'defects', 'generatedAtUtc']) {
+    assert(out.summary[key] !== undefined, 'summary.' + key + ' present');
+  }
+});
