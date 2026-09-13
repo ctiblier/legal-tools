@@ -3508,14 +3508,22 @@ test('every theme renders a header block without throwing, for a sparse record',
   }
 });
 
-test('a wrapping header does not overflow the mail-client band', async () => {
+test('the mail-client band is tall enough for the text drawn on it', async () => {
   const pdfDoc = await PDFLib.PDFDocument.create();
   const theme = THEMES['mail-client'];
   const fontSet = await loadFontSet(pdfDoc, { family: theme.family });
   const writer = new PageWriter({ pdfDoc, theme, fontSet, footerLeft: 'x.eml' });
+
+  // Capture the tint rectangle instead of guessing at it: its `y` is the band's
+  // bottom edge in PDF user space, where smaller y is further down the page.
+  let band = null;
+  const originalDrawRect = writer.drawRect.bind(writer);
+  writer.drawRect = (opts) => { band = opts; return originalDrawRect(opts); };
+
   const many = [];
-  for (let i = 0; i < 12; i++) many.push({ name: 'Recipient Number ' + i, address: 'r' + i + '@example.test' });
-  const top = writer.y;
+  for (let i = 0; i < 12; i++) {
+    many.push({ name: 'Recipient Number ' + i, address: 'r' + i + '@example.test' });
+  }
   theme.drawHeaderBlock(writer, {
     from: { name: 'A Sender With A Long Display Name', address: 'sender@example.test' },
     to: many, cc: [], bcc: [],
@@ -3523,15 +3531,31 @@ test('a wrapping header does not overflow the mail-client band', async () => {
     subject: 'A subject long enough that it must wrap across more than a single line in the band',
     messageId: '<x@example.test>'
   });
-  // The band is painted from a measured height; the cursor must end below the
-  // band's own bottom edge, not inside or above it.
-  assert(top - writer.y > 100, 'a wrapped header consumed multi-line height');
+
+  assert(band, 'the tint rectangle was drawn');
+  // The header ends with a trailing moveDown, so the last line of text sits a
+  // little above the final cursor. The band's bottom edge must be at or below
+  // that last line — under the old estimate-based code it sat well above it,
+  // and the text spilled past the tint.
+  const lastTextBottom = writer.y + 16;
+  assert(band.y <= lastTextBottom,
+    'band bottom (' + band.y.toFixed(1) + ') must be at or below the last text line (' +
+    lastTextBottom.toFixed(1) + ')');
 });
 ```
 
 `themes.test.js` also imports `PageWriter` from `/shared/pdf/writer.js` and `loadFontSet`
 from `/shared/pdf/fonts.js` alongside the harness and `themes.js` imports above — added
 in fix round 1 (see below) so the two rendering tests can build a real `PageWriter`.
+
+**Fix round 2 replaced the "does not overflow" cursor-movement test above** with the
+band-vs-text-geometry test shown, because the cursor-movement version could never go
+red: the pre-fix estimate-based code still called `drawWrapped` for every field and
+moved the cursor by the same ~150pt regardless of whether the *rectangle* underneath
+was sized correctly, so it measured text consumption, not band correctness. The
+replacement was verified red against the old estimate-based `drawMailClientHeader`
+(`band bottom (670.1) must be at or below the last text line (603.7)`) and green
+against the fix — see the fix-round-2 note below.
 
 - [ ] **Step 2: Register and run to verify failure**
 
@@ -3816,6 +3840,36 @@ theme's `drawHeaderBlock` runs without throwing on a maximally sparse record, an
 that a mail-client header with a long subject and 12 recipients (guaranteed to wrap)
 consumes more than 100pt of vertical space without overflowing the band. Suite is
 green at `PASS 103/103` (101 before this round + these 2).
+
+### Fix round 2 (re-review)
+
+The re-reviewer walked the arithmetic on round 1's second new test (`'a wrapping
+header does not overflow the mail-client band'`) and found it could never go red: the
+pre-fix estimate-based `drawMailClientHeader` still called `drawWrapped` for every
+field, so the cursor still moved ~150pt regardless of whether the tint *rectangle*
+underneath was sized correctly. The test measured text consumption, not band
+correctness, and the original defect was a geometry mismatch (rectangle too short for
+the text drawn on top of it), not a shortfall in vertical movement.
+
+Replaced it with `'the mail-client band is tall enough for the text drawn on it'`,
+which monkey-patches `writer.drawRect` to capture the actual tint rectangle drawn,
+then asserts the rectangle's bottom edge (`band.y`) sits at or below the last line of
+text (`writer.y + 16`, accounting for the header's trailing `moveDown(16)`).
+
+Verified this new test actually pins the fix, by running it both ways:
+
+- **Red**, against a temporary revert of `drawMailClientHeader` to the round-1
+  estimate-based sizing: `FAIL 1/103` — `the mail-client band is tall enough for the
+  text drawn on it` — `band bottom (670.1) must be at or below the last text line
+  (603.7)`. The old rectangle's bottom sat 66.4pt above where the text actually
+  ended, i.e. well short of covering it.
+- **Green**, restored to the round-1 fix (measure-then-draw `bandHeight`):
+  `PASS 103/103`.
+
+The `+ 16` fudge for the trailing `moveDown` was not tuned to pass — it matched the
+real geometry on the first attempt in both the red and green runs, so no adjustment
+was needed. The sparse-record test from round 1 was left unchanged; the re-reviewer
+confirmed it genuinely exercises all three themes and would catch a throw.
 
 ---
 

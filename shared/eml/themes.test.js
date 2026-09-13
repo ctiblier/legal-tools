@@ -55,14 +55,22 @@ test('every theme renders a header block without throwing, for a sparse record',
   }
 });
 
-test('a wrapping header does not overflow the mail-client band', async () => {
+test('the mail-client band is tall enough for the text drawn on it', async () => {
   const pdfDoc = await PDFLib.PDFDocument.create();
   const theme = THEMES['mail-client'];
   const fontSet = await loadFontSet(pdfDoc, { family: theme.family });
   const writer = new PageWriter({ pdfDoc, theme, fontSet, footerLeft: 'x.eml' });
+
+  // Capture the tint rectangle instead of guessing at it: its `y` is the band's
+  // bottom edge in PDF user space, where smaller y is further down the page.
+  let band = null;
+  const originalDrawRect = writer.drawRect.bind(writer);
+  writer.drawRect = (opts) => { band = opts; return originalDrawRect(opts); };
+
   const many = [];
-  for (let i = 0; i < 12; i++) many.push({ name: 'Recipient Number ' + i, address: 'r' + i + '@example.test' });
-  const top = writer.y;
+  for (let i = 0; i < 12; i++) {
+    many.push({ name: 'Recipient Number ' + i, address: 'r' + i + '@example.test' });
+  }
   theme.drawHeaderBlock(writer, {
     from: { name: 'A Sender With A Long Display Name', address: 'sender@example.test' },
     to: many, cc: [], bcc: [],
@@ -70,7 +78,14 @@ test('a wrapping header does not overflow the mail-client band', async () => {
     subject: 'A subject long enough that it must wrap across more than a single line in the band',
     messageId: '<x@example.test>'
   });
-  // The band is painted from a measured height; the cursor must end below the
-  // band's own bottom edge, not inside or above it.
-  assert(top - writer.y > 100, 'a wrapped header consumed multi-line height');
+
+  assert(band, 'the tint rectangle was drawn');
+  // The header ends with a trailing moveDown, so the last line of text sits a
+  // little above the final cursor. The band's bottom edge must be at or below
+  // that last line — under the old estimate-based code it sat well above it,
+  // and the text spilled past the tint.
+  const lastTextBottom = writer.y + 16;
+  assert(band.y <= lastTextBottom,
+    'band bottom (' + band.y.toFixed(1) + ') must be at or below the last text line (' +
+    lastTextBottom.toFixed(1) + ')');
 });
