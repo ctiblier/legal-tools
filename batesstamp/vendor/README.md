@@ -8,7 +8,7 @@ parser from someone else's server at page load either.
 | File | Package | Version | Source | SHA-256 |
 |---|---|---|---|---|
 | `postal-mime/*.js` (10 files) | postal-mime | 3.0.0 | `https://cdn.jsdelivr.net/npm/postal-mime@3.0.0/src/` | see below |
-| `fontkit.umd.js` | @pdf-lib/fontkit | 1.1.1 | `https://unpkg.com/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js` | *(paste the sha256sum output from Task 8 Step 1)* |
+| `fontkit.umd.js` | @pdf-lib/fontkit | 1.1.1 | `https://unpkg.com/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js` | `d8df561b9fba98e24f2e5130e40948809281bbbc55a20c412359f1a0a5eb35a6` |
 
 ```
 893f32e8d45a9c571a403eb83bb7896e78bdd08996a2fad5ee7cf77c89517f74  postal-mime/address-parser.js

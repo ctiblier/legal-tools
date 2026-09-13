@@ -15,6 +15,8 @@
         .test-summary.pass { background: #e6f4ea; color: #1e5631; }
         .test-summary.fail { background: #fdeaea; color: #8c1c1c; }
     </style>
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js" integrity="sha384-weMABwrltA6jWR8DDe9Jp5blk+tZQh7ugpCsF3JwSA53WZM9/14PjS5LAJNHNjAI" crossorigin="anonymous"></script>
+    <script src="/vendor/fontkit.umd.js"></script>
 </head>
 <body>
     <h1>Email to PDF — unit tests</h1>
@@ -28,6 +30,7 @@
         await import('/shared/eml/sanitize.test.js');
         await import('/shared/eml/html-to-blocks.test.js');
         await import('/shared/eml/text-to-blocks.test.js');
+        await import('/shared/pdf/fonts.test.js');
         await runAll();
     </script>
 </body>
