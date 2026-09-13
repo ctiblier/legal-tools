@@ -7,6 +7,7 @@
 import { loadFontSet } from '/shared/pdf/fonts.js';
 import { PageWriter } from '/shared/pdf/writer.js';
 import { drawBlocks } from '/shared/pdf/draw-blocks.js';
+import { tokenizeRuns } from '/shared/pdf/measure.js';
 import { THEMES } from './themes.js';
 import { sanitizeHtml } from './sanitize.js';
 import { htmlToBlocks } from './html-to-blocks.js';
@@ -249,4 +250,152 @@ export async function convertEmail(record, options = {}) {
       generatedAtUtc
     }
   };
+}
+
+const TOC_TITLE = 'Contents';
+
+function sortChronologically(records) {
+  // Undated messages sort last, in the order given, rather than being dropped or
+  // forced to an invented date.
+  return records.slice().sort((a, b) => {
+    const at = a.date.parsed ? a.date.parsed.getTime() : Infinity;
+    const bt = b.date.parsed ? b.date.parsed.getTime() : Infinity;
+    return at - bt;
+  });
+}
+
+/**
+ * @param {EmailRecord[]} records
+ * @param {Object} options
+ */
+export async function convertBatchCombined(records, options = {}) {
+  const opts = Object.assign({}, DEFAULT_OPTIONS, options);
+  const theme = THEMES[opts.theme] || THEMES['mail-client'];
+  const ordered = sortChronologically(records);
+
+  const pdfDoc = await PDFLib.PDFDocument.create();
+  pdfDoc.setTitle(ordered.length + ' email messages');
+  pdfDoc.setProducer('BatesStamp.com Email to PDF');
+
+  const fontSet = await loadFontSet(pdfDoc, { family: theme.family });
+  const writer = new PageWriter({
+    pdfDoc, theme, fontSet,
+    footerLeft: ordered.length + ' messages · combined'
+  });
+
+  // Page 1 already exists and becomes the first TOC page. Two lines per entry
+  // plus the heading, rounded up.
+  const usable = theme.page.height - theme.page.margin.top - theme.page.margin.bottom;
+  const perPage = Math.max(1, Math.floor(usable / (writer.lineHeight(theme.size.body) * 2.4)) - 2);
+  // Reserve one spare page. Under-reserving is not a cosmetic error: entries that
+  // run past the last reserved page would call ensure(), which appends a page at
+  // the END of the document — a table of contents continuing after the exhibits.
+  const tocPageCount = Math.max(1, Math.ceil(ordered.length / perPage)) + 1;
+  const tocIndices = [0].concat(tocPageCount > 1 ? writer.reservePages(tocPageCount - 1) : []);
+
+  const perEmail = [];
+  const zipFiles = [];
+  const allStats = Object.assign({}, EMPTY_STATS);
+
+  for (const record of ordered) {
+    writer.newPage();
+    const startPage = writer.currentPageIndex + 1;
+    writer.markDestination('email-' + perEmail.length);
+
+    const ctx = { indent: 0, quoteDepth: 0, images: record.inlineImages, embedCache: new Map() };
+    await drawRecord(writer, record, ctx, allStats);
+
+    const dispositions = new Map();
+    for (const att of record.attachments || []) {
+      dispositions.set(att.sha256, dispositionFor(att, opts));
+      if (dispositions.get(att.sha256) !== 'appended' && opts.zipOtherAttachments && !att.error) {
+        zipFiles.push({ name: att.filename, bytes: att.bytes });
+      }
+    }
+
+    const manifest = manifestBlocks(record, dispositions);
+    if (manifest.length) {
+      writer.moveDown(theme.spacing.block);
+      await drawBlocks(writer, manifest, ctx);
+    }
+
+    if (opts.rawHeaderAppendix) {
+      writer.newPage();
+      await drawBlocks(writer, rawHeaderBlocks(record), ctx);
+    }
+
+    if (opts.certificate) {
+      writer.newPage();
+      await drawBlocks(writer, certificateBlocks(record, {
+        pageCount: writer.pageCount,
+        bodyPartUsed: record.bodyPartUsed,
+        sanitizeStats: allStats,
+        substitutions: fontSet.substitutions,
+        dispositions,
+        defects: record.defects,
+        generatedAtUtc: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z')
+      }), ctx);
+    }
+
+    perEmail.push({
+      subject: record.subject || '(no subject)',
+      from: record.from ? (record.from.name || record.from.address) : '(unknown sender)',
+      dateRaw: record.date.raw || '(no date header)',
+      sourceFilename: record.sourceFilename,
+      startPage
+    });
+  }
+
+  // Fill the reserved table of contents now that every start page is known.
+  let tocCursor = 0;
+  writer.useExistingPage(tocIndices[0]);
+  await drawBlocks(writer, [
+    { type: 'heading', level: 2, runs: [styleRun(TOC_TITLE)] },
+    { type: 'rule' }
+  ], { indent: 0, quoteDepth: 0, images: new Map(), embedCache: new Map() });
+
+  for (let i = 0; i < perEmail.length; i++) {
+    const entry = perEmail[i];
+    const needed = writer.lineHeight(theme.size.body) * 2.4;
+    if (writer.y - needed < writer.bottomLimit) {
+      if (tocCursor + 1 < tocIndices.length) {
+        tocCursor++;
+        writer.useExistingPage(tocIndices[tocCursor]);
+      } else {
+        // Out of reserved space. Stop rather than spill the contents list to the
+        // back of the document, and say so once — an incomplete list that admits
+        // it is incomplete is recoverable; one that silently stops is not.
+        writer.drawLine(
+          tokenizeRunsForToc({ meta: 'Contents continue — ' +
+            (perEmail.length - i) + ' further message(s) are not listed here.' }),
+          { x: writer.left, size: theme.size.small, color: theme.color.muted }
+        );
+        break;
+      }
+    }
+    const top = writer.y;
+    writer.drawLine(
+      tokenizeRunsForToc(entry),
+      { x: writer.left, size: theme.size.body }
+    );
+    writer.drawLine(
+      tokenizeRunsForToc({ meta: entry.from + ' · ' + entry.dateRaw }),
+      { x: writer.left, size: theme.size.small, color: theme.color.muted }
+    );
+    writer.linkToDestination('email-' + i, {
+      x: writer.left, y: writer.y, width: writer.contentWidth, height: top - writer.y
+    });
+    writer.moveDown(4);
+  }
+
+  writer.finalize();
+  const bytes = await pdfDoc.save();
+  return { bytes, pageCount: pdfDoc.getPageCount(), perEmail, zipFiles };
+}
+
+function tokenizeRunsForToc(entry) {
+  const text = entry.meta != null
+    ? entry.meta
+    : entry.startPage + '.  ' + entry.subject;
+  return tokenizeRuns([styleRun(text, entry.meta != null ? {} : { bold: true })]);
 }

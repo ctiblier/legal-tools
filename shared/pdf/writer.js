@@ -79,6 +79,36 @@ export class PageWriter {
     return this.page;
   }
 
+  /**
+   * Append `count` blank pages and return their indices. Used to hold space for
+   * a table of contents that cannot be written until everything after it exists.
+   */
+  reservePages(count) {
+    const indices = [];
+    for (let i = 0; i < count; i++) {
+      const page = this.pdfDoc.addPage([this.theme.page.width, this.theme.page.height]);
+      this.pages.push(page);
+      indices.push(this.pages.length - 1);
+    }
+    // The cursor moves to the last reserved page (top margin) so drawing can
+    // continue immediately after reserving; callers that need to keep writing
+    // elsewhere call useExistingPage() afterwards.
+    this.page = this.pages[this.pages.length - 1];
+    this.y = this.theme.page.height - this.theme.page.margin.top;
+    return indices;
+  }
+
+  /** Point the cursor at an existing page, at the top margin. */
+  useExistingPage(index) {
+    if (index < 0 || index >= this.pages.length) throw new Error('no such page: ' + index);
+    this.page = this.pages[index];
+    this.y = this.theme.page.height - this.theme.page.margin.top;
+  }
+
+  get currentPageIndex() {
+    return this.pages.indexOf(this.page);
+  }
+
   get bottomLimit() { return this.theme.page.margin.bottom; }
 
   /** Start a new page if `height` will not fit below the cursor. */
@@ -223,7 +253,7 @@ export class PageWriter {
         A: this.pdfDoc.context.obj({ Type: 'Action', S: 'URI', URI: PDFString.of(url) })
       })
     );
-    this._annotsFor(this.pages.length - 1).push(ref);
+    this._annotsFor(this.currentPageIndex).push(ref);
   }
 
   /** Record the current position as a named target for a table-of-contents link. */
@@ -243,7 +273,7 @@ export class PageWriter {
         Dest: [this.pages[target.pageIndex].ref, PDFName.of('XYZ'), 0, target.y, null]
       })
     );
-    this._annotsFor(this.pages.length - 1).push(ref);
+    this._annotsFor(this.currentPageIndex).push(ref);
   }
 
   /**

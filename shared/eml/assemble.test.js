@@ -1,7 +1,7 @@
 import { test, assert, assertEqual, extractPdfText } from '/shared/testing/harness.js';
 import { loadFixture } from '/shared/testing/fixtures.js';
 import { parseEml } from './parse.js';
-import { convertEmail, DEFAULT_OPTIONS } from './assemble.js';
+import { convertEmail, convertBatchCombined, DEFAULT_OPTIONS } from './assemble.js';
 
 async function convertFixture(name, overrides) {
   const rec = await parseEml(await loadFixture(name), { filename: name });
@@ -126,4 +126,34 @@ test('the summary carries everything the certificate needs', async () => {
                      'dispositions', 'defects', 'generatedAtUtc']) {
     assert(out.summary[key] !== undefined, 'summary.' + key + ' present');
   }
+});
+
+test('a combined PDF contains every email and starts with a table of contents', async () => {
+  const names = ['01-plain-text.eml', '02-html-nested-quotes.eml', '10-headers-only.eml'];
+  const records = [];
+  for (const n of names) records.push(await parseEml(await loadFixture(n), { filename: n }));
+  const out = await convertBatchCombined(records, DEFAULT_OPTIONS);
+  const doc = await PDFLib.PDFDocument.load(out.bytes);
+  assert(doc.getPageCount() > names.length, 'more pages than emails');
+  assertEqual(out.perEmail.length, 3);
+  assert(out.perEmail.every((e) => e.startPage >= 1), 'every email has a start page');
+});
+
+test('combined output orders emails oldest first regardless of input order', async () => {
+  const later = await parseEml(await loadFixture('02-html-nested-quotes.eml'),
+    { filename: 'b.eml' });
+  const earlier = await parseEml(await loadFixture('01-plain-text.eml'),
+    { filename: 'a.eml' });
+  const out = await convertBatchCombined([later, earlier], DEFAULT_OPTIONS);
+  assertEqual(out.perEmail[0].subject, 'Delivery schedule');
+  assertEqual(out.perEmail[1].subject, 'RE: Delivery schedule');
+});
+
+test('an email with no date sorts last rather than crashing the sort', async () => {
+  const dated = await parseEml(await loadFixture('01-plain-text.eml'), { filename: 'a.eml' });
+  const undated = await parseEml(await loadFixture('01-plain-text.eml'), { filename: 'b.eml' });
+  undated.date = { raw: null, parsed: null };
+  const out = await convertBatchCombined([undated, dated], DEFAULT_OPTIONS);
+  assertEqual(out.perEmail.length, 2);
+  assertEqual(out.perEmail[1].sourceFilename, 'b.eml');
 });

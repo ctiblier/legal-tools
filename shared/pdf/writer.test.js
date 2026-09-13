@@ -140,3 +140,31 @@ test('ensure(usableHeight) on a fresh page does not add a second page', async ()
   writer.ensure(writer.usableHeight);
   assertEqual(writer.pageCount, 1);
 });
+
+test('reservePages appends blank pages and returns their indices', async () => {
+  const { writer } = await newWriter();
+  const indices = writer.reservePages(3);
+  assertEqual(indices.length, 3);
+  assertEqual(writer.pageCount, 4);
+  assertEqual(indices[0], 1);
+});
+
+test('useExistingPage moves the cursor without adding a page', async () => {
+  const { writer } = await newWriter();
+  const [first] = writer.reservePages(1);
+  writer.newPage();
+  const countBefore = writer.pageCount;
+  writer.useExistingPage(first);
+  assertEqual(writer.pageCount, countBefore);
+  assertEqual(writer.y, 792 - writer.theme.page.margin.top);
+});
+
+test('drawing into a reserved page does not append pages', async () => {
+  const { writer } = await newWriter();
+  const [reserved] = writer.reservePages(1);
+  writer.newPage();
+  const before = writer.pageCount;
+  writer.useExistingPage(reserved);
+  writer.drawLine(tokenizeRuns([{ text: 'Contents', ...style }]), { x: 54, size: 12 });
+  assertEqual(writer.pageCount, before);
+});

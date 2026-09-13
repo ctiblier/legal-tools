@@ -278,7 +278,7 @@
 
     <script type="module">
         import { parseEml } from '/shared/eml/parse.js';
-        import { convertEmail, DEFAULT_OPTIONS } from '/shared/eml/assemble.js';
+        import { convertEmail, convertBatchCombined, DEFAULT_OPTIONS } from '/shared/eml/assemble.js';
         import { sanitizeHtml } from '/shared/eml/sanitize.js';
         import { htmlToBlocks } from '/shared/eml/html-to-blocks.js';
         import { textToBlocks } from '/shared/eml/text-to-blocks.js';
@@ -424,6 +424,62 @@
             const taken = new Set();
             const zipEntries = [];
             const pdfEntries = [];
+
+            const combined = document.querySelector('input[name="output"]:checked').value === 'combined';
+
+            if (combined) {
+                const records = [];
+                for (let i = 0; i < selectedFiles.length; i++) {
+                    const file = selectedFiles[i];
+                    progressText.textContent = 'Reading ' + (i + 1) + ' of ' + selectedFiles.length;
+                    progressBar.style.width = Math.round((i / selectedFiles.length) * 50) + '%';
+                    try {
+                        records.push(await parseEml(
+                            new Uint8Array(await file.arrayBuffer()), { filename: file.name }));
+                    } catch (err) {
+                        // A file that cannot be parsed is reported and skipped; the
+                        // remaining messages still produce a usable combined exhibit.
+                        addResultRow({ name: file.name, note: 'failed — ' + err.message, state: 'error' });
+                    }
+                }
+
+                if (records.length) {
+                    progressText.textContent = 'Building combined PDF';
+                    progressBar.style.width = '75%';
+                    const out = await convertBatchCombined(records, options);
+                    const name = 'combined-emails.pdf';
+                    downloadPdf(out.bytes, name);
+                    if (typeof sessionFiles !== 'undefined') {
+                        sessionFiles.add(name,
+                            new Blob([out.bytes], { type: 'application/pdf' }), 'email-to-pdf');
+                    }
+                    addResultRow({ name, note: out.pageCount + ' pages · ' +
+                        out.perEmail.length + ' messages', state: 'ok' });
+                    for (const entry of out.zipFiles) zipEntries.push(entry);
+                }
+
+                if (options.zipOtherAttachments && zipEntries.length) {
+                    const zip = new JSZip();
+                    for (const entry of zipEntries) zip.file(entry.name, entry.bytes);
+                    const blob = await zip.generateAsync({ type: 'blob' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'email-attachments.zip';
+                    a.click();
+                    setTimeout(() => URL.revokeObjectURL(url), 1000);
+                    addResultRow({ name: 'email-attachments.zip',
+                                   note: zipEntries.length + ' attachment(s)', state: 'ok' });
+                }
+
+                progressBar.style.width = '100%';
+                progressText.textContent = 'Done';
+                statusEl.className = 'status status-success';
+                statusEl.textContent = 'Conversion complete.';
+                showPipelineSuggestions('email-to-pdf');
+                convertBtn.disabled = false;
+                return;
+            }
 
             for (let i = 0; i < selectedFiles.length; i++) {
                 const file = selectedFiles[i];
