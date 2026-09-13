@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <!-- Umami Analytics -->
+    <script defer src="https://umami.ctibs.app/script.js" data-website-id="b5a8938f-fd00-486c-bf17-0352963407f3"></script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- SEO Meta Tags -->
+    <title>Free EML to PDF Converter | Email to PDF for Evidence | BatesStamp.com</title>
+    <meta name="description" content="Convert .eml email files to searchable, evidence-grade PDFs with full headers, attachment manifest, and a certificate of conversion. Free, browser-based — your files never leave your device.">
+    <meta name="keywords" content="eml to pdf, email to pdf, convert email to pdf for court, email evidence pdf, email header pdf, eml converter">
+    <meta name="author" content="BatesStamp.com">
+    <meta name="robots" content="index, follow">
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://batesstamp.com/email-to-pdf/">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://batesstamp.com/email-to-pdf/">
+    <meta property="og:title" content="Free EML to PDF Converter — Email to PDF for Evidence">
+    <meta property="og:description" content="Convert .eml email files to searchable, evidence-grade PDFs with full headers, attachment manifest, and a certificate of conversion. Free, browser-based — your files never leave your device.">
+    <meta property="og:image" content="https://batesstamp.com/og-image.svg">
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://batesstamp.com/email-to-pdf/">
+    <meta name="twitter:title" content="Free EML to PDF Converter — Email to PDF for Evidence">
+    <meta name="twitter:description" content="Convert .eml email files to searchable, evidence-grade PDFs with full headers, attachment manifest, and a certificate of conversion. Free, browser-based — your files never leave your device.">
+    <meta name="twitter:image" content="https://batesstamp.com/og-image.svg">
+
+    <!-- Structured Data - JSON-LD -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Email to PDF",
+      "description": "Free online tool to convert .eml email files to searchable, evidence-grade PDF with full headers, attachment manifest and certificate of conversion",
+      "url": "https://batesstamp.com/email-to-pdf/",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "Web Browser",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "featureList": [
+        "Converts .eml email files to searchable PDF",
+        "Preserves full RFC 822 headers including the Received chain",
+        "SHA-256 hashing of source and attachments",
+        "Certificate of conversion",
+        "Blocks remote images and tracking pixels",
+        "Batch conversion",
+        "Client-side processing"
+      ],
+      "browserRequirements": "Requires JavaScript. Modern web browser."
+    }
+    </script>
+
+    <!-- FAQ Schema for Featured Snippets -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "How do I convert an email to PDF for court?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Drop the .eml file into this tool. It renders the message as searchable PDF text with the full header block, lists every attachment with its SHA-256 hash, and appends a certificate of conversion recording what was converted and what could not be reproduced. Everything happens in your browser; the file is never uploaded."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does this preserve email headers?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. The complete RFC 822 header block — the Received chain, Message-ID, DKIM-Signature and Authentication-Results — is reproduced verbatim in an appendix. Printing an email from a mail client discards this information, which is what authenticates the message's origin if it is ever challenged."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Why are images missing from my converted email?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Remote images are never downloaded. Loading them would notify the sender, with a timestamp, that their email is being reviewed — which matters when the email came from an opposing party. Each blocked image leaves a labeled placeholder, and the certificate records how many were blocked."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is the converted PDF searchable?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. The email body is rendered as real PDF text, not as a screenshot, so it is searchable and selectable and can be Bates stamped without an OCR step."
+          }
+        }
+      ]
+    }
+    </script>
+
+    <!-- Favicons -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <meta name="theme-color" content="#1e3a5f">
+    <link rel="manifest" href="/manifest.json">
+
+    <!-- Fonts -->
+    <link rel="stylesheet" href="/fonts.css">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="/brand.css">
+    <link rel="stylesheet" href="/styles.css">
+
+    <link rel="preconnect" href="https://unpkg.com">
+</head>
+<body>
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+    <div class="container">
+        <header id="site-header"></header>
+        <nav id="site-nav" aria-label="Main navigation"></nav>
+
+        <main id="main-content">
+            <noscript><p style="text-align:center;padding:20px;color:#c53030;">This tool requires JavaScript to function. Please enable JavaScript in your browser.</p></noscript>
+
+            <p class="intro-text">Convert <code>.eml</code> email files into searchable PDFs suitable for use as evidence — with the full header chain, an attachment manifest, and a certificate of conversion. All processing happens in your browser; your files never leave your device.</p>
+
+            <!-- 1. Files -->
+            <div class="section">
+                <h2 class="section-title">1. Select Email Files</h2>
+                <div class="control-group">
+                    <div class="file-drop-zone" id="dropZone">
+                        <input type="file" id="fileInput" accept=".eml" multiple aria-label="Choose .eml files">
+                        <div class="drop-zone-icon">
+                            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg>
+                        </div>
+                        <div class="drop-zone-text">Choose .eml files or drag them here</div>
+                        <div class="drop-zone-hint">Your email never leaves your browser.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Style -->
+            <div class="section">
+                <h2 class="section-title">2. Style</h2>
+                <div class="control-group">
+                    <fieldset style="border:none;padding:0;margin:0;" aria-label="Output style">
+                        <legend class="visually-hidden">Choose the output style</legend>
+                        <label class="compression-option">
+                            <input type="radio" name="theme" value="mail-client" checked>
+                            <div class="compression-option-content">
+                                <span class="compression-option-label">Mail client</span>
+                                <span class="compression-option-desc">Reads like the message did on screen</span>
+                            </div>
+                        </label>
+                        <label class="compression-option">
+                            <input type="radio" name="theme" value="exhibit">
+                            <div class="compression-option-content">
+                                <span class="compression-option-label">Court exhibit</span>
+                                <span class="compression-option-desc">Formal and ruled; photocopies cleanly</span>
+                            </div>
+                        </label>
+                        <label class="compression-option">
+                            <input type="radio" name="theme" value="minimal">
+                            <div class="compression-option-content">
+                                <span class="compression-option-label">Minimal</span>
+                                <span class="compression-option-desc">Typography and whitespace, no rules or bands</span>
+                            </div>
+                        </label>
+                    </fieldset>
+                </div>
+            </div>
+
+            <!-- 3. Output -->
+            <div class="section">
+                <h2 class="section-title">3. Output</h2>
+                <div class="control-group">
+                    <label><input type="radio" name="output" value="separate" checked> One PDF per email</label>
+                    <label><input type="radio" name="output" value="combined"> Single combined PDF, oldest first, with a table of contents</label>
+
+                    <label><input type="checkbox" id="optAppend" checked> Append attached PDFs and images to the PDF</label>
+                    <label><input type="checkbox" id="optZip" checked> Download other attachments as a ZIP</label>
+
+                    <details class="eml-evidence-group">
+                        <summary>Evidence options</summary>
+                        <label><input type="checkbox" id="optCertificate" checked> Certificate of conversion
+                            <span class="hint">A final page recording what was converted, from what file, and what the conversion could not reproduce.</span></label>
+                        <label><input type="checkbox" id="optHeaders" checked> Full header appendix
+                            <span class="hint">The complete Received chain, DKIM and Authentication-Results, reproduced verbatim.</span></label>
+                        <label><input type="checkbox" id="optHashes" checked> SHA-256 of source and attachments
+                            <span class="hint">Ties the PDF back to the exact file it came from.</span></label>
+                        <label><input type="checkbox" id="optEmbed"> Embed the original .eml inside the PDF
+                            <span class="hint">Keeps the native file with the production copy. Roughly doubles file size, and some e-filing portals reject PDFs containing embedded files.</span></label>
+                    </details>
+                </div>
+            </div>
+
+            <!-- Preview -->
+            <div class="section hidden" id="previewSection">
+                <h2 class="section-title">Preview</h2>
+                <p class="eml-result-note" id="previewNote"></p>
+                <div class="eml-preview" id="preview"></div>
+            </div>
+
+            <button class="button" id="convertBtn" data-umami-event="convert-email" disabled>Convert to PDF</button>
+
+            <div class="progress-container hidden" id="progressContainer">
+                <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+                <span class="progress-text" id="progressText">Converting...</span>
+            </div>
+
+            <div id="status" class="status" role="status" aria-live="polite">
+                Select one or more .eml files to begin
+            </div>
+
+            <div class="eml-results hidden" id="resultsSection"></div>
+
+            <!-- SEO Content -->
+            <section id="about" class="seo-content">
+                <h2>About Converting Email to PDF</h2>
+                <div class="seo-content-inner">
+                    <h3>Why Printing an Email Loses Evidence</h3>
+                    <p>Printing an email from Outlook, Gmail, or Apple Mail — or exporting it to PDF from the mail client's print dialog — keeps the message body and drops everything that authenticates it. The Received chain that shows the path a message actually traveled, the Message-ID, the DKIM-Signature, and the Authentication-Results header are all discarded. If the authenticity of an email is ever challenged, that header block is what a forensic examiner or opposing counsel would need. This tool reproduces it verbatim in an appendix rather than throwing it away.</p>
+
+                    <h3>What a Certificate of Conversion Is For</h3>
+                    <p>Each converted PDF can carry a final page recording exactly what file was converted, its SHA-256 hash, when the conversion happened, and anything the tool could not faithfully reproduce — a missing embedded image, an attachment it could not parse, a character encoding it had to guess at. Disclosure of a limitation is not the same as silently dropping it. The certificate exists so a reader — a judge, a paralegal preparing an exhibit, opposing counsel — can see the full picture without taking the conversion on faith.</p>
+
+                    <div class="feature-highlights">
+                        <div class="feature-highlight-card">
+                            <h4>Full Header Preservation</h4>
+                            <p>The complete RFC 822 header block, including the Received chain and authentication headers, is reproduced in an appendix — not summarized, not trimmed.</p>
+                        </div>
+                        <div class="feature-highlight-card">
+                            <h4>Remote Images Blocked</h4>
+                            <p>Loading a remote image would notify the sender that the message is being viewed, with a timestamp. This tool never fetches them. Each blocked image, tracking pixels included, leaves a visible labeled placeholder.</p>
+                        </div>
+                        <div class="feature-highlight-card">
+                            <h4>Searchable, Bates-Ready Output</h4>
+                            <p>The body is rendered as real PDF text rather than a screenshot, so it is searchable and selectable and can go straight into a Bates stamping tool without an OCR pass.</p>
+                        </div>
+                        <div class="feature-highlight-card">
+                            <h4>Privacy First</h4>
+                            <p>All parsing and PDF assembly happens entirely in your browser. Your email is never uploaded to any server — suitable for confidential, privileged, and attorney-client correspondence.</p>
+                        </div>
+                    </div>
+
+                    <h3>What Gets Included</h3>
+                    <ul>
+                        <li><strong>Full header appendix:</strong> the Received chain, Message-ID, DKIM-Signature and Authentication-Results, reproduced verbatim</li>
+                        <li><strong>Attachment manifest:</strong> every attachment listed with its SHA-256 hash</li>
+                        <li><strong>Certificate of conversion:</strong> what was converted, from what source file, and what could not be faithfully reproduced</li>
+                        <li><strong>Blocked remote images:</strong> labeled placeholders instead of silent gaps or a network request to the sender</li>
+                        <li><strong>Batch conversion:</strong> convert many emails at once, delivered as a single PDF-per-email or one combined PDF with a table of contents</li>
+                    </ul>
+                </div>
+            </section>
+        </main>
+
+        <footer id="site-footer"></footer>
+    </div>
+
+    <!-- Libraries -->
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js" integrity="sha384-weMABwrltA6jWR8DDe9Jp5blk+tZQh7ugpCsF3JwSA53WZM9/14PjS5LAJNHNjAI" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/jszip@3.10.1/dist/jszip.min.js"></script>
+    <script src="/vendor/fontkit.umd.js"></script>
+
+    <!-- Shared classic scripts -->
+    <script src="/shared/tools.js"></script>
+    <script src="/shared/nav.js"></script>
+    <script src="/shared/file-handler.js"></script>
+    <script src="/shared/session-files.js"></script>
+    <script>initNav({ title: 'Email to PDF', subtitle: 'Convert .eml files to evidence-grade PDF', currentPath: '/email-to-pdf/' });</script>
+
+    <script type="module">
+        import { parseEml } from '/shared/eml/parse.js';
+        import { convertEmail, DEFAULT_OPTIONS } from '/shared/eml/assemble.js';
+        import { sanitizeHtml } from '/shared/eml/sanitize.js';
+        import { htmlToBlocks } from '/shared/eml/html-to-blocks.js';
+        import { textToBlocks } from '/shared/eml/text-to-blocks.js';
+        import { blocksToHtml } from '/shared/eml/blocks-to-html.js';
+        import { outputFilename } from '/shared/eml/filename.js';
+
+        const MAX_WARN_MB = 25;
+        const MAX_HARD_MB = 100;
+
+        const statusEl = document.getElementById('status');
+        const convertBtn = document.getElementById('convertBtn');
+        const resultsEl = document.getElementById('resultsSection');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+
+        let selectedFiles = [];
+        let previewRecord = null;
+
+        function readOptions() {
+            return Object.assign({}, DEFAULT_OPTIONS, {
+                theme: document.querySelector('input[name="theme"]:checked').value,
+                appendAttachments: document.getElementById('optAppend').checked,
+                zipOtherAttachments: document.getElementById('optZip').checked,
+                certificate: document.getElementById('optCertificate').checked,
+                rawHeaderAppendix: document.getElementById('optHeaders').checked,
+                hashes: document.getElementById('optHashes').checked,
+                embedSource: document.getElementById('optEmbed').checked
+            });
+        }
+
+        function escapeHtml(s) {
+            return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        function renderPreview(record) {
+            const source = record.bodyPartUsed === 'html'
+                ? htmlToBlocks(sanitizeHtml(record.bodyHtml, record.inlineImages).body)
+                : record.bodyPartUsed === 'text'
+                    ? textToBlocks(record.bodyText)
+                    : [];
+
+            const addr = (list) => (list || [])
+                .map((a) => a.name ? a.name + ' <' + a.address + '>' : a.address).join(', ');
+
+            const header =
+                '<div class="eml-preview-header">' +
+                  '<div class="eml-preview-subject">' +
+                    escapeHtml(record.subject || '(no subject)') + '</div>' +
+                  '<div class="eml-preview-from">' +
+                    escapeHtml(record.from ? (record.from.name || record.from.address)
+                                           : '(unknown sender)') + '</div>' +
+                  '<div class="eml-preview-meta">' +
+                    escapeHtml(record.from ? record.from.address : '') + '</div>' +
+                  '<div class="eml-preview-meta">to ' +
+                    escapeHtml(addr(record.to) || '(undisclosed recipients)') + '</div>' +
+                  (record.cc.length
+                    ? '<div class="eml-preview-meta">cc ' + escapeHtml(addr(record.cc)) + '</div>'
+                    : '') +
+                  '<div class="eml-preview-meta">' +
+                    escapeHtml(record.date.raw || '(no date header)') + '</div>' +
+                '</div>';
+
+            document.getElementById('preview').innerHTML =
+                header + blocksToHtml(source, { images: record.inlineImages });
+            document.getElementById('previewNote').textContent =
+                selectedFiles.length > 1
+                    ? 'Showing the first of ' + selectedFiles.length + ' emails.'
+                    : '';
+            document.getElementById('previewSection').classList.remove('hidden');
+        }
+
+        async function onFilesSelected(files) {
+            selectedFiles = Array.from(files);
+            convertBtn.disabled = selectedFiles.length === 0;
+            resultsEl.classList.add('hidden');
+            resultsEl.innerHTML = '';
+
+            const oversize = selectedFiles.filter((f) => f.size > MAX_HARD_MB * 1024 * 1024);
+            if (oversize.length) {
+                statusEl.className = 'status status-error';
+                statusEl.textContent = oversize.length + ' file(s) exceed the ' +
+                    MAX_HARD_MB + ' MB limit and cannot be converted in a browser tab.';
+                selectedFiles = selectedFiles.filter((f) => f.size <= MAX_HARD_MB * 1024 * 1024);
+                convertBtn.disabled = selectedFiles.length === 0;
+            }
+
+            if (!selectedFiles.length) return;
+
+            try {
+                const first = selectedFiles[0];
+                const bytes = new Uint8Array(await first.arrayBuffer());
+                previewRecord = await parseEml(bytes, { filename: first.name });
+                renderPreview(previewRecord);
+                statusEl.className = 'status';
+                statusEl.textContent = selectedFiles.length === 1
+                    ? 'Ready to convert 1 email.'
+                    : 'Ready to convert ' + selectedFiles.length + ' emails.';
+            } catch (err) {
+                statusEl.className = 'status status-error';
+                statusEl.textContent = 'Could not read that file: ' + err.message;
+            }
+        }
+
+        // Re-render the preview when the style changes so the choice is visible
+        // before committing to a conversion.
+        for (const radio of document.querySelectorAll('input[name="theme"]')) {
+            radio.addEventListener('change', () => { if (previewRecord) renderPreview(previewRecord); });
+        }
+
+        initFileDropZone('dropZone', {
+            accept: ['.eml'],
+            multiple: true,
+            maxSizeMB: MAX_HARD_MB,
+            onFiles: onFilesSelected
+        });
+
+        function addResultRow({ name, note, state }) {
+            const row = document.createElement('div');
+            row.className = 'eml-result-row' +
+                (state === 'error' ? ' is-error' : state === 'defect' ? ' is-defect' : '');
+            row.innerHTML = '<span class="eml-result-name">' + escapeHtml(name) + '</span>' +
+                            '<span class="eml-result-note">' + escapeHtml(note) + '</span>';
+            resultsEl.appendChild(row);
+            resultsEl.classList.remove('hidden');
+        }
+
+        convertBtn.addEventListener('click', async () => {
+            const options = readOptions();
+            convertBtn.disabled = true;
+            resultsEl.innerHTML = '';
+            progressContainer.classList.remove('hidden');
+            progressBar.style.width = '0%';
+
+            const taken = new Set();
+            const zipEntries = [];
+            const pdfEntries = [];
+
+            for (let i = 0; i < selectedFiles.length; i++) {
+                const file = selectedFiles[i];
+                progressText.textContent = 'Converting ' + (i + 1) + ' of ' + selectedFiles.length;
+                progressBar.style.width = Math.round((i / selectedFiles.length) * 100) + '%';
+
+                try {
+                    const bytes = new Uint8Array(await file.arrayBuffer());
+                    const record = await parseEml(bytes, { filename: file.name });
+                    const out = await convertEmail(record, options);
+                    const name = outputFilename(record, taken);
+
+                    // Browsers block a page that starts several downloads in a
+                    // row, so a batch is delivered as one ZIP. A single file
+                    // downloads directly, which is what a one-off conversion wants.
+                    if (selectedFiles.length === 1) {
+                        downloadPdf(out.bytes, name);
+                    } else {
+                        pdfEntries.push({ name, bytes: out.bytes });
+                    }
+                    if (typeof sessionFiles !== 'undefined') {
+                        sessionFiles.add(name,
+                            new Blob([out.bytes], { type: 'application/pdf' }), 'email-to-pdf');
+                    }
+
+                    for (const entry of out.zipFiles) {
+                        zipEntries.push({ name: name.replace(/\.pdf$/, '') + '/' + entry.name,
+                                          bytes: entry.bytes });
+                    }
+
+                    const defectCount = out.summary.defects.length;
+                    addResultRow({
+                        name,
+                        note: out.pageCount + ' pages' +
+                              (defectCount ? ' · ' + defectCount + ' defect(s) noted on the certificate' : ''),
+                        state: defectCount ? 'defect' : 'ok'
+                    });
+                } catch (err) {
+                    // One bad file never stops the batch.
+                    addResultRow({ name: file.name, note: 'failed — ' + err.message, state: 'error' });
+                }
+            }
+
+            if (pdfEntries.length) {
+                const zip = new JSZip();
+                for (const entry of pdfEntries) zip.file(entry.name, entry.bytes);
+                const blob = await zip.generateAsync({ type: 'blob' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'converted-emails.zip';
+                a.click();
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+                addResultRow({ name: 'converted-emails.zip',
+                               note: pdfEntries.length + ' PDF(s)', state: 'ok' });
+            }
+
+            if (options.zipOtherAttachments && zipEntries.length) {
+                const zip = new JSZip();
+                for (const entry of zipEntries) zip.file(entry.name, entry.bytes);
+                const blob = await zip.generateAsync({ type: 'blob' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'email-attachments.zip';
+                a.click();
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+                addResultRow({ name: 'email-attachments.zip',
+                               note: zipEntries.length + ' attachment(s)', state: 'ok' });
+            }
+
+            progressBar.style.width = '100%';
+            progressText.textContent = 'Done';
+            statusEl.className = 'status status-success';
+            statusEl.textContent = 'Conversion complete.';
+            showPipelineSuggestions('email-to-pdf');
+            convertBtn.disabled = false;
+        });
+    </script>
+</body>
+</html>
