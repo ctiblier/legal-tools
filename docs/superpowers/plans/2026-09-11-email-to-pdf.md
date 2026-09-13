@@ -5516,9 +5516,9 @@ Append to `batesstamp/styles.css`:
 ```css
 /* ---------- Email to PDF ---------- */
 .eml-preview {
-    border: 1px solid var(--color-border);
+    border: 1px solid var(--gray-200);
     border-radius: var(--radius-md);
-    background: #fff;
+    background: var(--white);
     padding: 20px 24px;
     max-height: 460px;
     overflow-y: auto;
@@ -5526,34 +5526,35 @@ Append to `batesstamp/styles.css`:
     line-height: 1.55;
 }
 .eml-preview-header {
-    background: var(--color-gray-50, #f7f8fa);
-    border-bottom: 1px solid var(--color-border);
+    background: var(--gray-100);
+    border-bottom: 1px solid var(--gray-200);
     margin: -20px -24px 18px;
     padding: 16px 24px;
 }
 .eml-preview-subject { font-weight: 600; font-size: 1.05rem; margin-bottom: 10px; }
 .eml-preview-from { font-weight: 600; }
-.eml-preview-meta { color: var(--color-gray-600, #667); font-size: 0.85rem; }
+.eml-preview-meta { color: var(--gray-600); font-size: 0.85rem; }
+.eml-preview .eml-h { font-size: 1rem; font-weight: 600; margin: 12px 0 6px; line-height: 1.3; }
 .eml-preview blockquote {
-    border-left: 3px solid var(--color-border);
+    border-left: 3px solid var(--gray-200);
     margin: 10px 0 10px 2px;
     padding-left: 14px;
-    color: var(--color-gray-700, #445);
+    color: var(--gray-700);
 }
 .eml-preview .eml-table { border-collapse: collapse; margin: 10px 0; width: 100%; }
 .eml-preview .eml-table th,
 .eml-preview .eml-table td {
-    border: 1px solid var(--color-border);
+    border: 1px solid var(--gray-200);
     padding: 5px 8px;
     text-align: left;
     vertical-align: top;
 }
 .eml-preview .eml-img { max-width: 100%; height: auto; }
-.eml-preview .eml-link { color: var(--color-navy, #1e3a5f); text-decoration: underline dotted; }
+.eml-preview .eml-link { color: var(--navy); text-decoration: underline dotted; }
 .eml-blocked {
     display: inline-block;
-    border: 1px dashed var(--color-border);
-    color: var(--color-gray-600, #667);
+    border: 1px dashed var(--gray-200);
+    color: var(--gray-600);
     font-size: 0.82rem;
     font-style: italic;
     padding: 8px 12px;
@@ -5566,23 +5567,29 @@ Append to `batesstamp/styles.css`:
     align-items: center;
     gap: 10px;
     padding: 9px 12px;
-    border: 1px solid var(--color-border);
+    border: 1px solid var(--gray-200);
     border-radius: var(--radius-sm, 4px);
     margin-bottom: 7px;
     font-size: 0.9rem;
 }
-.eml-result-row.is-error { border-color: #d98a8a; background: #fdf6f6; }
-.eml-result-row.is-defect { border-color: #d9bd8a; background: #fdfaf4; }
+.eml-result-row.is-error { border-color: var(--error); background: var(--error-bg); }
+.eml-result-row.is-defect { border-color: var(--warning); background: var(--warning-bg); }
 .eml-result-name { flex: 1; font-weight: 500; }
-.eml-result-note { color: var(--color-gray-600, #667); font-size: 0.84rem; }
+.eml-result-note { color: var(--gray-600); font-size: 0.84rem; }
 .eml-evidence-group { margin-top: 10px; }
 .eml-evidence-group summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
 .eml-evidence-group label { display: block; margin: 7px 0 7px 4px; font-size: 0.92rem; }
 .eml-evidence-group .hint {
-    display: block; margin-left: 24px; color: var(--color-gray-600, #667);
+    display: block; margin-left: 24px; color: var(--gray-600);
     font-size: 0.82rem;
 }
 ```
+
+(Corrected in Task 15 fix round 1: the tokens above (`--color-border`, `--color-gray-*`,
+`--color-navy`, and the hardcoded result-row hex colors) do not exist in `brand.css`. They are
+replaced here with the real tokens `brand.css` defines — `--gray-200`, `--gray-100`, `--gray-600`,
+`--gray-700`, `--navy`, `--white`, `--error`/`--error-bg`, `--warning`/`--warning-bg` — and a
+`.eml-h` rule was added for preview headings, which otherwise fell back to full-size `h1`–`h6`.)
 
 - [ ] **Step 6: Write the tool page**
 

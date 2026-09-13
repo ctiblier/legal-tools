@@ -80,8 +80,9 @@ export function blocksToHtml(blocks, opts = {}) {
         const att = images.get(block.ref.contentId);
         if (!att) { out.push('<div class="eml-blocked">inline image missing</div>'); break; }
         const blob = new Blob([att.bytes], { type: att.mimeType });
-        out.push('<img class="eml-img" alt="' + esc(block.alt) + '" src="' +
-          URL.createObjectURL(blob) + '">');
+        const url = URL.createObjectURL(blob);
+        if (opts.createdUrls) opts.createdUrls.push(url);
+        out.push('<img class="eml-img" alt="' + esc(block.alt) + '" src="' + url + '">');
         break;
       }
       default:
