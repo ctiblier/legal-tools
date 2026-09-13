@@ -95,7 +95,9 @@ export function certificateBlocks(record, summary) {
     field('Source SHA-256', record.sourceSha256),
     field('Message-ID', record.messageId || '(none present)'),
     field('Date header', record.date.raw || '(none present)'),
-    field('Pages', String(summary.pageCount)),
+    field('Pages of message content', String(summary.pageCount) +
+      ' (excluding this certificate, the manifest and any appendix — the total ' +
+      'page count appears in the footer of every page)'),
     field('Attachments', String((record.attachments || []).length)),
     field('Body rendered from', summary.bodyPartUsed === 'html'
       ? 'the message’s HTML part'

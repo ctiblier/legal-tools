@@ -4359,7 +4359,7 @@ The evidence apparatus. All four are pure block builders, so they are tested wit
     `summary = {pageCount, bodyPartUsed, sanitizeStats, substitutions, dispositions, defects, generatedAtUtc}`
   - `outputFilename(record, taken: Set<string>) => string`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```js
 // shared/eml/evidence.test.js
@@ -4398,6 +4398,7 @@ test('the manifest lists every attachment with size, type and full hash', async 
   assert(out.includes('executed-agreement.pdf'), 'filename listed');
   assert(out.includes('application/pdf'), 'MIME type listed');
   assert(out.includes(rec.attachments[0].sha256), 'full hash listed');
+  assert(/\d+(\.\d+)? (B|KB|MB)/.test(out), 'a formatted size is rendered');
 });
 
 test('the manifest is empty when there are no attachments', async () => {
@@ -4412,6 +4413,16 @@ test('the raw header appendix reproduces Received lines verbatim', async () => {
   assert(out.includes('203.0.113.24'), 'received chain IP present');
 });
 
+test('the raw header appendix reproduces the header block verbatim', async () => {
+  const rec = await parseEml(await loadFixture('01-plain-text.eml'));
+  const blocks = rawHeaderBlocks(rec);
+  const pre = blocks.find((b) => b.type === 'preformatted');
+  assert(pre, 'the appendix uses a preformatted block');
+  // Byte-for-byte against the source block, modulo the CRLF->LF normalisation
+  // the renderer needs. A re-serialization from parsed values would not match.
+  assertEqual(pre.text, rec.rawHeaderBlock.replace(/\r\n/g, '\n'));
+});
+
 test('the certificate states blocked images, substitutions and the body part used', async () => {
   const rec = await parseEml(await loadFixture('09-remote-images.eml'));
   const out = textOf(certificateBlocks(rec, {
@@ -4424,9 +4435,11 @@ test('the certificate states blocked images, substitutions and the body part use
     defects: [],
     generatedAtUtc: '2026-09-11T12:00:00Z'
   }));
-  assert(out.includes('2'), 'blocked image count present');
-  assert(out.toLowerCase().includes('tracking'), 'tracking pixels disclosed');
-  assert(out.includes('3'), 'substitution count present');
+  // Assert the disclosure sentences themselves, not bare digits that other
+  // fields (the page count, the source hash) also happen to contain.
+  assert(out.includes('2 remote image(s) were not loaded'), 'blocked image count disclosed');
+  assert(out.includes('1 were tracking pixels'), 'tracking pixels disclosed');
+  assert(out.includes('3 character(s) could not be rendered'), 'substitution count disclosed');
   assert(out.includes(rec.sourceSha256), 'full source hash present');
   assert(out.toLowerCase().includes('html'), 'body part disclosed');
 });
@@ -4463,11 +4476,11 @@ test('a missing date and subject still yield a usable filename', () => {
 });
 ```
 
-- [ ] **Step 2: Register and run to verify failure**
+- [x] **Step 2: Register and run to verify failure**
 
 Add `await import('/shared/eml/evidence.test.js');` to `tests.html`; expect the 404.
 
-- [ ] **Step 3: Write `manifest.js`**
+- [x] **Step 3: Write `manifest.js`**
 
 ```js
 // shared/eml/manifest.js
@@ -4545,7 +4558,7 @@ export function manifestBlocks(record, dispositions) {
 }
 ```
 
-- [ ] **Step 4: Write `certificate.js`**
+- [x] **Step 4: Write `certificate.js`**
 
 ```js
 // shared/eml/certificate.js
@@ -4645,7 +4658,9 @@ export function certificateBlocks(record, summary) {
     field('Source SHA-256', record.sourceSha256),
     field('Message-ID', record.messageId || '(none present)'),
     field('Date header', record.date.raw || '(none present)'),
-    field('Pages', String(summary.pageCount)),
+    field('Pages of message content', String(summary.pageCount) +
+      ' (excluding this certificate, the manifest and any appendix — the total ' +
+      'page count appears in the footer of every page)'),
     field('Attachments', String((record.attachments || []).length)),
     field('Body rendered from', summary.bodyPartUsed === 'html'
       ? 'the message’s HTML part'
@@ -4673,7 +4688,7 @@ export function certificateBlocks(record, summary) {
 }
 ```
 
-- [ ] **Step 5: Write `filename.js`**
+- [x] **Step 5: Write `filename.js`**
 
 ```js
 // shared/eml/filename.js
@@ -4715,19 +4730,33 @@ export function outputFilename(record, taken) {
 }
 ```
 
-- [ ] **Step 6: Run the tests to verify they pass**
+- [x] **Step 6: Run the tests to verify they pass**
 
-Reload. Expected: `PASS 93/93`.
+Reload. Actual: `PASS 123/123` at first GREEN (112 pre-existing + 11 new; the plan's
+`93/93` figure was stale/informational).
 
 The filename test expects `2026-03-05_RE-Delivery-schedule.pdf`: the date comes from the parsed `Date` header in UTC, and `RE: Delivery schedule` sanitizes to `RE-Delivery-schedule`.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add shared/eml/manifest.js shared/eml/certificate.js shared/eml/filename.js \
         shared/eml/evidence.test.js batesstamp/email-to-pdf/tests.html
 git commit -m "feat(email-to-pdf): attachment manifest, certificate of conversion and filenames"
 ```
+
+**Fix round 1** (post-review): the certificate's `Pages` field was renamed to
+`Pages of message content` and now states explicitly that it excludes the
+certificate/manifest/appendix and that the footer carries the exact total.
+Three tests were strengthened because they passed for reasons unrelated to
+the behaviour they named: the blocked-images/substitutions certificate test
+now asserts the actual disclosure sentences instead of bare digits that the
+page-count field or the source hash also happened to contain; a new test
+asserts the manifest renders a formatted size (`\d+(\.\d+)? (B|KB|MB)`); and a
+new test asserts `rawHeaderBlocks`' `preformatted` text is exactly equal to
+`record.rawHeaderBlock` (CRLF normalized), not just that it contains
+substrings a re-serialization could also produce. Final: `PASS 124/124`.
+Details and red/green evidence for each: `task-13-report.md`.
 
 ---
 

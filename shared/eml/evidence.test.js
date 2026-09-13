@@ -33,6 +33,7 @@ test('the manifest lists every attachment with size, type and full hash', async 
   assert(out.includes('executed-agreement.pdf'), 'filename listed');
   assert(out.includes('application/pdf'), 'MIME type listed');
   assert(out.includes(rec.attachments[0].sha256), 'full hash listed');
+  assert(/\d+(\.\d+)? (B|KB|MB)/.test(out), 'a formatted size is rendered');
 });
 
 test('the manifest is empty when there are no attachments', async () => {
@@ -47,6 +48,16 @@ test('the raw header appendix reproduces Received lines verbatim', async () => {
   assert(out.includes('203.0.113.24'), 'received chain IP present');
 });
 
+test('the raw header appendix reproduces the header block verbatim', async () => {
+  const rec = await parseEml(await loadFixture('01-plain-text.eml'));
+  const blocks = rawHeaderBlocks(rec);
+  const pre = blocks.find((b) => b.type === 'preformatted');
+  assert(pre, 'the appendix uses a preformatted block');
+  // Byte-for-byte against the source block, modulo the CRLF->LF normalisation
+  // the renderer needs. A re-serialization from parsed values would not match.
+  assertEqual(pre.text, rec.rawHeaderBlock.replace(/\r\n/g, '\n'));
+});
+
 test('the certificate states blocked images, substitutions and the body part used', async () => {
   const rec = await parseEml(await loadFixture('09-remote-images.eml'));
   const out = textOf(certificateBlocks(rec, {
@@ -59,9 +70,11 @@ test('the certificate states blocked images, substitutions and the body part use
     defects: [],
     generatedAtUtc: '2026-09-11T12:00:00Z'
   }));
-  assert(out.includes('2'), 'blocked image count present');
-  assert(out.toLowerCase().includes('tracking'), 'tracking pixels disclosed');
-  assert(out.includes('3'), 'substitution count present');
+  // Assert the disclosure sentences themselves, not bare digits that other
+  // fields (the page count, the source hash) also happen to contain.
+  assert(out.includes('2 remote image(s) were not loaded'), 'blocked image count disclosed');
+  assert(out.includes('1 were tracking pixels'), 'tracking pixels disclosed');
+  assert(out.includes('3 character(s) could not be rendered'), 'substitution count disclosed');
   assert(out.includes(rec.sourceSha256), 'full source hash present');
   assert(out.toLowerCase().includes('html'), 'body part disclosed');
 });
