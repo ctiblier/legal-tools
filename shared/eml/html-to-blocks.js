@@ -15,6 +15,8 @@ const EMPTY_STYLE = {
   color: null, sizeScale: 1, href: null
 };
 
+const COLOR_OK = /^(#[0-9a-f]{3}|#[0-9a-f]{6}|rgba?\(\s*[\d.,\s%]+\)|[a-z]+)$/i;
+
 function styleFor(el, inherited) {
   const s = Object.assign({}, inherited);
   const tag = el.tagName;
@@ -32,7 +34,12 @@ function styleFor(el, inherited) {
   const style = el.getAttribute && el.getAttribute('style');
   if (style) {
     const color = /(?:^|;)\s*color\s*:\s*([^;]+)/i.exec(style);
-    if (color) s.color = color[1].trim();
+    if (color) {
+      const value = color[1].trim();
+      // Read for colour only: anything that is not a colour is dropped rather
+      // than carried as free text out of the sanitization boundary.
+      s.color = COLOR_OK.test(value) ? value : null;
+    }
     if (/font-weight\s*:\s*(bold|[6-9]00)/i.test(style)) s.bold = true;
     if (/font-style\s*:\s*italic/i.test(style)) s.italic = true;
   }
@@ -97,15 +104,25 @@ function hasBlockChild(el) {
       return true;
     }
   }
-  return false;
+  // An image marker nested inside an inline wrapper (<a><img></a> is the most
+  // common image in email) must still escape to block level. Left inline, it is
+  // skipped by collectRuns and disappears -- while sanitize has already counted
+  // it, so the certificate would claim a blocked image the body never shows.
+  // Losing the surrounding link styling is an acceptable price; losing the
+  // image is not.
+  return !!(el.querySelector &&
+            el.querySelector('[data-blocked-image],[data-cid-ref],[data-data-uri]'));
 }
 
 /**
  * @param {HTMLElement} root  the body element returned by sanitizeHtml
  * @param {number} [quoteDepth]
+ * @param {Object} [inherited]  style flags inherited from an enclosing inline
+ *   wrapper (e.g. an <a> around block content), so a link target or emphasis
+ *   applied above a block-child boundary is not lost when we recurse.
  * @returns {Array<Object>} block IR
  */
-export function htmlToBlocks(root, quoteDepth = 0) {
+export function htmlToBlocks(root, quoteDepth = 0, inherited = EMPTY_STYLE) {
   const out = [];
   let pending = [];
 
@@ -118,7 +135,7 @@ export function htmlToBlocks(root, quoteDepth = 0) {
   for (const node of Array.from(root.childNodes)) {
     if (node.nodeType === 3) {
       const text = node.nodeValue.replace(/\s+/g, ' ');
-      if (text.trim()) pending.push(Object.assign({}, EMPTY_STYLE, { text }));
+      if (text.trim()) pending.push(Object.assign({}, inherited, { text }));
       continue;
     }
     if (node.nodeType !== 1) continue;
@@ -131,7 +148,7 @@ export function htmlToBlocks(root, quoteDepth = 0) {
 
     const tag = node.tagName;
 
-    if (tag === 'BR') { pending.push(Object.assign({}, EMPTY_STYLE, { text: '\n' })); continue; }
+    if (tag === 'BR') { pending.push(Object.assign({}, inherited, { text: '\n' })); continue; }
 
     if (tag === 'HR') { flushPending(); out.push({ type: 'rule' }); continue; }
 
@@ -144,7 +161,7 @@ export function htmlToBlocks(root, quoteDepth = 0) {
     if (/^H[1-6]$/.test(tag)) {
       flushPending();
       const runs = [];
-      collectRuns(node, EMPTY_STYLE, runs);
+      collectRuns(node, inherited, runs);
       const trimmed = trimRuns(runs);
       if (trimmed.length) {
         out.push({ type: 'heading', level: parseInt(tag.slice(1), 10), runs: trimmed });
@@ -155,9 +172,10 @@ export function htmlToBlocks(root, quoteDepth = 0) {
     if (tag === 'UL' || tag === 'OL') {
       flushPending();
       const items = [];
-      for (const li of Array.from(node.children)) {
-        if (li.tagName !== 'LI') continue;
-        items.push(htmlToBlocks(li, quoteDepth));
+      for (const child of Array.from(node.children)) {
+        // A non-<li> child (a directly nested list, or a <div> some mail client
+        // emitted) still carries content. Skipping it silently loses text.
+        items.push(htmlToBlocks(child, quoteDepth, inherited));
       }
       if (items.length) {
         out.push({ type: 'list', ordered: tag === 'OL', depth: quoteDepth, items });
@@ -170,20 +188,46 @@ export function htmlToBlocks(root, quoteDepth = 0) {
       out.push({
         type: 'blockquote',
         depth: quoteDepth + 1,
-        children: htmlToBlocks(node, quoteDepth + 1)
+        children: htmlToBlocks(node, quoteDepth + 1, inherited)
       });
       continue;
     }
 
     if (tag === 'TABLE') {
       flushPending();
+
+      const caption = node.querySelector(':scope > caption');
+      if (caption) {
+        const capRuns = [];
+        collectRuns(caption, inherited, capRuns);
+        const trimmedCap = trimRuns(capRuns);
+        if (trimmedCap.length) out.push({ type: 'paragraph', runs: trimmedCap });
+      }
+
+      // Gather rows by section explicitly, in visual order (head, then body,
+      // then foot), rather than trusting querySelectorAll's document order --
+      // a <tfoot> authored before <tbody> (legal, and required pre-HTML5)
+      // would otherwise render above the body rows.
+      const rowEls = [];
+      for (const tr of Array.from(node.children)) {
+        if (tr.tagName === 'TR') rowEls.push(tr);
+      }
+      for (const section of ['THEAD', 'TBODY', 'TFOOT']) {
+        for (const sec of Array.from(node.children)) {
+          if (sec.tagName !== section) continue;
+          for (const tr of Array.from(sec.children)) {
+            if (tr.tagName === 'TR') rowEls.push(tr);
+          }
+        }
+      }
+
       const rows = [];
-      for (const tr of Array.from(node.querySelectorAll(':scope > tr, :scope > thead > tr, :scope > tbody > tr'))) {
+      for (const tr of rowEls) {
         const cells = [];
         for (const td of Array.from(tr.children)) {
           if (td.tagName !== 'TD' && td.tagName !== 'TH') continue;
           cells.push({
-            blocks: htmlToBlocks(td, quoteDepth),
+            blocks: htmlToBlocks(td, quoteDepth, inherited),
             colspan: parseInt(td.getAttribute('colspan') || '1', 10) || 1,
             rowspan: parseInt(td.getAttribute('rowspan') || '1', 10) || 1,
             header: td.tagName === 'TH'
@@ -191,7 +235,19 @@ export function htmlToBlocks(root, quoteDepth = 0) {
         }
         if (cells.length) rows.push(cells);
       }
-      if (rows.length) out.push({ type: 'table', rows });
+
+      if (rows.length) {
+        out.push({ type: 'table', rows });
+      } else {
+        // No conforming rows, but the element still held content (e.g. only a
+        // caption, or markup too irregular to yield a row). Recurse the
+        // element's children -- never the element itself, which would re-enter
+        // this same TABLE branch and loop forever -- rather than drop it.
+        for (const child of Array.from(node.children)) {
+          if (child === caption) continue;
+          out.push(...htmlToBlocks(child, quoteDepth, inherited));
+        }
+      }
       continue;
     }
 
@@ -199,12 +255,12 @@ export function htmlToBlocks(root, quoteDepth = 0) {
     // block-level children, otherwise treat it as inline content.
     if (hasBlockChild(node)) {
       flushPending();
-      out.push(...htmlToBlocks(node, quoteDepth));
+      out.push(...htmlToBlocks(node, quoteDepth, styleFor(node, inherited)));
       continue;
     }
 
     const runs = [];
-    collectRuns(node, styleFor(node, EMPTY_STYLE), runs);
+    collectRuns(node, styleFor(node, inherited), runs);
     if (tag === 'P' || tag === 'DIV') {
       flushPending();
       const trimmed = trimRuns(runs);

@@ -110,12 +110,56 @@ test('a resolvable cid image becomes an image block with a cid ref', () => {
 test('<br> breaks the line without starting a new block', () => {
   const out = blocks('<p>Robert Jones<br>Jones &amp; Associates</p>');
   assertEqual(out.length, 1);
-  assert(flat(out[0].runs).includes('\n'), 'line break preserved inside the paragraph');
+  assertEqual(flat(out[0].runs), 'Robert Jones\nJones & Associates');
 });
 
 test('whitespace between block elements does not create empty paragraphs', () => {
   const out = blocks('<p>one</p>\n\n   \n<p>two</p>');
   assertEqual(out.length, 2);
+  assertEqual(flat(out[0].runs), 'one');
+  assertEqual(flat(out[1].runs), 'two');
+});
+
+test('an image wrapped in a link is preserved as a block, not dropped', () => {
+  const out = blocks('<p><a href="https://x.example"><img src="https://cdn.example/b.png" alt="Banner" width="600" height="120"></a></p>');
+  const img = out.find((b) => b.type === 'blockedImage');
+  assert(img, 'blocked image emitted despite the inline wrapper');
+  assertEqual(img.alt, 'Banner');
+});
+
+test('a tfoot row is kept, and ordered after the body rows', () => {
+  const out = blocks('<table><tfoot><tr><td>TOTAL 99</td></tr></tfoot><tbody><tr><td>body</td></tr></tbody></table>');
+  const table = out.find((b) => b.type === 'table');
+  assertEqual(table.rows.length, 2);
+  assertEqual(flat(table.rows[0][0].blocks[0].runs), 'body');
+  assertEqual(flat(table.rows[1][0].blocks[0].runs), 'TOTAL 99');
+});
+
+test('a directly nested list keeps its items', () => {
+  const out = blocks('<ul><ul><li>inner item</li></ul></ul>');
+  assert(JSON.stringify(out).includes('inner item'), 'nested list content survives');
+});
+
+test('a table caption is emitted', () => {
+  const out = blocks('<table><caption>Q3 figures</caption><tr><td>x</td></tr></table>');
+  assert(JSON.stringify(out).includes('Q3 figures'), 'caption text survives');
+});
+
+test('a link wrapping block content keeps its href', () => {
+  const out = blocks('<a href="https://keep.example"><div>Click here</div></a>');
+  const hrefs = [];
+  JSON.stringify(out, (k, v) => { if (k === 'href') hrefs.push(v); return v; });
+  assert(hrefs.includes('https://keep.example'), 'href survives the block-child path');
+});
+
+test('a non-colour value in a style attribute is dropped, not carried through', () => {
+  const out = blocks('<p style="color: url(https://tracker.example/x)">text</p>');
+  assertEqual(out[0].runs[0].color, null);
+});
+
+test('a real colour in a style attribute is still read', () => {
+  const out = blocks('<p style="color:#c00">text</p>');
+  assertEqual(out[0].runs[0].color, '#c00');
 });
 
 test('the Outlook fixture yields a four-column table and keeps every row', async () => {
