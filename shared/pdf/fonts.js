@@ -83,7 +83,11 @@ export async function loadFontSet(pdfDoc, opts = {}) {
     },
 
     font(faceKey) {
-      const face = faces.get(faceKey) || faces.get('regular');
+      const face = faces.get(faceKey);
+      // Every caller passes a key that segment() produced or a literal from this
+      // module's own set, so a miss is a programming error. Falling back to the
+      // regular face would draw the document in the wrong typeface and say nothing.
+      if (!face) throw new Error('unknown font face key: ' + faceKey);
       return face.pdfFont;
     },
 

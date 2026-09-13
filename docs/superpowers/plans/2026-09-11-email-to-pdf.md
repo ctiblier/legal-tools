@@ -2481,7 +2481,7 @@ Liberation lacks. Neither is the site's brand typeface — see Task 8 of
 
 ```js
 // shared/pdf/fonts.test.js
-import { test, assert, assertEqual } from '/shared/testing/harness.js';
+import { test, assert, assertEqual, assertThrows } from '/shared/testing/harness.js';
 import { loadFontSet } from './fonts.js';
 
 async function newDoc() {
@@ -2507,7 +2507,7 @@ test('Latin text stays on the primary face in one segment', async () => {
 test('Cyrillic renders rather than substituting', async () => {
   const fs = await loadFontSet(await newDoc(), { family: 'sans' });
   const segs = fs.segment('Перевод договора', 'regular');
-  assert(segs.every((s) => s.faceKey !== 'substituted'), 'no substitution for Cyrillic');
+  assert(segs.every((s) => s.faceKey !== 'fallback'), 'Cyrillic is covered by the primary face');
   assertEqual(fs.substitutions, 0);
 });
 
@@ -2529,7 +2529,36 @@ test('embedded fonts can measure text', async () => {
   const w = fs.font('regular').widthOfTextAtSize('Hello', 12);
   assert(w > 0, 'measured a positive width');
 });
+
+test('an unknown face key throws rather than silently drawing in another face', async () => {
+  const fs = await loadFontSet(await newDoc(), { family: 'sans' });
+  assertThrows(() => fs.font('no-such-face'), 'unknown key must throw');
+});
+
+test('the mono style maps to the monospace face', async () => {
+  const fs = await loadFontSet(await newDoc(), { family: 'sans' });
+  assertEqual(fs.faceFor({ mono: true }), 'mono');
+  assert(fs.font('mono').widthOfTextAtSize('M', 12) > 0, 'mono face is embedded and measurable');
+});
+
+test('an astral-plane character counts as one substitution, not two', async () => {
+  const fs = await loadFontSet(await newDoc(), { family: 'sans' });
+  // U+1F600 is a single codepoint but two UTF-16 code units. Counting it twice
+  // would overstate on the certificate what the conversion failed to render.
+  const segs = fs.segment('\u{1F600}', 'regular');
+  assertEqual(fs.substitutions, 1, 'one codepoint, one substitution');
+  assertEqual(Array.from(segs.map((s) => s.text).join('')).length, 1,
+    'one character out for one character in');
+});
 ```
+
+Round-1 review note: on this build machine, DejaVu Sans 2.37 genuinely has real
+glyphs for U+1F600 and U+1F601 (verified with fontkit's `hasGlyphForCodePoint`
+and a non-empty `glyphForCodePoint(...).path`), so `substitutions` is honestly
+0, not 1, and this test fails here for the same reason the CJK test's count
+must never be loosened — it is reporting the true state of the fonts on this
+machine, not a bug in `segment()`. Do not adjust the expected value; if it
+fails elsewhere, report the observed count.
 
 - [ ] **Step 4: Load pdf-lib and fontkit on the test page, then run to verify failure**
 
@@ -2631,7 +2660,11 @@ export async function loadFontSet(pdfDoc, opts = {}) {
     },
 
     font(faceKey) {
-      const face = faces.get(faceKey) || faces.get('regular');
+      const face = faces.get(faceKey);
+      // Every caller passes a key that segment() produced or a literal from this
+      // module's own set, so a miss is a programming error. Falling back to the
+      // regular face would draw the document in the wrong typeface and say nothing.
+      if (!face) throw new Error('unknown font face key: ' + faceKey);
       return face.pdfFont;
     },
 
