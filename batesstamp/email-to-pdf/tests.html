@@ -23,7 +23,7 @@
         import { runAll } from '/shared/testing/harness.js';
         // Each test module registers its cases on import.
         // Later tasks append their module to this list.
-        await import('/shared/eml/__no_tests_yet.js').catch(() => {});
+        await import('/shared/eml/headers.test.js');
         await runAll();
     </script>
 </body>
