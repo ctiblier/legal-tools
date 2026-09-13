@@ -67,8 +67,20 @@ test('finalize stamps a footer on every page and produces a loadable PDF', async
   const { pdfDoc, writer } = await newWriter();
   writer.newPage();
   writer.newPage();
+  // Content streams are Flate-compressed on save regardless of
+  // useObjectStreams, so the footer text is not greppable in the saved
+  // bytes. Spy on each page's drawText to prove finalize() actually drew the
+  // footer, rather than only checking the page count survived.
+  const calls = [];
+  for (const page of writer.pages) {
+    const orig = page.drawText.bind(page);
+    page.drawText = (text, opts) => { calls.push(text); return orig(text, opts); };
+  }
   writer.finalize();
   assertEqual(writer.pageCount, 3);
+  assert(calls.some((t) => t.includes('page 1 of 3')), 'first page footer present');
+  assert(calls.some((t) => t.includes('page 3 of 3')), 'last page footer present');
+  assertEqual(calls.filter((t) => t.includes('test.eml')).length, 3, 'footerLeft drawn on every page');
   const bytes = await pdfDoc.save();
   const reloaded = await PDFLib.PDFDocument.load(bytes);
   assertEqual(reloaded.getPageCount(), 3);
@@ -78,7 +90,53 @@ test('link annotations survive a save/load round trip', async () => {
   const { pdfDoc, writer } = await newWriter();
   writer.linkTo('https://example.test/x', { x: 54, y: 700, width: 100, height: 12 });
   writer.finalize();
-  const bytes = await pdfDoc.save();
-  const text = new TextDecoder().decode(bytes);
+  // useObjectStreams:false keeps indirect objects uncompressed so the URI is
+  // greppable in the raw bytes. pdf-lib's default packs them into a Flate object
+  // stream, and this assertion would fail against a perfectly correct writer.
+  const bytes = await pdfDoc.save({ useObjectStreams: false });
+  const text = new TextDecoder('latin1').decode(bytes);
   assert(text.includes('example.test'), 'URI action written into the file');
+});
+
+test('a link annotation is attached to the page the cursor was on', async () => {
+  const { writer } = await newWriter();
+  writer.newPage();                       // cursor now on page 2
+  writer.linkTo('https://example.test/y', { x: 54, y: 700, width: 100, height: 12 });
+  writer.finalize();
+  const pages = writer.pdfDoc.getPages();
+  const first = pages[0].node.get(PDFLib.PDFName.of('Annots'));
+  const second = pages[1].node.get(PDFLib.PDFName.of('Annots'));
+  // pdf-lib's own page.normalize() (triggered by drawText, which finalize()
+  // calls for the footer on every page) materializes an empty Annots array on
+  // any page that had content drawn on it, even one with no link annotations.
+  // So "no annotation" means absent-or-empty, not strictly absent.
+  assert(!first || first.size() === 0, 'no annotation on the page the cursor had left');
+  assert(second && second.size() === 1, 'exactly one annotation on the current page');
+});
+
+test('underlineLinks:false skips the underline stroke but still creates the annotation', async () => {
+  const { writer } = await newWriter();
+  // One word, so tokenizeRuns yields a single token and thus a single
+  // annotation — a run with a space would yield one annotation per word,
+  // which is a separate (and correct) property of drawLine, not what this
+  // test is checking.
+  const toks = tokenizeRuns([{ text: 'linktext', ...style, href: 'https://example.test/z' }]);
+  let lineCalls = 0;
+  const origDrawLine = writer.page.drawLine.bind(writer.page);
+  writer.page.drawLine = (opts) => { lineCalls += 1; return origDrawLine(opts); };
+  writer.drawLine(toks, { x: 54, size: 10.5, underlineLinks: false });
+  assertEqual(lineCalls, 0, 'no underline stroke drawn');
+  const annots = writer.annots.get(0);
+  assert(annots && annots.length === 1, 'link annotation still created');
+});
+
+test('usableHeight is the page minus top and bottom margins', async () => {
+  const { writer } = await newWriter();
+  assertEqual(writer.usableHeight, 792 - 54 - 64);
+});
+
+test('ensure(usableHeight) on a fresh page does not add a second page', async () => {
+  const { writer } = await newWriter();
+  writer.ensure(writer.usableHeight);
+  assertEqual(writer.pageCount, 1);
 });

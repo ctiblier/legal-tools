@@ -87,6 +87,17 @@ export class PageWriter {
     return this.page;
   }
 
+  /**
+   * The tallest a single drawn item can be without overflowing a fresh page.
+   * `ensure()` only ever starts one new page per call, so a draw taller than
+   * this would silently run past the bottom margin even on an empty page.
+   * Callers that might exceed it (Task 12's image blocks) are responsible for
+   * scaling or splitting — `ensure` itself never throws or clamps.
+   */
+  get usableHeight() {
+    return this.theme.page.height - this.theme.page.margin.top - this.theme.page.margin.bottom;
+  }
+
   moveDown(dy) { this.y -= dy; }
 
   lineHeight(size) { return size * this.theme.leading; }
@@ -111,6 +122,7 @@ export class PageWriter {
     const size = opts.size || this.theme.size.body;
     const x0 = opts.x != null ? opts.x : this.left;
     const baseColor = opts.color || this.theme.color.text;
+    const underlineLinks = opts.underlineLinks !== false;
     const height = this.lineHeight(size);
 
     this.ensure(height);
@@ -138,12 +150,17 @@ export class PageWriter {
       }
 
       if (isLink && x > tokenStartX) {
-        this.page.drawLine({
-          start: { x: tokenStartX, y: baseline - 1.5 },
-          end: { x, y: baseline - 1.5 },
-          thickness: 0.5,
-          color: rgb(colorArr[0], colorArr[1], colorArr[2])
-        });
+        if (underlineLinks) {
+          this.page.drawLine({
+            start: { x: tokenStartX, y: baseline - 1.5 },
+            end: { x, y: baseline - 1.5 },
+            thickness: 0.5,
+            color: rgb(colorArr[0], colorArr[1], colorArr[2])
+          });
+        }
+        // The annotation is created regardless of underlineLinks — a link that
+        // is not underlined is a style choice, a link that is not clickable is
+        // a lost URL.
         this.linkTo(style.href, {
           x: tokenStartX, y: baseline - 2,
           width: x - tokenStartX, height: effective + 3
