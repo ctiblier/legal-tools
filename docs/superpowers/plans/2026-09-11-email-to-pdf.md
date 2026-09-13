@@ -108,9 +108,14 @@ rm -f batesstamp/shared/brand.css
 # with no arguments, so evidence fixtures cannot reach the live site.
 if [ "$1" = "--dev" ]; then
   rm -rf batesstamp/fixtures
-  mkdir -p batesstamp/fixtures
-  cp -R docs/fixtures/eml batesstamp/fixtures/
-  echo "Dev fixtures staged at batesstamp/fixtures/eml/"
+  if [ -d docs/fixtures/eml ]; then
+    mkdir -p batesstamp/fixtures
+    cp -R docs/fixtures/eml batesstamp/fixtures/
+    echo "Dev fixtures staged at batesstamp/fixtures/eml/"
+  else
+    echo "No fixtures at docs/fixtures/eml/ — skipping dev staging."
+    echo "Run: python3 docs/fixtures/eml/generate.py"
+  fi
 fi
 
 echo "Build complete."
