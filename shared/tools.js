@@ -8,7 +8,8 @@ var TOOL_ICONS = {
   'compressor': '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M12 11v4"/><path d="M9 13h6"/><path d="M15 11l-3 6-3-6"/></svg>',
   'watermark': '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M7 17l10-10" opacity="0.4"/><path d="M7 13l6-6" opacity="0.4"/><path d="M11 17l6-6" opacity="0.4"/></svg>',
   'pleading-paper': '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="12" y2="18"/><line x1="6" y1="6" x2="6" y2="6.01"/><line x1="6" y1="10" x2="6" y2="10.01"/><line x1="6" y1="14" x2="6" y2="14.01"/><line x1="6" y1="18" x2="6" y2="18.01"/></svg>',
-  'pfs-calculator': '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="11" y2="10"/><line x1="13" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="12" y2="18"/></svg>'
+  'pfs-calculator': '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="11" y2="10"/><line x1="13" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="12" y2="18"/></svg>',
+  'email-to-pdf': '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="m2 7 10 6 10-6"/><path d="M12 17v5"/><polyline points="9 19 12 22 15 19"/></svg>'
 };
 
 // Tool registry — single source of truth for all tool metadata
@@ -55,6 +56,14 @@ const TOOLS = [
     umamiEvent: 'extract-pages'
   },
   {
+    id: 'email-to-pdf',
+    name: 'Email to PDF',
+    description: 'Convert .eml email files to searchable PDFs with full headers and a certificate of conversion',
+    path: '/email-to-pdf/',
+    category: 'document',
+    umamiEvent: 'convert-email'
+  },
+  {
     id: 'compressor',
     name: 'PDF Compressor',
     description: 'Reduce PDF file size to meet e-filing upload limits',
@@ -95,6 +104,7 @@ const TOOL_PIPELINE = {
   'redaction': ['metadata-stripper'],
   'metadata-stripper': ['compressor'],
   'page-extractor': ['bates-stamp', 'watermark'],
+  'email-to-pdf': ['bates-stamp', 'redaction', 'filing-assembler'],
   'compressor': [],
   'watermark': ['compressor'],
   'pleading-paper': []
