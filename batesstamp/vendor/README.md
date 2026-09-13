@@ -9,6 +9,16 @@ parser from someone else's server at page load either.
 |---|---|---|---|---|
 | `postal-mime/*.js` (10 files) | postal-mime | 3.0.0 | `https://cdn.jsdelivr.net/npm/postal-mime@3.0.0/src/` | see below |
 | `fontkit.umd.js` | @pdf-lib/fontkit | 1.1.1 | `https://unpkg.com/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js` | `d8df561b9fba98e24f2e5130e40948809281bbbc55a20c412359f1a0a5eb35a6` |
+| `pdf.min.js` | pdf.js | 3.11.174 | `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js` | `5b5799e6f8c680663207ac5b42ee14eed2a406fa7af48f50c154f0c0b1566946` |
+| `pdf.worker.min.js` | pdf.js | 3.11.174 | `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js` | `feabdf309770ed24bba31a5467836cdc8cf639c705af27d52b585b041bb8527b` |
+
+`pdf.min.js` and `pdf.worker.min.js` are used by the **test page only**
+(`email-to-pdf/tests.html`, to extract real PDF text for assertions in
+`shared/eml/assemble.test.js`) — not by the shipped tool page. They were
+vendored after a CDN-loaded `pdf.worker.min.js` fetch at runtime made the
+headless test suite non-hermetic: under `--virtual-time-budget`, the wait for
+that network fetch consumed the budget, so a cold browser cache truncated the
+run while a warm one passed.
 
 ```
 893f32e8d45a9c571a403eb83bb7896e78bdd08996a2fad5ee7cf77c89517f74  postal-mime/address-parser.js

@@ -53,13 +53,14 @@ Every task's requirements implicitly include all of these.
 | `batesstamp/email-to-pdf/tests.html` | Test runner page. `noindex`, disallowed in robots.txt. |
 | `batesstamp/vendor/postal-mime/` | Vendored parser (unbundled ESM, 10 files). |
 | `batesstamp/vendor/fontkit.umd.js` | Vendored fontkit for pdf-lib. |
+| `batesstamp/vendor/pdf.min.js`, `batesstamp/vendor/pdf.worker.min.js` | Vendored pdf.js, test page only (Task 14 review fix round 2). |
 | `batesstamp/fonts/*.ttf` | TTF faces for embedding (the existing woff2 files stay for the site's own CSS). |
 | `docs/fixtures/eml/` | Fixture corpus + its generator. |
 | `docs/verification/2026-09-11-email-to-pdf-checklist.md` | Scripted manual verification checklist. |
 
 **Deviation from the spec, deliberate:** the spec describes sanitization as living inside `html-to-blocks.js`. This plan splits it into `sanitize.js` because the two do genuinely different jobs (security/privacy filtering vs. layout interpretation), they fail differently, and keeping them separate keeps both files small enough to hold in context. The module boundary described in the spec — parsing knows nothing of PDFs — is unchanged.
 
-**Why postal-mime and fontkit are vendored rather than CDN-loaded:** this site deliberately self-hosted its fonts to drop Google Fonts (commit `58a5a5d`). A tool whose entire promise is that confidential files never leave the browser should not have its parser arrive from a third party at page load. pdf-lib, pdf.js, JSZip and Sortable stay on their existing CDNs; that is pre-existing and out of scope here.
+**Why postal-mime and fontkit are vendored rather than CDN-loaded:** this site deliberately self-hosted its fonts to drop Google Fonts (commit `58a5a5d`). A tool whose entire promise is that confidential files never leave the browser should not have its parser arrive from a third party at page load. pdf-lib, JSZip and Sortable stay on their existing CDNs; that is pre-existing and out of scope here. pdf.js was added later (Task 14's review fix round 2) for the **test page only** — see that task's section for why it was vendored too.
 
 ---
 
@@ -5254,8 +5255,8 @@ The code above (Step 3) reflects the pre-fix version; the actual committed
    nested message's own subject and verbatim date appear on the page.
    `shared/testing/harness.js` gained an `extractPdfText(bytes)` helper for
    this, and `batesstamp/email-to-pdf/tests.html` now also loads pdf.js
-   3.11.174 (same version/CDN already used elsewhere) alongside pdf-lib and
-   fontkit.
+   3.11.174 alongside pdf-lib and fontkit (initially from the same CDN
+   already used elsewhere; vendored in review fix round 2 below).
 
    One necessary deviation from the review's literal suggestion:
    `extractPdfText` collapses each page's joined text-item strings through
@@ -5277,6 +5278,60 @@ The code above (Step 3) reflects the pre-fix version; the actual committed
 Verification: `.superpowers/sdd/2026-09-11-email-to-pdf/run-tests` (`BUDGET`
 raised to 4,000,000 by the reviewer after this task's initial report) —
 **PASS 138/138**.
+
+### Review fix round 2 (test-suite hermeticity)
+
+The reviewer's own repro (`run 1 -> FAIL`, `run 2 -> PASS`) traced the
+intermittency to `pdf.js` fetching `pdf.worker.min.js` over the network at
+runtime; under `--virtual-time-budget` that fetch's wait consumes the
+budget, so a cold browser cache truncates the run.
+
+**Vendored pdf.js 3.11.174**, matching the existing pattern for postal-mime
+and fontkit: `batesstamp/vendor/pdf.min.js` and
+`batesstamp/vendor/pdf.worker.min.js`, downloaded from the same cdnjs URLs
+already in use, both confirmed to begin with the license header (not
+`<!DOCTYPE`, i.e. not an error page), hashes recorded in
+`batesstamp/vendor/README.md` alongside postal-mime and fontkit, noted there
+as test-page-only. `tests.html` now loads `/vendor/pdf.min.js` and points
+`workerSrc` at `/vendor/pdf.worker.min.js`.
+
+Also added a comment to `extractPdfText` (per the reviewer's request)
+recording that its whitespace collapsing is deliberately lossy: it cannot
+distinguish a genuine phrase-break defect (stray interleaved content that
+breaks phrase search) from ordinary word-spacing once collapsed. That
+failure mode is covered separately by Task 18's manual checklist item
+("Ctrl-F a phrase spanning a line break").
+
+**The network fetch is confirmed gone**, but the suite is not yet stable at
+the then-current default (`BUDGET=40000000`): three consecutive runs at that
+default produced `PASS`, `FAIL`, `FAIL`. Two further runs at
+`BUDGET=4000000` (the reviewer's requested comparison point) both `FAIL`.
+Investigating the failing runs directly showed they consistently die
+partway through `assemble.test.js`, at or immediately after the point pdf.js
+first creates its text-extraction Worker — not at a fixed test count, and
+not correlated with network activity (there is none now). Diagnostic
+attempt: passing `disableWorker: true` to `pdfjsLib.getDocument()` in
+`extractPdfText` (routing text extraction through pdf.js's fake/main-thread
+worker instead of a real `Worker`) did **not** fix it — three runs at the
+default budget with that change still failed identically. The change was
+reverted (diff-verified back to the committed version) since it didn't help
+and touches every caller of the helper.
+
+Empirically, `BUDGET=200000000` was stable: **5 consecutive runs, all
+`PASS 138/138`** (three run back-to-back as the direct check, two more for
+margin), with real wall-clock time unaffected (~4s per run regardless of
+budget size, since `--virtual-time-budget` is a ceiling on simulated time,
+not a sleep). This points to real-`Worker`-thread scheduling under
+Chromium's virtual-time-budget mode as the remaining source of
+nondeterminism — a known-troublesome combination in headless Chrome, not a
+defect in `assemble.js`, `extractPdfText`, or the vendored files. It was not
+fixed within this round; the reviewer chose the final default with this
+measurement in hand.
+
+Files touched in this round: `batesstamp/vendor/pdf.min.js` (new, vendored
+binary), `batesstamp/vendor/pdf.worker.min.js` (new, vendored binary),
+`batesstamp/vendor/README.md`, `batesstamp/email-to-pdf/tests.html`,
+`shared/testing/harness.js` (comment only — no code change survived).
 
 ---
 

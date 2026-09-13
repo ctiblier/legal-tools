@@ -100,6 +100,14 @@ export async function extractPdfText(bytes) {
     // multi-word phrase comes back with doubled or tripled internal spaces and
     // no literal substring assertion can ever match, regardless of what the PDF
     // actually contains.
+    //
+    // Collapsing whitespace like this is deliberately lossy: it cannot detect a
+    // genuine phrase-break defect (stray content interleaved into body text,
+    // silently breaking phrase search) if that defect happens to look like
+    // ordinary word spacing once collapsed. This helper is for asserting that
+    // specific text appears somewhere on the page, not a general-purpose
+    // fidelity check — the phrase-break failure mode is covered separately by
+    // Task 18's manual checklist item ("Ctrl-F a phrase spanning a line break").
     pages.push(content.items.map((it) => it.str).join(' ').replace(/\s+/g, ' ').trim());
   }
   return pages.join('\n');
