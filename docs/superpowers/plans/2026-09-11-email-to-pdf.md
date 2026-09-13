@@ -1441,6 +1441,22 @@ test('data: images are preserved', () => {
   assertEqual(body.querySelector('[data-data-uri]').getAttribute('data-data-uri'), url);
 });
 
+test('a visible image at a tracker-ish URL still gets a placeholder', () => {
+  const { body, stats } = sanitizeHtml(
+    '<img src="https://ads.example/pixel/creative123.jpg" alt="Promo" width="600" height="120">',
+    new Map()
+  );
+  assert(body.querySelector('[data-blocked-image]'), 'placeholder inserted, not deleted');
+  assertEqual(stats.remoteImagesBlocked, 1);
+  assertEqual(stats.trackingPixelsBlocked, 0, 'a URL keyword is not proof of a pixel');
+});
+
+test('an image with a relative or unknown-scheme src is disclosed, not dropped', () => {
+  const { body, stats } = sanitizeHtml('<img src="logo.png" alt="Logo">', new Map());
+  assert(body.querySelector('[data-blocked-image]'), 'placeholder inserted');
+  assertEqual(stats.remoteImagesBlocked, 1);
+});
+
 test('the real marketing fixture loses its pixel, banner and script', async () => {
   const rec = await parseEml(await loadFixture('09-remote-images.eml'));
   const { body, stats } = sanitizeHtml(rec.bodyHtml, rec.inlineImages);
@@ -1542,18 +1558,24 @@ export function sanitizeHtml(html, inlineImages) {
 
     if (/^https?:/i.test(src)) {
       stats.remoteImagesBlocked++;
-      // A 1x1 remote image has no display purpose. Naming it as a tracking pixel
-      // on the certificate tells the reviewer something they want to know.
-      if ((w === 1 && h === 1) || /\b(open|track|pixel|beacon)\b/i.test(src)) {
+      // Only declared 1x1 geometry proves an image had nothing to show. A URL
+      // that merely looks tracker-ish ("/pixel/", "/track/") is a guess, and
+      // guessing wrong deletes visible evidence with no mark on the page — so
+      // anything else gets a placeholder, even if it is probably a beacon.
+      if (w === 1 && h === 1) {
         stats.trackingPixelsBlocked++;
-        img.remove(); // nothing was visible, so no placeholder is warranted
+        img.remove();
       } else {
         img.replaceWith(blockedPlaceholder(doc, alt, 'remote'));
       }
       continue;
     }
 
-    img.remove(); // unknown or empty scheme
+    // Any other scheme — relative, protocol-relative, ftp:, empty. The reference
+    // is unresolvable rather than merely unsafe, but the reader still needs to
+    // know something was there.
+    stats.remoteImagesBlocked++;
+    img.replaceWith(blockedPlaceholder(doc, alt, 'remote'));
   }
 
   // Attribute scrub over everything that survived.
@@ -1576,7 +1598,7 @@ export function sanitizeHtml(html, inlineImages) {
 
 - [ ] **Step 4: Run the tests to verify they pass**
 
-Reload the test page. Expected: `PASS 24/24`.
+Reload the test page. Expected: `PASS 29/29`.
 
 - [ ] **Step 5: Commit**
 

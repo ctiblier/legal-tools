@@ -65,6 +65,22 @@ test('data: images are preserved', () => {
   assertEqual(body.querySelector('[data-data-uri]').getAttribute('data-data-uri'), url);
 });
 
+test('a visible image at a tracker-ish URL still gets a placeholder', () => {
+  const { body, stats } = sanitizeHtml(
+    '<img src="https://ads.example/pixel/creative123.jpg" alt="Promo" width="600" height="120">',
+    new Map()
+  );
+  assert(body.querySelector('[data-blocked-image]'), 'placeholder inserted, not deleted');
+  assertEqual(stats.remoteImagesBlocked, 1);
+  assertEqual(stats.trackingPixelsBlocked, 0, 'a URL keyword is not proof of a pixel');
+});
+
+test('an image with a relative or unknown-scheme src is disclosed, not dropped', () => {
+  const { body, stats } = sanitizeHtml('<img src="logo.png" alt="Logo">', new Map());
+  assert(body.querySelector('[data-blocked-image]'), 'placeholder inserted');
+  assertEqual(stats.remoteImagesBlocked, 1);
+});
+
 test('the real marketing fixture loses its pixel, banner and script', async () => {
   const rec = await parseEml(await loadFixture('09-remote-images.eml'));
   const { body, stats } = sanitizeHtml(rec.bodyHtml, rec.inlineImages);

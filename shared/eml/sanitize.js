@@ -81,18 +81,24 @@ export function sanitizeHtml(html, inlineImages) {
 
     if (/^https?:/i.test(src)) {
       stats.remoteImagesBlocked++;
-      // A 1x1 remote image has no display purpose. Naming it as a tracking pixel
-      // on the certificate tells the reviewer something they want to know.
-      if ((w === 1 && h === 1) || /\b(open|track|pixel|beacon)\b/i.test(src)) {
+      // Only declared 1x1 geometry proves an image had nothing to show. A URL
+      // that merely looks tracker-ish ("/pixel/", "/track/") is a guess, and
+      // guessing wrong deletes visible evidence with no mark on the page — so
+      // anything else gets a placeholder, even if it is probably a beacon.
+      if (w === 1 && h === 1) {
         stats.trackingPixelsBlocked++;
-        img.remove(); // nothing was visible, so no placeholder is warranted
+        img.remove();
       } else {
         img.replaceWith(blockedPlaceholder(doc, alt, 'remote'));
       }
       continue;
     }
 
-    img.remove(); // unknown or empty scheme
+    // Any other scheme — relative, protocol-relative, ftp:, empty. The reference
+    // is unresolvable rather than merely unsafe, but the reader still needs to
+    // know something was there.
+    stats.remoteImagesBlocked++;
+    img.replaceWith(blockedPlaceholder(doc, alt, 'remote'));
   }
 
   // Attribute scrub over everything that survived.
