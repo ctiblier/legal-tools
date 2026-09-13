@@ -1,0 +1,12 @@
+Message-ID: <20260307120000.D4E5F@acme-manufacturing.example>
+Date: Fri, 7 Mar 2026 12:00:00 -0800
+From: John Smith <jsmith@acme-manufacturing.example>
+To: Robert Jones <counsel@firm.example>
+Subject: Corrupted message
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: base64
+
+VGhpcyBpcyB0aGUgcmVhZGFibGUgb3BlbmluZyBsaW5lLg==
+!!!!not valid base64 at all!!!!
+====

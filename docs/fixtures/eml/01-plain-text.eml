@@ -1,0 +1,27 @@
+Return-Path: <jsmith@acme-manufacturing.example>
+Received: from mail.acme-manufacturing.example (mail.acme-manufacturing.example
+ [203.0.113.24]) by mx.firm.example with ESMTPS id 4a1f9c2e
+ for <counsel@firm.example>; Tue, 4 Mar 2026 09:14:31 -0800 (PST)
+Authentication-Results: mx.firm.example; dkim=pass header.d=acme-manufacturing.example
+Message-ID: <20260304171422.A1F9C@acme-manufacturing.example>
+Date: Tue, 4 Mar 2026 09:14:22 -0800
+From: John Smith <jsmith@acme-manufacturing.example>
+To: Robert Jones <counsel@firm.example>
+Subject: Delivery schedule
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+Bob,
+
+Confirming the dates we discussed on the call:
+
+  - First shipment: March 18
+  - Balance: April 2
+
+> On Mar 3, 2026, Robert Jones wrote:
+> Can you send the revised schedule before Friday?
+>> Earlier still, someone else wrote:
+>> Is the schedule final?
+
+Regards,
+John

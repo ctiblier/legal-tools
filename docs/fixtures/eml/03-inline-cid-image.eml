@@ -1,0 +1,24 @@
+Message-ID: <20260306090000.C3D4E@acme-manufacturing.example>
+Date: Thu, 6 Mar 2026 09:00:00 -0800
+From: John Smith <jsmith@acme-manufacturing.example>
+To: Robert Jones <counsel@firm.example>
+Subject: Signed page
+MIME-Version: 1.0
+Content-Type: multipart/related; boundary="rel-boundary"; type="text/html"
+
+--rel-boundary
+Content-Type: text/html; charset=utf-8
+
+<html><body><p>See the mark-up below.</p>
+<p><img src="cid:markup001" alt="marked up page" width="48" height="48"></p>
+<p>John</p></body></html>
+
+--rel-boundary
+Content-Type: image/png
+Content-ID: <markup001>
+Content-Transfer-Encoding: base64
+Content-Disposition: inline; filename="markup.png"
+
+iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC
+
+--rel-boundary--

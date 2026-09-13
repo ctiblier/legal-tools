@@ -1,0 +1,31 @@
+Message-ID: <20260309140000.F6A7B@firm.example>
+Date: Sun, 9 Mar 2026 14:00:00 -0700
+From: Robert Jones <counsel@firm.example>
+To: Senior Partner <partner@firm.example>
+Subject: Fwd: Delivery schedule
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="fwd-boundary"
+
+--fwd-boundary
+Content-Type: text/plain; charset=utf-8
+
+Forwarding for your review. Note the date in the original.
+
+--fwd-boundary
+Content-Type: message/rfc822
+Content-Disposition: attachment; filename="original.eml"
+
+Message-ID: <20260304171422.A1F9C@acme-manufacturing.example>
+Date: Tue, 4 Mar 2026 09:14:22 -0800
+From: John Smith <jsmith@acme-manufacturing.example>
+To: Robert Jones <counsel@firm.example>
+Subject: Delivery schedule
+Content-Type: text/plain; charset=utf-8
+
+Bob,
+
+Confirming the dates we discussed on the call.
+
+John
+
+--fwd-boundary--

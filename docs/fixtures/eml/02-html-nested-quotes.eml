@@ -1,0 +1,25 @@
+Message-ID: <20260305181200.B2C3D@firm.example>
+Date: Wed, 5 Mar 2026 10:12:00 -0800
+From: Robert Jones <counsel@firm.example>
+To: John Smith <jsmith@acme-manufacturing.example>
+Cc: Paralegal Desk <docket@firm.example>
+Subject: RE: Delivery schedule
+MIME-Version: 1.0
+Content-Type: text/html; charset=utf-8
+
+<html><body>
+<p>John,</p>
+<p>Understood &mdash; please confirm <b>in writing</b> that the
+<i>April 2</i> date is firm.</p>
+<ul><li>Shipment one: March 18</li><li>Balance: April 2</li></ul>
+<blockquote>
+  <p>On Mar 4, John Smith wrote:</p>
+  <p>Confirming the dates we discussed.</p>
+  <blockquote>
+    <p>On Mar 3, Robert Jones wrote:</p>
+    <p>Can you send the revised schedule?</p>
+    <blockquote><p>Is the schedule final?</p></blockquote>
+  </blockquote>
+</blockquote>
+<p>Robert Jones<br>Jones & Associates<br>tel 555-0142</p>
+</body></html>

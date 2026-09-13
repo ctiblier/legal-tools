@@ -1,0 +1,20 @@
+Message-ID: <20260311093000.B8C9D@acme-manufacturing.example>
+Date: Tue, 11 Mar 2026 09:30:00 -0700
+From: Accounts Payable <ap@acme-manufacturing.example>
+To: Robert Jones <counsel@firm.example>
+Subject: Invoice summary Q1
+MIME-Version: 1.0
+Content-Type: text/html; charset=utf-8
+
+<html><head><style>.x { color: red; }</style></head><body>
+<table border="1" cellpadding="4" style="border-collapse:collapse">
+<tr><th>Invoice</th><th>Date</th><th>Amount</th><th>Status</th></tr>
+<tr><td>INV-1041</td><td>2026-01-14</td><td>$12,400.00</td><td>Paid</td></tr>
+<tr><td>INV-1055</td><td>2026-02-02</td><td>$8,115.50</td><td>Paid</td></tr>
+<tr><td>INV-1092</td><td>2026-03-01</td><td>$41,980.25</td><td>
+  <table><tr><td>Disputed</td></tr><tr><td>see counsel</td></tr></table>
+</td></tr>
+</table>
+<p style="color:#888;font-size:11px">This message and any attachments are
+confidential.</p>
+</body></html>

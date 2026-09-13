@@ -1,0 +1,17 @@
+Message-ID: <20260312110000.C9DAE@marketing.example>
+Date: Wed, 12 Mar 2026 11:00:00 -0700
+From: Vendor Updates <news@marketing.example>
+To: Robert Jones <counsel@firm.example>
+Subject: Your March statement is ready
+MIME-Version: 1.0
+Content-Type: text/html; charset=utf-8
+
+<html><body>
+<img src="https://track.marketing.example/open?id=abc123" width="1" height="1">
+<h1>March statement</h1>
+<p><img src="https://cdn.marketing.example/banner.png" width="600" height="120"
+   alt="March promotion banner"></p>
+<p>Your statement is available. <a href="https://portal.marketing.example/s/9f2">
+View statement</a>.</p>
+<script>window.alert('should never run');</script>
+</body></html>
