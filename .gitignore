@@ -4,3 +4,5 @@
 *.swo
 *~
 batesstamp/shared/
+.superpowers/
+batesstamp/fixtures/

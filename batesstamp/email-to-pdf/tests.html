@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Email to PDF — tests</title>
+    <style>
+        body { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px;
+               margin: 24px; background: #fbfbfd; color: #1a1a1a; }
+        #results > div { white-space: pre-wrap; padding: 3px 0; }
+        .test-pass { color: #2f6f43; }
+        .test-fail { color: #b02020; font-weight: 600; }
+        .test-summary { margin-bottom: 16px; padding: 10px 14px; border-radius: 4px;
+                        font-weight: 600; font-size: 15px; }
+        .test-summary.pass { background: #e6f4ea; color: #1e5631; }
+        .test-summary.fail { background: #fdeaea; color: #8c1c1c; }
+    </style>
+</head>
+<body>
+    <h1>Email to PDF — unit tests</h1>
+    <div id="results"></div>
+    <script type="module">
+        import { runAll } from '/shared/testing/harness.js';
+        // Each test module registers its cases on import.
+        // Later tasks append their module to this list.
+        await import('/shared/eml/__no_tests_yet.js').catch(() => {});
+        await runAll();
+    </script>
+</body>
+</html>

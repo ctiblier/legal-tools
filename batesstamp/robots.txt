@@ -1,4 +1,5 @@
 User-agent: *
 Allow: /
+Disallow: /email-to-pdf/tests.html
 
 Sitemap: https://batesstamp.com/sitemap.xml
