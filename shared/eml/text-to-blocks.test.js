@@ -48,3 +48,61 @@ test('the plain-text fixture yields two quote levels and keeps the list lines', 
   assertEqual(bq.depth, 1);
   assert(bq.children.some((c) => c.type === 'blockquote'), 'second level present');
 });
+
+test('a blank line inside a quote does not split it into two quotes', () => {
+  const out = textToBlocks('> first para\n\n> second para');
+  const quotes = out.filter((b) => b.type === 'blockquote');
+  assertEqual(quotes.length, 1, 'one continuous quote, not two siblings');
+  const rendered = JSON.stringify(quotes[0]);
+  assert(rendered.includes('first para') && rendered.includes('second para'),
+    'both paragraphs inside the one quote');
+});
+
+test('a blank line that ends a quote still ends it', () => {
+  const out = textToBlocks('> quoted\n\nunquoted reply');
+  assertEqual(out.filter((b) => b.type === 'blockquote').length, 1);
+  assert(JSON.stringify(out.filter((b) => b.type === 'paragraph')).includes('unquoted reply'),
+    'the unquoted paragraph is outside the quote');
+});
+
+test('ragged quote markers are all recognised and fully stripped', () => {
+  const cases = [
+    ['>text',        'text'],
+    ['> > text',     'text'],
+    ['>> text',      'text'],
+    ['   > text',    'text']
+  ];
+  for (const [input, expected] of cases) {
+    const out = textToBlocks(input);
+    const bq = out.find((b) => b.type === 'blockquote');
+    assert(bq, 'blockquote emitted for: ' + JSON.stringify(input));
+    const rendered = JSON.stringify(bq);
+    assert(rendered.includes(expected), 'text survives for: ' + JSON.stringify(input));
+    assert(!rendered.includes('>'), 'no stray marker for: ' + JSON.stringify(input));
+  }
+});
+
+test('a line that is only a quote marker does not crash or emit a stray marker', () => {
+  const out = textToBlocks('> first\n>\n> second');
+  const bq = out.find((b) => b.type === 'blockquote');
+  assert(bq, 'blockquote emitted');
+  assert(!JSON.stringify(bq).includes('>'), 'no stray marker');
+});
+
+test('a trailing sentence period is not swallowed into the link', () => {
+  const out = textToBlocks('See https://example.test/a.');
+  const link = out[0].runs.find((r) => r.href);
+  assertEqual(link.href, 'https://example.test/a');
+  assertEqual(link.text, 'https://example.test/a');
+});
+
+test('a URL in parentheses does not capture the closing paren', () => {
+  const out = textToBlocks('(see https://example.test/a)');
+  const link = out[0].runs.find((r) => r.href);
+  assertEqual(link.href, 'https://example.test/a');
+});
+
+test('a bare scheme with no host is left as plain text, not linked', () => {
+  const out = textToBlocks('the string http:// appears here');
+  assertEqual(out[0].runs.filter((r) => r.href).length, 0);
+});

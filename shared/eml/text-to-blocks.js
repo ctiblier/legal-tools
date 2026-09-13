@@ -79,8 +79,25 @@ export function textToBlocks(text) {
     // Gather the whole quoted region at this depth or deeper, strip one level of
     // markers, and recurse — which yields nesting for free.
     const quoted = [];
-    while (i < lines.length && quoteDepthOf(lines[i]) >= depth) {
-      quoted.push(stripQuoteMarkers(lines[i++], 1));
+    while (i < lines.length) {
+      const d = quoteDepthOf(lines[i]);
+      if (d >= depth) {
+        quoted.push(stripQuoteMarkers(lines[i++], 1));
+        continue;
+      }
+      if (lines[i].trim() === '') {
+        // A bare blank line inside a quote is common in plain-text mail. Ending
+        // the region here would split one quoted passage into two siblings and
+        // misrepresent the reply chain. Only continue if the quote resumes.
+        let j = i + 1;
+        while (j < lines.length && lines[j].trim() === '') j++;
+        if (j < lines.length && quoteDepthOf(lines[j]) >= depth) {
+          quoted.push('');
+          i++;
+          continue;
+        }
+      }
+      break;
     }
 
     // The recursive call sees markers one level shallower, so the blockquotes it
