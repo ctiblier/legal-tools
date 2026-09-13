@@ -171,6 +171,14 @@ export async function drawBlocks(writer, blocks, ctx) {
           break;
         }
         const natural = embedded.scale(1);
+        if (!natural.width || !natural.height) {
+          // A decodable image with a zero dimension would make every downstream
+          // measurement NaN, and a NaN cursor silently disables pagination for
+          // the remainder of the document. Treat it as unrenderable instead.
+          drawPlaceholder(writer, 'image could not be rendered' +
+            (block.alt ? ' — ' + block.alt : ''));
+          break;
+        }
         const targetW = Math.min(block.widthPx || natural.width, width);
         const scale = targetW / natural.width;
         const targetH = natural.height * scale;

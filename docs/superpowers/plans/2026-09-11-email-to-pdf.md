@@ -3944,21 +3944,59 @@ test('a table taller than a page splits and repeats its header row', async () =>
   assert(writer.pageCount > 1, 'table split across pages');
 });
 
-test('a single cell taller than the page does not overprint the next row', async () => {
-  const { writer, ctx } = await harness();
+test('a cell taller than the page does not overprint the next cell in its row', async () => {
+  const { pdfDoc, writer, ctx } = await harness();
   const tall = [];
   for (let i = 0; i < 80; i++) tall.push(p('Overflowing cell line ' + i));
-  const rows = [
-    [{ blocks: tall, colspan: 1, rowspan: 1, header: false },
-     { blocks: [p('short')], colspan: 1, rowspan: 1, header: false }],
-    [{ blocks: [p('next row')], colspan: 1, rowspan: 1, header: false },
-     { blocks: [p('next row b')], colspan: 1, rowspan: 1, header: false }]
-  ];
+  const rows = [[
+    { blocks: tall, colspan: 1, rowspan: 1, header: false },
+    { blocks: [p('SECONDCELL')], colspan: 1, rowspan: 1, header: false }
+  ]];
+
+  // Record every draw as {pageIndex, y, text} so we can see where content landed,
+  // rather than inferring it from the final cursor position.
+  const draws = [];
+  const patch = (page, index) => {
+    const orig = page.drawText.bind(page);
+    page.drawText = (text, opts) => { draws.push({ index, y: opts.y, text }); return orig(text, opts); };
+  };
+  let patched = 0;
+  const patchAll = () => {
+    const pages = pdfDoc.getPages();
+    for (; patched < pages.length; patched++) patch(pages[patched], patched);
+  };
+  patchAll();
+  const origNewPage = writer.newPage.bind(writer);
+  writer.newPage = () => { const pg = origNewPage(); patchAll(); return pg; };
+
   await drawBlocks(writer, [{ type: 'table', rows }], ctx);
-  // The cursor must end on the page it is actually drawing on, below the top
-  // margin — not restored to a y captured before the overflow.
-  assert(writer.y <= 792 - writer.theme.page.margin.top, 'cursor is on the live page');
-  assert(writer.y > 0, 'cursor did not run off the bottom of the page');
+
+  const second = draws.find((d) => d.text.includes('SECONDCELL'));
+  assert(second, 'the second cell was drawn at all');
+  const firstOnThatPage = draws.filter(
+    (d) => d.index === second.index && d.text.startsWith('Overflowing')
+  );
+  assert(firstOnThatPage.length > 0, 'the tall cell also has content on that page');
+  const lowestOfFirst = Math.min(...firstOnThatPage.map((d) => d.y));
+  // Smaller y is further down the page. The second cell must start below the
+  // first cell's content on this page, not on top of it.
+  assert(second.y < lowestOfFirst,
+    'second cell at y=' + second.y.toFixed(1) +
+    ' must be below the tall cell\'s lowest content at y=' + lowestOfFirst.toFixed(1));
+});
+
+test('a zero-dimension image degrades to a placeholder and keeps the cursor finite', async () => {
+  const { writer, ctx } = await harness();
+  // A stub embed whose natural size is degenerate. If the guard is missing, the
+  // cursor becomes NaN and pagination silently stops for the whole document.
+  ctx.embedCache.set('cid:zero', { scale: () => ({ width: 0, height: 0 }) });
+  const before = writer.y;
+  await drawBlocks(writer, [{
+    type: 'image', alt: 'Zero', widthPx: 100, heightPx: 100,
+    ref: { kind: 'cid', contentId: 'zero' }
+  }], ctx);
+  assert(Number.isFinite(writer.y), 'cursor is still a finite number');
+  assert(before - writer.y > 10, 'a placeholder occupied real space');
 });
 
 test('nested blockquotes terminate and consume vertical space', async () => {
@@ -4184,12 +4222,20 @@ export async function drawBlocks(writer, blocks, ctx) {
           break;
         }
         const natural = embedded.scale(1);
+        if (!natural.width || !natural.height) {
+          // A decodable image with a zero dimension would make every downstream
+          // measurement NaN, and a NaN cursor silently disables pagination for
+          // the remainder of the document. Treat it as unrenderable instead.
+          drawPlaceholder(writer, 'image could not be rendered' +
+            (block.alt ? ' — ' + block.alt : ''));
+          break;
+        }
         const targetW = Math.min(block.widthPx || natural.width, width);
         const scale = targetW / natural.width;
         const targetH = natural.height * scale;
         // An image taller than the printable area is scaled to fit rather than
         // cropped: cropping an exhibit removes evidence.
-        const maxH = t.page.height - t.page.margin.top - t.page.margin.bottom;
+        const maxH = writer.usableHeight;
         const finalScale = targetH > maxH ? (maxH / targetH) : 1;
         const w = targetW * finalScale;
         const h = targetH * finalScale;
