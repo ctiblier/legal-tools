@@ -4,7 +4,7 @@
 // Footers are stamped in finalize() rather than as each page is created, because
 // "page 3 of 17" cannot be written until the seventeenth page exists.
 
-const { rgb, PDFName, PDFString, PDFArray } = PDFLib;
+const { rgb, degrees, PDFName, PDFString, PDFArray } = PDFLib;
 
 const NAMED_COLORS = {
   black: [0, 0, 0], white: [1, 1, 1], red: [0.8, 0.1, 0.1], green: [0.1, 0.5, 0.2],
@@ -108,25 +108,53 @@ export class PageWriter {
    * percent, nothing is hidden and nothing is cropped, and every page in the
    * exhibit stays the same size. The reduction is disclosed on the certificate.
    *
+   * `rotation` is the source page's own /Rotate, in degrees. It must be passed
+   * in and applied here: an embedded page reports its UNROTATED box and
+   * drawPage defaults to no rotation, so a landscape scan stored as a portrait
+   * MediaBox plus /Rotate 90 — which is what scanners, fax gateways and most
+   * litigation-support exports produce — would otherwise be appended upright
+   * and fitted against the wrong box.
+   *
    * @returns {number} the scale factor applied, 1 when the page fit as-is.
    */
-  drawAttachmentPage(embedded) {
+  drawAttachmentPage(embedded, rotation = 0) {
     const page = this.newPage();
     const pw = this.theme.page.width;
     const ph = this.theme.page.height;
     const band = this.footerBand;
 
-    // Fit the source page into everything above the band, preserving its aspect
-    // ratio. An attachment is not necessarily US Letter.
-    const scale = Math.min(pw / embedded.width, (ph - band) / embedded.height, 1);
-    const w = embedded.width * scale;
-    const h = embedded.height * scale;
+    const rot = ((Math.round(rotation / 90) * 90) % 360 + 360) % 360;
+    const quarterTurn = rot === 90 || rot === 270;
+
+    // Fit the page as a reader sees it — so with the axes swapped on a quarter
+    // turn — into everything above the band, preserving aspect ratio. An
+    // attachment is not necessarily US Letter.
+    const dispW = quarterTurn ? embedded.height : embedded.width;
+    const dispH = quarterTurn ? embedded.width : embedded.height;
+    const scale = Math.min(pw / dispW, (ph - band) / dispH, 1);
+
+    const w = dispW * scale;
+    const h = dispH * scale;
+    const x0 = (pw - w) / 2;
+    const y0 = band + (ph - band - h) / 2;
+
+    // drawPage applies scale, then rotation about (x, y), then the translation
+    // to (x, y) — so for each quarter turn the origin has to be the corner the
+    // rotated content sweeps away from, or the page lands off the sheet.
+    const origin = {
+      0:   { x: x0,     y: y0 },
+      90:  { x: x0,     y: y0 + h },
+      180: { x: x0 + w, y: y0 + h },
+      270: { x: x0 + w, y: y0 }
+    }[rot];
 
     page.drawPage(embedded, {
-      x: (pw - w) / 2,
-      y: band + (ph - band - h) / 2,
-      width: w,
-      height: h
+      x: origin.x,
+      y: origin.y,
+      xScale: scale,
+      yScale: scale,
+      // /Rotate is clockwise when displayed; PDF rotation is counter-clockwise.
+      rotate: degrees(-rot)
     });
     return scale;
   }
@@ -222,7 +250,9 @@ export class PageWriter {
         : (cssToRgb(style.color) || baseColor);
       const tokenStartX = x;
 
-      for (const seg of this.fontSet.segment(token.text, faceKey)) {
+      // The only counting call: this is the one place a character is actually
+      // committed to a page, so it is the one place that may count it.
+      for (const seg of this.fontSet.segment(token.text, faceKey, { count: true })) {
         const font = this.fontSet.font(seg.faceKey);
         this.page.drawText(seg.text, {
           x, y: baseline, size: effective, font,
@@ -331,11 +361,15 @@ export class PageWriter {
   /**
    * Stamp footers and attach annotations. Call exactly once, after all content.
    *
-   * Footers go on every page, including pages copied in from an attached PDF.
-   * That is deliberate: continuous "page n of N" numbering across the whole
-   * exhibit is what lets a single loose page be placed back in the document. The
-   * cost is that a footer may overprint content sitting in an attachment page's
-   * bottom margin. Task 18's checklist looks for this on the 6 MB PDF fixture.
+   * Footers go on every page, including pages carrying an attached PDF. That is
+   * deliberate: continuous "page n of N" numbering across the whole exhibit is
+   * what lets a single loose page be placed back in the document.
+   *
+   * Nothing is overprinted to achieve it. An attachment page is drawn by
+   * drawAttachmentPage(), which scales it clear of footerBand first — see the
+   * reasoning there. Verify that with fixture 13, whose attached page has text
+   * at y=36 and y=24; fixture 07's attached page is blank padding and cannot
+   * show a collision whatever the code does.
    */
   finalize() {
     const total = this.pages.length;

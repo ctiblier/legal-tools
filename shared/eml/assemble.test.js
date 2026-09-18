@@ -64,6 +64,94 @@ test('appending a PDF adds its separator and its pages, and nothing else', async
   assertEqual(withAppend.pageCount, without.pageCount + 1 + src.getPageCount());
 });
 
+test('each certificate in a combined PDF describes its own message only', async () => {
+  // convertEmail is careful to capture message-content pages before the
+  // manifest, appendix and certificate are drawn. The combined path passed
+  // writer.pageCount and one shared stats object, so every certificate reported
+  // a running total of the whole document and inherited every earlier message's
+  // limitations. Ordering the message WITH blocked remote images first is what
+  // makes the leak visible: the second message has no images at all.
+  const withImages = await parseEml(await loadFixture('09-remote-images.eml'),
+    { filename: '09-remote-images.eml' });
+  const plain = await parseEml(await loadFixture('01-plain-text.eml'),
+    { filename: '01-plain-text.eml' });
+
+  // 09 is dated after 01, and combined output sorts oldest first, so force the
+  // order this test needs by overriding the parsed dates.
+  withImages.date = Object.assign({}, withImages.date, { parsed: new Date('2026-03-01T00:00:00Z') });
+  plain.date = Object.assign({}, plain.date, { parsed: new Date('2026-04-01T00:00:00Z') });
+
+  const out = await convertBatchCombined([withImages, plain], DEFAULT_OPTIONS);
+  const doc = await PDFLib.PDFDocument.load(out.bytes);
+  const pages = await extractPdfTextItems(out.bytes);
+
+  const certPages = pages
+    .map((items, i) => ({ i, text: items.map((it) => it.str).join(' ') }))
+    .filter((p) => p.text.includes('Certificate of conversion'));
+  assertEqual(certPages.length, 2, 'one certificate per message');
+
+  // The second message has no remote images; its certificate must not claim any.
+  assert(certPages[0].text.includes('remote image'),
+    'the first message did block remote images');
+  assert(!certPages[1].text.includes('remote image'),
+    'the plain-text message\'s certificate must not inherit the first ' +
+    'message\'s blocked images');
+
+  // Neither certificate may report a page count larger than the document.
+  for (const p of certPages) {
+    const m = p.text.match(/Pages of message content (\d+)/);
+    assert(m, 'the certificate states a page count');
+    assert(Number(m[1]) < doc.getPageCount(),
+      'message-content pages (' + m[1] + ') must be fewer than the document ' +
+      'total (' + doc.getPageCount() + '); got a running total instead');
+  }
+});
+
+test('the certificate counts each substituted character exactly once', async () => {
+  // fonts.test.js exercises segment() directly, so it cannot see that the
+  // drawing path calls segment() twice per token — once to measure and once to
+  // draw — and that hardBreak() measures once per character against a growing
+  // buffer. Only an end-to-end assertion against a known fixture catches it.
+  //
+  // 05-encoded-word-subject.eml's body carries exactly one CJK sentence,
+  // 契約書の翻訳を添付します。 — 13 characters, none of them covered by
+  // Liberation or DejaVu. The certificate must say 13.
+  const out = await convertFixture('05-encoded-word-subject.eml');
+  assertEqual(out.summary.substitutions, 13);
+
+  const text = await extractPdfText(out.bytes);
+  assert(text.includes('13 character(s) could not be rendered'),
+    'the certificate reports 13 substitutions; got: ' +
+    (text.match(/\d+ character\(s\) could not be rendered/) || ['no such line'])[0]);
+});
+
+test('an attachment page carrying /Rotate is appended in its display orientation', async () => {
+  // Fixture 14's attached page is a portrait MediaBox with /Rotate 90 — a
+  // landscape scan, which is what scanners and fax gateways produce. pdf-lib's
+  // copyPages carried /Rotate on the page dictionary; embedPdf reports the
+  // UNROTATED box and drawPage defaults to no rotation, so the exhibit came out
+  // upright and wrongly scaled. Text drawn horizontally in page space must end
+  // up rotated on the sheet: pdf.js reports a rotated text item with non-zero
+  // off-diagonal terms in its transform.
+  const out = await convertFixture('14-attachment-rotated.eml');
+  // pdf.js transfers the buffer it is handed to its worker, which detaches it —
+  // so a second getDocument on the same bytes sees an empty array. Always give
+  // it a copy when the bytes are needed more than once.
+  const doc = await pdfjsLib.getDocument({ data: out.bytes.slice() }).promise;
+  let found = null;
+  for (let i = 1; i <= doc.numPages; i++) {
+    const items = (await (await doc.getPage(i)).getTextContent()).items;
+    const hit = items.find((it) => it.str.includes('ROTATED TOP LINE'));
+    if (hit) { found = hit; break; }
+  }
+  assert(found, 'the rotated attachment\'s text is present in the output');
+
+  const [a, b, c, d] = found.transform;
+  assert(Math.abs(b) > 0.01 || Math.abs(c) > 0.01,
+    'the attachment text must be rotated on the page; got transform ' +
+    JSON.stringify([a, b, c, d]) + ' (no rotation applied)');
+});
+
 test('the page footer does not overprint an attachment\'s bottom margin', async () => {
   // Fixture 13 carries text at y=36 and y=24 of its attached PDF, which is
   // exactly where the footer is stamped. The footer goes on every page on

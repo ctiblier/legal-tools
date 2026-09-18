@@ -36,9 +36,22 @@ test('mixed scripts split into segments without losing characters', async () => 
 
 test('uncovered codepoints substitute and are counted, never dropped', async () => {
   const fs = await loadFontSet(await newDoc(), { family: 'sans' });
-  const segs = fs.segment('契約書', 'regular');
+  const segs = fs.segment('契約書', 'regular', { count: true });
   assertEqual(fs.substitutions, 3);
   assertEqual(segs.map((s) => s.text).join('').length, 3, 'length preserved');
+});
+
+test('segmenting without count does not touch the substitution total', async () => {
+  // Measuring must never move the counter. The certificate's figure was 2x to
+  // 25x too high because every measurement pass counted, and the wrapper
+  // measures each token at least once before drawing it.
+  const fs = await loadFontSet(await newDoc(), { family: 'sans' });
+  fs.segment('契約書', 'regular');
+  fs.segment('契約書', 'regular');
+  assertEqual(fs.substitutions, 0, 'measuring twice counted nothing');
+
+  fs.segment('契約書', 'regular', { count: true });
+  assertEqual(fs.substitutions, 3, 'drawing once counted three');
 });
 
 test('embedded fonts can measure text', async () => {
@@ -66,7 +79,7 @@ test('an astral-plane character counts as one substitution, not two', async () =
   // Do not use an emoji here: DejaVu ships real outlines for much of that range
   // (U+1F600 resolves to a genuine glyph, not .notdef), so an emoji probe tests
   // coverage rather than substitution.
-  const segs = fs.segment('\u{20000}', 'regular');
+  const segs = fs.segment('\u{20000}', 'regular', { count: true });
   assertEqual(fs.substitutions, 1, 'one codepoint, one substitution');
   assertEqual(Array.from(segs.map((s) => s.text).join('')).length, 1,
     'one character out for one character in');

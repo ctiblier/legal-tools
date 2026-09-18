@@ -142,8 +142,13 @@ async function appendAttachments(writer, pdfDoc, record, opts, dispositions, zip
         const indices = src.getPageIndices();
         const hasContents = (i) => !!src.getPage(i).node.Contents();
         const drawable = indices.filter(hasContents);
+        // Embed from the already-parsed document, not from the bytes: passing
+        // bytes makes embedPdf run a second full PDFDocument.load() with
+        // default options, which both re-decompresses the attachment and drops
+        // the ignoreEncryption above — so an encrypted-but-readable PDF would
+        // throw here and be demoted to the ZIP.
         const embedded = drawable.length
-          ? await pdfDoc.embedPdf(att.bytes, drawable)
+          ? await pdfDoc.embedPdf(src, drawable)
           : [];
 
         // Pages of an attachment need not be the same size, so report the
@@ -152,7 +157,8 @@ async function appendAttachments(writer, pdfDoc, record, opts, dispositions, zip
         let next = 0;
         for (const i of indices) {
           if (hasContents(i)) {
-            scale = Math.min(scale, writer.drawAttachmentPage(embedded[next++]));
+            scale = Math.min(scale, writer.drawAttachmentPage(
+              embedded[next++], src.getPage(i).getRotation().angle));
           } else {
             writer.newPage();
           }
@@ -336,15 +342,26 @@ export async function convertBatchCombined(records, options = {}) {
 
   const perEmail = [];
   const zipFiles = [];
-  const allStats = Object.assign({}, EMPTY_STATS);
 
   for (const record of ordered) {
     writer.newPage();
     const startPage = writer.currentPageIndex + 1;
     writer.markDestination('email-' + perEmail.length);
 
+    // Every figure on a certificate must describe the message that certificate
+    // is about. A single shared stats object and a document-wide page count made
+    // each certificate report a running total, so a plain-text message with no
+    // images inherited an earlier message's blocked trackers — a false
+    // statement of fact on an authenticating document. Each record gets its own
+    // stats, and the substitution total is read as a delta across this record.
+    const stats = Object.assign({}, EMPTY_STATS);
+    const substitutionsBefore = fontSet.substitutions;
+
     const ctx = { indent: 0, quoteDepth: 0, images: record.inlineImages, embedCache: new Map() };
-    await drawRecord(writer, record, ctx, allStats);
+    await drawRecord(writer, record, ctx, stats);
+    // Captured before the manifest, appendix and certificate are drawn, for the
+    // same reason convertEmail captures it there: the field excludes them.
+    const messageContentPages = writer.pageCount - (startPage - 1);
 
     const dispositions = new Map();
     for (const att of record.attachments || []) {
@@ -367,10 +384,10 @@ export async function convertBatchCombined(records, options = {}) {
     if (opts.certificate) {
       writer.newPage();
       await drawBlocks(writer, certificateBlocks(record, {
-        pageCount: writer.pageCount,
+        pageCount: messageContentPages,
         bodyPartUsed: record.bodyPartUsed,
-        sanitizeStats: allStats,
-        substitutions: fontSet.substitutions,
+        sanitizeStats: stats,
+        substitutions: fontSet.substitutions - substitutionsBefore,
         dispositions,
         defects: record.defects,
         generatedAtUtc: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z')

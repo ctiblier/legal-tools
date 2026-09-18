@@ -406,4 +406,63 @@ Content-Disposition: attachment; filename="bottom-margin.pdf"
 """)
 print(f"  (attachment sha256 {hashlib.sha256(bm_bytes).hexdigest()[:12]})")
 
+# 14 --------------------------- PDF attachment carrying /Rotate 90
+#
+# A landscape scan stored as a portrait MediaBox plus /Rotate 90 is what
+# scanners, fax gateways and most litigation-support exports produce. Appending
+# it without honouring /Rotate turns the exhibit on its side, which is the one
+# thing a tool that promises verbatim reproduction must not do quietly.
+def rotated_pdf():
+    """A one-page PDF, portrait MediaBox, /Rotate 90, with locatable text."""
+    stream = (b"BT /F1 14 Tf 72 700 Td (ROTATED TOP LINE) Tj ET\n"
+              b"BT /F1 14 Tf 72 400 Td (ROTATED MIDDLE LINE) Tj ET\n")
+    objs = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Rotate 90 "
+        b"/Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>",
+        b"<< /Length %d >>\nstream\n" % len(stream) + stream + b"endstream",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+    ]
+    out = bytearray(b"%PDF-1.4\n")
+    offsets = []
+    for i, body in enumerate(objs, start=1):
+        offsets.append(len(out))
+        out += b"%d 0 obj\n" % i + body + b"\nendobj\n"
+    xref = len(out)
+    out += b"xref\n0 %d\n" % (len(objs) + 1) + b"0000000000 65535 f \n"
+    for off in offsets:
+        out += b"%010d 00000 n \n" % off
+    out += (b"trailer\n<< /Size %d /Root 1 0 R >>\nstartxref\n%d\n%%%%EOF\n"
+            % (len(objs) + 1, xref))
+    return bytes(out)
+
+rot_bytes = rotated_pdf()
+rot_b64 = base64.b64encode(rot_bytes).decode("ascii")
+rot_wrapped = "\n".join(rot_b64[i:i + 76] for i in range(0, len(rot_b64), 76))
+write("14-attachment-rotated.eml", f"""\
+Message-ID: <20260320090000.CDEFA@firm.example>
+Date: Fri, 20 Mar 2026 09:00:00 -0700
+From: Robert Jones <counsel@firm.example>
+To: John Smith <jsmith@acme-manufacturing.example>
+Subject: Rotated scan attachment
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="rot-boundary"
+
+--rot-boundary
+Content-Type: text/plain; charset=utf-8
+
+Rotated scan attached.
+
+--rot-boundary
+Content-Type: application/pdf; name="rotated-scan.pdf"
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="rotated-scan.pdf"
+
+{rot_wrapped}
+
+--rot-boundary--
+""")
+print(f"  (attachment sha256 {hashlib.sha256(rot_bytes).hexdigest()[:12]})")
+
 print("done")

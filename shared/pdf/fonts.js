@@ -94,9 +94,18 @@ export async function loadFontSet(pdfDoc, opts = {}) {
     /**
      * Split text into runs of consecutive characters drawable by one face.
      * Never drops a character: an uncovered codepoint becomes U+FFFD on the
-     * fallback face and increments the substitution count.
+     * fallback face.
+     *
+     * Counting is opt-in via `count`, and only the drawing path may opt in.
+     * Segmenting is not idempotent with respect to the counter, and the same
+     * text is segmented several times: once per measurement while wrapping,
+     * once per character inside hardBreak() against a growing buffer, and once
+     * more to draw. Counting on every call inflated the certificate's
+     * substitution figure 2x in the simple case and quadratically for a long
+     * unbreakable token — a numbered false statement on a document whose whole
+     * purpose is to describe its own conversion precisely.
      */
-    segment(text, faceKey) {
+    segment(text, faceKey, { count = false } = {}) {
       const segments = [];
       let current = null;
 
@@ -110,7 +119,7 @@ export async function loadFontSet(pdfDoc, opts = {}) {
         } else if (covers('fallback', cp)) {
           useKey = 'fallback';
         } else {
-          state.substitutions++;
+          if (count) state.substitutions++;
           useKey = 'fallback';
           useText = REPLACEMENT;
         }

@@ -24,7 +24,7 @@ Last worked: **2026-09-18** (Playwright-driven, results recorded inline below).
       gitignored and absent on a fresh clone; its tests fail with a clear
       "fixture not found" message until it is generated).
 - [x] `/email-to-pdf/tests.html` reports PASS with zero failures.
-      Result: **PASS 155/155**
+      Result: **PASS 159/159**
 
 ## Rendering — check in all three styles
 
@@ -36,7 +36,13 @@ Last worked: **2026-09-18** (Playwright-driven, results recorded inline below).
       quote levels distinguishable. Rails confirmed visually in the exhibit style.
 - [x] `05-encoded-word-subject.eml` — Cyrillic renders as letters, not boxes; the
       CJK sentence shows replacement characters **and** the certificate reports the
-      substitution count (**26**).
+      substitution count (**13**).
+      **Count the characters before accepting this number.** The body's CJK
+      sentence 契約書の翻訳を添付します。 is 13 characters. This item was first
+      recorded green at 26 — the count was being incremented once per
+      measurement as well as once per draw, so it read 2x in the simple case and
+      quadratically for a long unbreakable token. A plausible-looking number on
+      a certificate is exactly the kind of thing that passes a manual check.
 - [x] `03-inline-cid-image.eml` — the inline image appears in the body.
       Note: this fixture's image is 1x1, so it proves embedding only. Image
       *sizing* was checked separately with a 240x90 three-band PNG, which rendered
@@ -65,6 +71,14 @@ Last worked: **2026-09-18** (Playwright-driven, results recorded inline below).
       the reduction is disclosed on the certificate as `ATTACHMENT_SCALED`.
 - [x] A PDF attachment adds exactly one separator page plus its own page count —
       no stray blank page.
+- [x] An attachment page carrying `/Rotate` is appended in the orientation a
+      reader sees, not upright. Check with fixture 14 and compare against the
+      attachment rendered on its own.
+- [x] In a combined PDF, **each certificate describes only its own message.**
+      Check with two messages where the *first* blocks remote images and the
+      second has none: the second certificate must not mention remote images,
+      and neither may report a page count near the document total. Both figures
+      were running document-wide totals until 2026-09-18.
 - [x] Dates print with their original offset. Converted `01-plain-text.eml` in a
       browser set to `Asia/Tokyo` (UTC+9); it still reads
       `Tue, 4 Mar 2026 09:14:22 -0800` in the body, the appendix, the certificate,
