@@ -1,4 +1,4 @@
-import { test, assert, assertEqual } from '/shared/testing/harness.js';
+import { test, assert, assertEqual, extractPdfText } from '/shared/testing/harness.js';
 import { loadFontSet } from './fonts.js';
 import { PageWriter } from './writer.js';
 import { drawBlocks } from './draw-blocks.js';
@@ -47,8 +47,30 @@ test('a table taller than a page splits and repeats its header row', async () =>
       { blocks: [p('$' + (i * 37) + '.00')], colspan: 1, rowspan: 1, header: false }
     ]);
   }
+  // "pageCount > 1" alone passes even when the header row is never repeated,
+  // which is the behaviour this test is named for. Record which page each
+  // string lands on, and assert the header appears on more than one.
+  const drawn = [];
+  const spyOn = (page) => {
+    const original = page.drawText.bind(page);
+    page.drawText = (text, opts) => {
+      drawn.push({ page: writer.pages.indexOf(page), text });
+      return original(text, opts);
+    };
+  };
+  const newPage = writer.newPage.bind(writer);
+  writer.newPage = () => { const p = newPage(); spyOn(p); return p; };
+  spyOn(writer.page);
+
   await drawBlocks(writer, [{ type: 'table', rows }], ctx);
   assert(writer.pageCount > 1, 'table split across pages');
+
+  for (const label of ['Invoice', 'Amount']) {
+    const pages = new Set(drawn.filter((d) => d.text === label).map((d) => d.page));
+    assert(pages.size > 1,
+      'the header cell "' + label + '" must repeat on each page the table ' +
+      'spans; found it on ' + pages.size + ' page(s)');
+  }
 });
 
 test('a cell taller than the page does not overprint the next cell in its row', async () => {
@@ -143,6 +165,14 @@ test('the Outlook fixture renders to a saveable PDF in every theme', async () =>
     await drawBlocks(writer, htmlToBlocks(body), ctx);
     writer.finalize();
     const bytes = await pdfDoc.save();
-    assert(bytes.length > 1000, key + ' produced a real PDF');
+    // A byte-length floor cannot fail here: six embedded subsetted TTFs put the
+    // document far past 1000 bytes before anything is drawn, so this passed for
+    // a completely blank page in all three themes — exactly the regression the
+    // name claims to guard. Assert the fixture's content is on the page.
+    const text = await extractPdfText(bytes);
+    for (const phrase of ['INV-1041', 'Disputed', 'see counsel']) {
+      assert(text.includes(phrase),
+        key + ' must render "' + phrase + '"; got ' + text.slice(0, 200));
+    }
   }
 });

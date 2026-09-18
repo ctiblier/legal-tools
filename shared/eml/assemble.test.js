@@ -3,6 +3,7 @@ import { test, assert, assertEqual, extractPdfText, extractPdfTextItems }
 import { loadFixture } from '/shared/testing/fixtures.js';
 import { parseEml } from './parse.js';
 import { convertEmail, convertBatchCombined, DEFAULT_OPTIONS } from './assemble.js';
+import { THEMES } from './themes.js';
 
 async function convertFixture(name, overrides) {
   const rec = await parseEml(await loadFixture(name), { filename: name });
@@ -62,6 +63,147 @@ test('appending a PDF adds its separator and its pages, and nothing else', async
     { ignoreEncryption: true });
 
   assertEqual(withAppend.pageCount, without.pageCount + 1 + src.getPageCount());
+});
+
+test('a long table-of-contents entry wraps instead of running off the page', async () => {
+  // drawLine takes one ALREADY-WRAPPED line and draws every token it is given,
+  // so an unwrapped entry ran straight past the right margin and off the sheet
+  // — unmarked, which §3.3 treats as worse than an ellipsis. Long subjects are
+  // the norm in litigation email. extractPdfText cannot catch this: off-page
+  // text extracts perfectly well, so assert on position.
+  const rec = await parseEml(await loadFixture('01-plain-text.eml'),
+    { filename: 'long-subject.eml' });
+  rec.subject = 'Re: Fwd: Smith v. Acme Manufacturing — deposition of the ' +
+    'corporate representative and production of documents responsive to ' +
+    'requests fourteen through twenty-two, as discussed';
+
+  const out = await convertBatchCombined([rec], DEFAULT_OPTIONS);
+  const pages = await extractPdfTextItems(out.bytes);
+
+  const theme = THEMES[DEFAULT_OPTIONS.theme];
+  const limit = theme.page.width - theme.page.margin.right + 1;
+
+  const overflowing = pages[0].filter((it) => it.x > limit);
+  assertEqual(overflowing.map((it) => it.str + '@x=' + Math.round(it.x)).join(' | '), '',
+    'no contents text may be drawn past the right margin (' + Math.round(limit) + 'pt)');
+});
+
+test('the contents list never spills past its reserved pages', async () => {
+  // Many messages with long wrapping subjects is the case that overruns the
+  // reservation. If the list runs out of reserved space, drawLine's ensure()
+  // appends a page at the END of the document — a table of contents printed
+  // after the exhibits. It must stop and say so instead.
+  const records = [];
+  for (let i = 0; i < 40; i++) {
+    const rec = await parseEml(await loadFixture('01-plain-text.eml'),
+      { filename: 'msg-' + i + '.eml' });
+    rec.subject = 'Re: Fwd: Smith v. Acme Manufacturing — deposition of the ' +
+      'corporate representative and production of documents responsive to ' +
+      'requests fourteen through twenty-two, item ' + i;
+    rec.date = Object.assign({}, rec.date,
+      { parsed: new Date(Date.UTC(2026, 0, 1 + i)) });
+    records.push(rec);
+  }
+
+  const out = await convertBatchCombined(records, DEFAULT_OPTIONS);
+  const pages = await extractPdfTextItems(out.bytes);
+
+  // Find where the exhibits start: the first page showing a message header.
+  const firstExhibit = pages.findIndex((items) =>
+    items.some((it) => it.str.includes('jsmith@acme-manufacturing.example')));
+  assert(firstExhibit > 0, 'the exhibits were drawn');
+
+  // No page at or after the exhibits may carry contents-list text.
+  const strays = [];
+  for (let i = firstExhibit; i < pages.length; i++) {
+    const text = pages[i].map((it) => it.str).join(' ');
+    if (text.includes('Contents') || text.includes('Contents continue')) {
+      strays.push('page ' + (i + 1));
+    }
+  }
+  assertEqual(strays.join(', '), '',
+    'contents text must not appear after the exhibits begin');
+});
+
+test('embedSource attaches every source file in a combined PDF', async () => {
+  // The combined path had no attach() call at all, so ticking "Embed the
+  // original .eml" produced a PDF with nothing embedded and no indication that
+  // the option had done nothing. A silently no-op option is the failure mode
+  // §3.5 exists to forbid.
+  const a = await parseEml(await loadFixture('01-plain-text.eml'),
+    { filename: '01-plain-text.eml' });
+  const b = await parseEml(await loadFixture('02-html-nested-quotes.eml'),
+    { filename: '02-html-nested-quotes.eml' });
+
+  const out = await convertBatchCombined([a, b],
+    Object.assign({}, DEFAULT_OPTIONS, { embedSource: true }));
+
+  const doc = await PDFLib.PDFDocument.load(out.bytes);
+  const names = doc.catalog.get(PDFLib.PDFName.of('Names'));
+  assert(names, 'the document declares an embedded-files name tree');
+
+  const text = await extractPdfText(out.bytes);
+  assert(!text.includes('undefined'), 'no placeholder leaked into the output');
+  assertEqual(out.embeddedSources.slice().sort().join(','),
+    '01-plain-text.eml,02-html-nested-quotes.eml');
+});
+
+test('combined-batch ZIP entries do not collide across messages', async () => {
+  // The per-email path prefixes each entry with the output PDF's stem. The
+  // combined path pushed the bare MIME filename, so two messages attaching
+  // invoice.pdf produced two identically-named JSZip entries and the user
+  // extracted one file — silent loss of the evidence bytes the ZIP exists to
+  // deliver.
+  const a = await parseEml(await loadFixture('07-large-pdf-attachment.eml'),
+    { filename: 'first.eml' });
+  const b = await parseEml(await loadFixture('07-large-pdf-attachment.eml'),
+    { filename: 'second.eml' });
+
+  const out = await convertBatchCombined([a, b],
+    Object.assign({}, DEFAULT_OPTIONS, { appendAttachments: false }));
+
+  assertEqual(out.zipFiles.length, 2, 'both attachments are collected');
+  const names = out.zipFiles.map((f) => f.name);
+  assertEqual(new Set(names).size, 2, 'entry names are unique; got ' + names.join(', '));
+});
+
+test('an HTML part that renders to nothing falls back to the text part', async () => {
+  // bodyPartUsed is chosen on truthiness, so an HTML part containing only
+  // structure selects 'html'; htmlToBlocks then yields no blocks and the body
+  // is blank, while the certificate still states the body was rendered from the
+  // HTML part and a perfectly good text/plain part goes unused. Blank body plus
+  // a certificate asserting otherwise is the exact shape §3.5 forbids.
+  const raw = new TextEncoder().encode([
+    'Message-ID: <empty-html@firm.example>',
+    'Date: Mon, 16 Mar 2026 12:00:00 -0700',
+    'From: Robert Jones <counsel@firm.example>',
+    'To: John Smith <jsmith@acme-manufacturing.example>',
+    'Subject: Structure-only HTML part',
+    'MIME-Version: 1.0',
+    'Content-Type: multipart/alternative; boundary="alt"',
+    '',
+    '--alt',
+    'Content-Type: text/plain; charset=utf-8',
+    '',
+    'THE TEXT PART CARRIES THE ACTUAL MESSAGE.',
+    '',
+    '--alt',
+    'Content-Type: text/html; charset=utf-8',
+    '',
+    '<html><body></body></html>',
+    '',
+    '--alt--',
+    ''
+  ].join('\r\n'));
+
+  const rec = await parseEml(raw, { filename: 'empty-html.eml' });
+  const out = await convertEmail(rec, DEFAULT_OPTIONS);
+  const text = await extractPdfText(out.bytes);
+
+  assert(text.includes('THE TEXT PART CARRIES THE ACTUAL MESSAGE'),
+    'the text part is rendered rather than a blank body');
+  assert(out.summary.defects.some((d) => d.code === 'BODY_PART_EMPTY'),
+    'the substitution is disclosed on the certificate');
 });
 
 test('each certificate in a combined PDF describes its own message only', async () => {
@@ -207,15 +349,44 @@ test('embedSource attaches the original .eml to the PDF', async () => {
   assert(text.includes('EmbeddedFile'), 'embedded file stream present');
 });
 
-test('a message whose body failed to decode says so, rather than "no body text"', async () => {
-  const rec = await parseEml(await loadFixture('04-broken-base64.eml'),
-    { filename: '04-broken-base64.eml' });
-  // Only meaningful when the parser actually reported a decode failure; when the
-  // library salvages the body there is nothing to disclose.
-  if (!rec.defects.some((d) => d.code === 'BODY_DECODE_FAILED')) return;
+test('a salvaged broken-base64 body keeps its readable text and discloses the rest', async () => {
+  // This used to skip itself: it returned early unless the parser reported
+  // BODY_DECODE_FAILED, and postal-mime salvages fixture 04 instead — so the
+  // body of the test never ran. Its assertion could not have failed either,
+  // being a NEGATIVE substring check against compressed PDF bytes, where no
+  // body text is findable at all. Assert what actually happens.
+  const out = await convertFixture('04-broken-base64.eml');
+  const text = await extractPdfText(out.bytes);
+
+  assert(text.includes('This is the readable opening line'),
+    'the salvageable part of the body is rendered');
+  assert(!text.includes('contained no body text'),
+    'a partly-readable body is never described as empty');
+  assert(out.summary.substitutions > 0,
+    'the undecodable remainder is disclosed as substituted characters');
+});
+
+test('a body that genuinely failed to decode says so, not "no body text"', async () => {
+  // No fixture reaches this branch — postal-mime salvages even deliberately
+  // broken base64 — so drive it directly. Saying "this message contained no
+  // body text" when the truth is "the body could not be decoded" misstates the
+  // evidence: spec §7 requires a lawyer to learn the message exists even when
+  // its body is unreadable.
+  const rec = await parseEml(await loadFixture('10-headers-only.eml'),
+    { filename: 'undecodable.eml' });
+  assertEqual(rec.bodyPartUsed, 'none', 'starting from a record with no body');
+  rec.defects.push({
+    code: 'BODY_DECODE_FAILED',
+    detail: 'invalid base64 in the text/plain part'
+  });
+
   const out = await convertEmail(rec, DEFAULT_OPTIONS);
-  const text = new TextDecoder('latin1').decode(out.bytes);
-  assert(!text.includes('contained no body text'), 'does not claim the body was empty');
+  const text = await extractPdfText(out.bytes);
+
+  assert(text.includes('could not be decoded'),
+    'the decode failure is stated in the body');
+  assert(!text.includes('contained no body text'),
+    'the two facts are not confused');
 });
 
 test('a headers-only email still converts', async () => {
@@ -326,6 +497,9 @@ test('a combined PDF discloses an unmergeable attachment rather than dropping it
   const out = await convertBatchCombined([rec], DEFAULT_OPTIONS);
   const att = rec.attachments.find((a) => a.filename === 'damaged.pdf');
   assert(att.error, 'an error was recorded on the attachment');
-  assert(out.zipFiles.some((z) => z.name === 'damaged.pdf'),
-    'the bytes still reach the user via the ZIP');
+  // Combined-mode entries are namespaced per message so two messages attaching
+  // the same filename cannot overwrite each other — match the leaf name.
+  assert(out.zipFiles.some((z) => z.name.endsWith('damaged.pdf')),
+    'the bytes still reach the user via the ZIP; got ' +
+    out.zipFiles.map((z) => z.name).join(', '));
 });

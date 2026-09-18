@@ -24,7 +24,7 @@ Last worked: **2026-09-18** (Playwright-driven, results recorded inline below).
       gitignored and absent on a fresh clone; its tests fail with a clear
       "fixture not found" message until it is generated).
 - [x] `/email-to-pdf/tests.html` reports PASS with zero failures.
-      Result: **PASS 159/159**
+      Result: **PASS 167/167**
 
 ## Rendering — check in all three styles
 
@@ -62,6 +62,12 @@ Last worked: **2026-09-18** (Playwright-driven, results recorded inline below).
 - [x] `09-remote-images.eml` — certificate reports 2 blocked remote images
       including 1 tracking pixel; the body shows labeled placeholders, not gaps.
       No request to any `marketing.example` host was made (see Privacy).
+- [x] A remote image sized in **percentages** (`width="1%"`) gets a placeholder,
+      not deletion. `parseInt('1%')` is `1`, so it was classed as a tracking
+      pixel and removed outright — the only blocked remote image with no mark.
+- [x] An HTML part that renders to nothing falls back to the plain-text part and
+      says so, rather than drawing a blank body under a certificate claiming the
+      HTML part was used.
 - [x] `07-large-pdf-attachment.eml` — manifest shows the filename, type, size and
       full hash; the attachment's pages follow a labeled separator page.
 - [x] On those merged attachment pages, the stamped footer does not overprint
@@ -89,6 +95,13 @@ Last worked: **2026-09-18** (Playwright-driven, results recorded inline below).
       the hash, certificate keeps the full SHA-256.
 - [x] `embedSource` on — the `.eml` is attached to the PDF, extracts, and its
       SHA-256 matches the original byte for byte.
+- [x] `embedSource` on **with combined output** — every message's source is
+      attached, not none. The combined path had no `attach()` call at all until
+      2026-09-18, so the option silently did nothing. Verified by extracting both
+      and comparing SHA-256 against the originals.
+- [x] In combined output, two messages attaching the same filename produce two
+      distinct ZIP entries. Entries are namespaced per message; a bare filename
+      meant one silently overwrote the other.
 
 ## Searchability
 
@@ -113,8 +126,14 @@ Last worked: **2026-09-18** (Playwright-driven, results recorded inline below).
 - [x] A single file converts to a direct PDF download, not a ZIP.
 - [x] Same set combined: TOC first, oldest first, TOC links jump correctly,
       footer numbering continuous. Every printed TOC page number was compared
-      against the page its link annotation actually resolves to — all 13 match,
+      against the page its link annotation actually resolves to — all 14 match,
       and each destination page starts with the right message.
+- [x] A message with a long subject has its contents entry **wrapped**, not run
+      off the right edge of the sheet. Entries were drawn unwrapped until
+      2026-09-18, putting text at x=613 on a 612pt page with nothing to mark it.
+- [x] With many long-subject messages, the contents list stops with its
+      "contents continue" notice **on a reserved page** — no contents text
+      appears after the exhibits begin.
 - [ ] Introduce a deliberately corrupt file (`head -c 200 /dev/urandom > bad.eml`)
       into the batch: it appears as a red failure row, every other file still
       converts, and the run completes.

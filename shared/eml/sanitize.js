@@ -50,8 +50,16 @@ export function sanitizeHtml(html, inlineImages) {
   for (const img of Array.from(doc.querySelectorAll('img'))) {
     const src = (img.getAttribute('src') || '').trim();
     const alt = img.getAttribute('alt') || '';
-    const w = parseInt(img.getAttribute('width') || '0', 10);
-    const h = parseInt(img.getAttribute('height') || '0', 10);
+    // Only a bare integer is pixel geometry. parseInt would read "1%" as 1 and
+    // "50%" as 50, and a percentage says nothing about rendered size — so a
+    // percentage must never satisfy the 1x1 tracking-pixel test below, which is
+    // the one branch that deletes an image instead of marking it.
+    const pixels = (name) => {
+      const raw = (img.getAttribute(name) || '').trim();
+      return /^\d+$/.test(raw) ? parseInt(raw, 10) : 0;
+    };
+    const w = pixels('width');
+    const h = pixels('height');
 
     if (/^cid:/i.test(src)) {
       const cid = src.slice(4).replace(/^</, '').replace(/>$/, '');

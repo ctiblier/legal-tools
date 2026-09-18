@@ -455,7 +455,26 @@
 
                 progressText.textContent = 'Building combined PDF';
                 progressBar.style.width = '75%';
-                const out = await convertBatchCombined(records, options);
+
+                // The parse loop above isolates each file, but a throw while
+                // DRAWING rejected this call and left the progress bar frozen
+                // at 75% with Convert still disabled — no path forward but a
+                // reload. Spec §7: one malformed .eml must never kill a batch.
+                let out;
+                try {
+                    out = await convertBatchCombined(records, options);
+                } catch (err) {
+                    progressContainer.classList.add('hidden');
+                    statusEl.className = 'status status-error';
+                    statusEl.textContent =
+                        'The combined PDF could not be built: ' + err.message +
+                        ' Converting to one PDF per email may still work.';
+                    addResultRow({ name: 'combined-emails.pdf',
+                                   note: 'failed — ' + err.message, state: 'error' });
+                    convertBtn.disabled = false;
+                    return;
+                }
+
                 const name = 'combined-emails.pdf';
                 downloadPdf(out.bytes, name);
                 if (typeof sessionFiles !== 'undefined') {
@@ -464,6 +483,9 @@
                 }
                 addResultRow({ name, note: out.pageCount + ' pages · ' +
                     out.perEmail.length + ' messages', state: 'ok' });
+                // Already namespaced per message by convertBatchCombined, so
+                // entries from two messages attaching the same filename no
+                // longer overwrite each other in the ZIP.
                 for (const entry of out.zipFiles) zipEntries.push(entry);
 
                 if (options.zipOtherAttachments && zipEntries.length) {

@@ -75,6 +75,23 @@ test('a visible image at a tracker-ish URL still gets a placeholder', () => {
   assertEqual(stats.trackingPixelsBlocked, 0, 'a URL keyword is not proof of a pixel');
 });
 
+test('percentage geometry is not pixel geometry', () => {
+  // parseInt('1%', 10) is 1, so a width="1%" height="1%" image satisfied the
+  // 1x1 test and was removed outright — the only blocked remote image that got
+  // no placeholder. A percentage says nothing about rendered size, so it is not
+  // proof the image had nothing to show, and deleting visible content unmarked
+  // is the one thing this function must never do.
+  const { body, stats } = sanitizeHtml(
+    '<img src="https://cdn.example/banner.png" alt="Banner" width="1%" height="1%">',
+    new Map()
+  );
+  assert(body.querySelector('[data-blocked-image]'),
+    'placeholder inserted, not deleted');
+  assertEqual(stats.remoteImagesBlocked, 1);
+  assertEqual(stats.trackingPixelsBlocked, 0,
+    'a percentage is not a declared 1x1');
+});
+
 test('an image with a relative or unknown-scheme src is disclosed, not dropped', () => {
   const { body, stats } = sanitizeHtml('<img src="logo.png" alt="Logo">', new Map());
   assert(body.querySelector('[data-blocked-image]'), 'placeholder inserted');

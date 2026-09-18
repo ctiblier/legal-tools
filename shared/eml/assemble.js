@@ -7,7 +7,7 @@
 import { loadFontSet } from '/shared/pdf/fonts.js';
 import { PageWriter } from '/shared/pdf/writer.js';
 import { drawBlocks } from '/shared/pdf/draw-blocks.js';
-import { tokenizeRuns } from '/shared/pdf/measure.js';
+import { tokenizeRuns, wrapTokens } from '/shared/pdf/measure.js';
 import { THEMES } from './themes.js';
 import { sanitizeHtml } from './sanitize.js';
 import { htmlToBlocks } from './html-to-blocks.js';
@@ -41,7 +41,37 @@ function styleRun(text, extra) {
 function bodyBlocksFor(record) {
   if (record.bodyPartUsed === 'html') {
     const { body, stats } = sanitizeHtml(record.bodyHtml, record.inlineImages);
-    return { blocks: htmlToBlocks(body), stats };
+    const blocks = htmlToBlocks(body);
+    if (blocks.length) return { blocks, stats };
+
+    // The HTML part was selected on truthiness but carried no renderable
+    // content — structure only, or whitespace. Drawing nothing here would leave
+    // a blank body under a certificate stating the body came from the HTML
+    // part, and would discard a text/plain part that may hold the whole
+    // message. Fall back and say so.
+    if (record.bodyText && record.bodyText.trim()) {
+      record.defects.push({
+        code: 'BODY_PART_EMPTY',
+        detail: 'the HTML part contained no renderable content; the ' +
+          'plain-text part was used instead'
+      });
+      record.bodyPartUsed = 'text';
+      return { blocks: textToBlocks(record.bodyText), stats };
+    }
+
+    record.defects.push({
+      code: 'BODY_PART_EMPTY',
+      detail: 'the HTML part contained no renderable content, and the message ' +
+        'carried no plain-text part'
+    });
+    return {
+      blocks: [{
+        type: 'paragraph',
+        runs: [styleRun('This message’s HTML body contained no renderable text.',
+          { italic: true })]
+      }],
+      stats
+    };
   }
   if (record.bodyPartUsed === 'text') {
     return { blocks: textToBlocks(record.bodyText), stats: Object.assign({}, EMPTY_STATS) };
@@ -374,7 +404,17 @@ export async function convertBatchCombined(records, options = {}) {
       await drawBlocks(writer, manifest, ctx);
     }
 
-    await appendAttachments(writer, pdfDoc, record, opts, dispositions, zipFiles, ctx);
+    // Collect this record's ZIP entries separately and prefix them, the way the
+    // per-email path does with the output PDF's stem. Pushing the bare MIME
+    // filename into one shared list meant two messages attaching invoice.pdf
+    // produced two identically-named entries, and the user extracted one file.
+    const recordZipFiles = [];
+    await appendAttachments(writer, pdfDoc, record, opts, dispositions, recordZipFiles, ctx);
+    const folder = (record.sourceFilename || ('message-' + (perEmail.length + 1)))
+      .replace(/\.eml$/i, '');
+    for (const entry of recordZipFiles) {
+      zipFiles.push({ name: folder + '/' + entry.name, bytes: entry.bytes });
+    }
 
     if (opts.rawHeaderAppendix) {
       writer.newPage();
@@ -411,10 +451,25 @@ export async function convertBatchCombined(records, options = {}) {
     { type: 'rule' }
   ], { indent: 0, quoteDepth: 0, images: new Map(), embedCache: new Map() });
 
+  // Enough room for the "contents continue" notice, so admitting the list is
+  // incomplete never itself needs a page the reservation did not allow for.
+  const noticeHeight = writer.lineHeight(theme.size.small);
+
   for (let i = 0; i < perEmail.length; i++) {
     const entry = perEmail[i];
-    const needed = writer.lineHeight(theme.size.body) * 2.4;
-    if (writer.y - needed < writer.bottomLimit) {
+    // Measure what this entry will actually occupy. A wrapped subject is taller
+    // than two lines, and assuming 2.4 lines would let the list run past the
+    // last reserved page — where drawLine's own ensure() appends a page at the
+    // END of the document, putting contents after the exhibits.
+    const titleLines = wrapTokens(tokenizeRunsForToc(entry), writer.contentWidth,
+      (t) => writer.measureToken(t, theme.size.body)).length;
+    const metaLines = wrapTokens(
+      tokenizeRunsForToc({ meta: entry.from + ' · ' + entry.dateRaw }),
+      writer.contentWidth, (t) => writer.measureToken(t, theme.size.small)).length;
+    const needed = titleLines * writer.lineHeight(theme.size.body)
+      + metaLines * writer.lineHeight(theme.size.small) + 4;
+
+    if (writer.y - needed - noticeHeight < writer.bottomLimit) {
       if (tocCursor + 1 < tocIndices.length) {
         tocCursor++;
         writer.useExistingPage(tocIndices[tocCursor]);
@@ -431,14 +486,12 @@ export async function convertBatchCombined(records, options = {}) {
       }
     }
     const top = writer.y;
-    writer.drawLine(
-      tokenizeRunsForToc(entry),
-      { x: writer.left, size: theme.size.body }
-    );
-    writer.drawLine(
-      tokenizeRunsForToc({ meta: entry.from + ' · ' + entry.dateRaw }),
-      { x: writer.left, size: theme.size.small, color: theme.color.muted }
-    );
+    // drawLine draws every token it is handed, so each entry has to be wrapped
+    // to the content width first. A long subject — the norm in litigation email
+    // — otherwise ran off the right edge of the sheet with nothing to mark it.
+    drawTocEntry(writer, tokenizeRunsForToc(entry), theme.size.body, null);
+    drawTocEntry(writer, tokenizeRunsForToc({ meta: entry.from + ' · ' + entry.dateRaw }),
+      theme.size.small, theme.color.muted);
     writer.linkToDestination('email-' + i, {
       x: writer.left, y: writer.y, width: writer.contentWidth, height: top - writer.y
     });
@@ -446,8 +499,56 @@ export async function convertBatchCombined(records, options = {}) {
   }
 
   writer.finalize();
+
+  // Embed each message's source alongside the exhibit. Names are made unique
+  // because a PDF's embedded-file names are a flat namespace, and two messages
+  // from the same mailbox export very often share a filename.
+  const embeddedSources = [];
+  if (opts.embedSource) {
+    const taken = new Set();
+    for (const record of ordered) {
+      if (!record.rawBytes) continue;
+      let name = record.sourceFilename || 'source.eml';
+      if (taken.has(name)) {
+        const stem = name.replace(/\.eml$/i, '');
+        let n = 2;
+        while (taken.has(stem + '-' + n + '.eml')) n++;
+        name = stem + '-' + n + '.eml';
+      }
+      taken.add(name);
+      await pdfDoc.attach(record.rawBytes, name, {
+        mimeType: 'message/rfc822',
+        description: 'Original email source file, SHA-256 ' + record.sourceSha256
+      });
+      embeddedSources.push(name);
+    }
+  }
+
+  // Spec §9: release the source bytes once they are hashed, drawn and (if asked
+  // for) embedded, so a large combined exhibit does not hold every message's
+  // bytes at once. convertEmail does the same for the single-file path.
+  for (const record of ordered) record.rawBytes = null;
+
   const bytes = await pdfDoc.save();
-  return { bytes, pageCount: pdfDoc.getPageCount(), perEmail, zipFiles };
+  return {
+    bytes, pageCount: pdfDoc.getPageCount(), perEmail, zipFiles, embeddedSources
+  };
+}
+
+/**
+ * Draw one table-of-contents line, wrapped to the content width.
+ *
+ * drawLine is documented as taking a single already-wrapped line, so anything
+ * longer than the measure has to be split before it gets there.
+ */
+function drawTocEntry(writer, tokens, size, color) {
+  const lines = wrapTokens(tokens, writer.contentWidth,
+    (t) => writer.measureToken(t, size));
+  for (const line of lines) {
+    writer.drawLine(line, color
+      ? { x: writer.left, size, color }
+      : { x: writer.left, size });
+  }
 }
 
 function tokenizeRunsForToc(entry) {
