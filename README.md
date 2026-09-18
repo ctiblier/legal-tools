@@ -16,8 +16,19 @@ legal-tools/
 ├── shared/
 │   └── brand.css              # Shared design system (tokens, layout, components)
 ├── batesstamp/
-│   ├── index.html             # Main tool page
+│   ├── index.html             # Tool index / landing page
 │   ├── styles.css             # @imports brand.css + site-specific styles
+│   ├── bates-stamp/           # Bates numbering, exhibit and confidentiality stamps
+│   ├── compressor/            # PDF compression
+│   ├── email-to-pdf/          # .eml -> evidence-grade searchable PDF
+│   ├── filing-assembler/      # Combine filings into one document
+│   ├── metadata-stripper/     # Remove PDF metadata
+│   ├── page-extractor/        # Extract and reorder pages
+│   ├── pleading-paper/        # Numbered pleading paper
+│   ├── redaction/             # Redaction
+│   ├── watermark/             # Watermarking
+│   ├── vendor/                # Vendored third-party JS (see vendor/README.md)
+│   ├── fonts/                 # Web fonts, plus TTFs embedded into generated PDFs
 │   ├── about.html
 │   ├── privacy-policy.html
 │   ├── terms-of-service.html
@@ -140,6 +151,30 @@ cp shared/brand.css pfscalculator/
 ```
 
 Then serve with any local HTTP server. Do NOT commit these copies — they are created by the Cloudflare build step.
+
+### Development builds
+
+`bash build.sh` copies shared assets into `batesstamp/`. Add `--dev` to also stage
+the `.eml` test fixtures at `batesstamp/fixtures/` for the Email to PDF test page
+at `/email-to-pdf/tests.html` — never run `--dev` for a deployed build. A plain
+build clears any fixtures a previous `--dev` build staged, and `batesstamp/fixtures/`
+is gitignored, so they cannot reach the live site either way.
+
+Generate the fixtures first; one of them is gitignored for size and is absent on a
+fresh clone:
+
+```bash
+python3 docs/fixtures/eml/generate.py
+```
+
+Serve `batesstamp/` over `http://localhost` (not `file://`) — `crypto.subtle`,
+which the Email to PDF tool uses for hashing, requires a secure context.
+
+Vendored dependencies live in `batesstamp/vendor/` with their provenance and
+hashes recorded in `batesstamp/vendor/README.md`.
+
+Manual verification for Email to PDF — the part the test page cannot cover — is
+`docs/verification/2026-09-11-email-to-pdf-checklist.md`.
 
 ---
 

@@ -344,4 +344,66 @@ Content-Disposition: attachment; filename="damaged.pdf"
 --bad-pdf--
 """)
 
+# 13 ------------------------- PDF attachment with text in its bottom margin
+#
+# Fixture 07's attachment is 6 MB of padding with nothing drawn on it, so it
+# cannot show whether the stamped page footer lands on top of content the
+# attachment already had down there. This one puts real text at y=36 and y=24 --
+# squarely inside the footer band -- so that collision is detectable.
+def bottom_margin_pdf():
+    """A one-page PDF with text near the top and two lines in the bottom margin."""
+    stream = (
+        b"BT /F1 10 Tf 72 700 Td (ATTACHMENT BODY TEXT NEAR TOP) Tj ET\n"
+        b"BT /F1 9 Tf 72 36 Td (ATTACHMENT BOTTOM LINE ONE) Tj ET\n"
+        b"BT /F1 9 Tf 72 24 Td (ATTACHMENT BOTTOM LINE TWO) Tj ET\n"
+    )
+    objs = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] "
+        b"/Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>",
+        b"<< /Length %d >>\nstream\n" % len(stream) + stream + b"endstream",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+    ]
+    out = bytearray(b"%PDF-1.4\n")
+    offsets = []
+    for i, body in enumerate(objs, start=1):
+        offsets.append(len(out))
+        out += b"%d 0 obj\n" % i + body + b"\nendobj\n"
+    xref = len(out)
+    out += b"xref\n0 %d\n" % (len(objs) + 1) + b"0000000000 65535 f \n"
+    for off in offsets:
+        out += b"%010d 00000 n \n" % off
+    out += (b"trailer\n<< /Size %d /Root 1 0 R >>\nstartxref\n%d\n%%%%EOF\n"
+            % (len(objs) + 1, xref))
+    return bytes(out)
+
+bm_bytes = bottom_margin_pdf()
+bm_b64 = base64.b64encode(bm_bytes).decode("ascii")
+bm_wrapped = "\n".join(bm_b64[i:i + 76] for i in range(0, len(bm_b64), 76))
+write("13-attachment-bottom-margin.eml", f"""\
+Message-ID: <20260317090000.BCDEF@firm.example>
+Date: Tue, 17 Mar 2026 09:00:00 -0700
+From: Robert Jones <counsel@firm.example>
+To: John Smith <jsmith@acme-manufacturing.example>
+Subject: Attachment with bottom margin text
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="bm-boundary"
+
+--bm-boundary
+Content-Type: text/plain; charset=utf-8
+
+See attached.
+
+--bm-boundary
+Content-Type: application/pdf; name="bottom-margin.pdf"
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="bottom-margin.pdf"
+
+{bm_wrapped}
+
+--bm-boundary--
+""")
+print(f"  (attachment sha256 {hashlib.sha256(bm_bytes).hexdigest()[:12]})")
+
 print("done")

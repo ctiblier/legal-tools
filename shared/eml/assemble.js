@@ -130,11 +130,42 @@ async function appendAttachments(writer, pdfDoc, record, opts, dispositions, zip
           { type: 'paragraph', runs: [styleRun('SHA-256 ' + att.sha256, { sizeScale: 0.8 })] }
         ], ctx);
         const src = await PDFLib.PDFDocument.load(att.bytes, { ignoreEncryption: true });
-        const pages = await pdfDoc.copyPages(src, src.getPageIndices());
-        for (const page of pages) pdfDoc.addPage(page);
-        // Copied pages bypass the writer's cursor, so resynchronise it.
-        writer.pages = pdfDoc.getPages();
-        writer.newPage();
+        // Embed each source page as a form XObject and draw it onto a page of
+        // ours, rather than copying the page wholesale, so the footer can be
+        // stamped without landing on content the attachment already had in its
+        // bottom margin. See PageWriter#drawAttachmentPage.
+        //
+        // A page with no /Contents is a legitimately blank page, and embedPdf
+        // refuses it ("Can't embed page with missing Contents") where copyPages
+        // tolerated it. Such a page is still a page of the attachment and still
+        // has to be counted, so it is reproduced as a blank one.
+        const indices = src.getPageIndices();
+        const hasContents = (i) => !!src.getPage(i).node.Contents();
+        const drawable = indices.filter(hasContents);
+        const embedded = drawable.length
+          ? await pdfDoc.embedPdf(att.bytes, drawable)
+          : [];
+
+        // Pages of an attachment need not be the same size, so report the
+        // largest reduction rather than whichever page happened to be last.
+        let scale = 1;
+        let next = 0;
+        for (const i of indices) {
+          if (hasContents(i)) {
+            scale = Math.min(scale, writer.drawAttachmentPage(embedded[next++]));
+          } else {
+            writer.newPage();
+          }
+        }
+
+        if (scale < 1) {
+          record.defects.push({
+            code: 'ATTACHMENT_SCALED',
+            detail: att.filename + ' — appended pages were reduced to ' +
+              Math.round(scale * 100) + '% so the page footer clears the ' +
+              'original content; nothing was cropped or hidden'
+          });
+        }
       } catch (err) {
         dispositions.set(att.sha256, 'unreadable');
         att.error = 'could not be merged: ' + String(err && err.message || err);

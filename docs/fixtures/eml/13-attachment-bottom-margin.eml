@@ -1,0 +1,33 @@
+Message-ID: <20260317090000.BCDEF@firm.example>
+Date: Tue, 17 Mar 2026 09:00:00 -0700
+From: Robert Jones <counsel@firm.example>
+To: John Smith <jsmith@acme-manufacturing.example>
+Subject: Attachment with bottom margin text
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="bm-boundary"
+
+--bm-boundary
+Content-Type: text/plain; charset=utf-8
+
+See attached.
+
+--bm-boundary
+Content-Type: application/pdf; name="bottom-margin.pdf"
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="bottom-margin.pdf"
+
+JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2Jq
+CjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2Jq
+CjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA2MTIg
+NzkyXSAvUmVzb3VyY2VzIDw8IC9Gb250IDw8IC9GMSA1IDAgUiA+PiA+PiAvQ29udGVudHMgNCAw
+IFIgPj4KZW5kb2JqCjQgMCBvYmoKPDwgL0xlbmd0aCAxNzMgPj4Kc3RyZWFtCkJUIC9GMSAxMCBU
+ZiA3MiA3MDAgVGQgKEFUVEFDSE1FTlQgQk9EWSBURVhUIE5FQVIgVE9QKSBUaiBFVApCVCAvRjEg
+OSBUZiA3MiAzNiBUZCAoQVRUQUNITUVOVCBCT1RUT00gTElORSBPTkUpIFRqIEVUCkJUIC9GMSA5
+IFRmIDcyIDI0IFRkIChBVFRBQ0hNRU5UIEJPVFRPTSBMSU5FIFRXTykgVGogRVQKZW5kc3RyZWFt
+CmVuZG9iago1IDAgb2JqCjw8IC9UeXBlIC9Gb250IC9TdWJ0eXBlIC9UeXBlMSAvQmFzZUZvbnQg
+L0hlbHZldGljYSA+PgplbmRvYmoKeHJlZgowIDYKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAw
+MDA5IDAwMDAwIG4gCjAwMDAwMDAwNTggMDAwMDAgbiAKMDAwMDAwMDExNSAwMDAwMCBuIAowMDAw
+MDAwMjQxIDAwMDAwIG4gCjAwMDAwMDA0NjQgMDAwMDAgbiAKdHJhaWxlcgo8PCAvU2l6ZSA2IC9S
+b290IDEgMCBSID4+CnN0YXJ0eHJlZgo1MzQKJSVFT0YK
+
+--bm-boundary--

@@ -112,3 +112,25 @@ export async function extractPdfText(bytes) {
   }
   return pages.join('\n');
 }
+
+/**
+ * Per-page text items with their baseline coordinates.
+ *
+ * extractPdfText() collapses a page to a single string, which is the right shape
+ * for "does this text appear" but throws away position — so it cannot answer
+ * whether two pieces of text land on top of each other. Anything about layout,
+ * overlap or margins needs this instead.
+ *
+ * @returns {Promise<Array<Array<{str: string, x: number, y: number}>>>}
+ */
+export async function extractPdfTextItems(bytes) {
+  const doc = await pdfjsLib.getDocument({ data: bytes }).promise;
+  const pages = [];
+  for (let i = 1; i <= doc.numPages; i++) {
+    const content = await (await doc.getPage(i)).getTextContent();
+    pages.push(content.items
+      .filter((it) => it.str.trim())
+      .map((it) => ({ str: it.str, x: it.transform[4], y: it.transform[5] })));
+  }
+  return pages;
+}

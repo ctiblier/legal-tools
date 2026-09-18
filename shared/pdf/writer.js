@@ -79,6 +79,58 @@ export class PageWriter {
     return this.page;
   }
 
+  /** Height of the band at the foot of a page reserved for the footer. */
+  get footerBand() {
+    // The footer's baseline plus its ascent, plus clearance so a descender in
+    // the content above cannot touch it.
+    return this.theme.page.margin.bottom * 0.55 + this.theme.size.footer + 4;
+  }
+
+  /**
+   * Draw an already-embedded attachment page onto a fresh page of this
+   * document, scaled to sit clear of the footer band.
+   *
+   * Pages from an attached PDF get the same footer as everything else, because
+   * continuous "page n of N" numbering across the whole exhibit is what lets a
+   * single loose page be placed back in the document. But an attachment may
+   * already have content in its own bottom margin — page numbers, Bates
+   * numbers, a confidentiality legend — and stamping over it makes both strings
+   * unreadable, which is the one thing an exhibit must never do to evidence.
+   *
+   * Drawing the source page as a form XObject, rather than copying the page and
+   * transforming its content stream, is what keeps the footer out of the
+   * transform: pdf-lib's scaleContent()/translateContent() wrap the page's
+   * whole content stream, so a footer drawn afterwards is scaled and shifted
+   * along with everything else and lands back in the band it was meant to
+   * avoid. Here the page is ours and the footer is drawn on it normally.
+   *
+   * Scaling is the lesser evil over overprinting: the page is reduced by a few
+   * percent, nothing is hidden and nothing is cropped, and every page in the
+   * exhibit stays the same size. The reduction is disclosed on the certificate.
+   *
+   * @returns {number} the scale factor applied, 1 when the page fit as-is.
+   */
+  drawAttachmentPage(embedded) {
+    const page = this.newPage();
+    const pw = this.theme.page.width;
+    const ph = this.theme.page.height;
+    const band = this.footerBand;
+
+    // Fit the source page into everything above the band, preserving its aspect
+    // ratio. An attachment is not necessarily US Letter.
+    const scale = Math.min(pw / embedded.width, (ph - band) / embedded.height, 1);
+    const w = embedded.width * scale;
+    const h = embedded.height * scale;
+
+    page.drawPage(embedded, {
+      x: (pw - w) / 2,
+      y: band + (ph - band - h) / 2,
+      width: w,
+      height: h
+    });
+    return scale;
+  }
+
   /**
    * Append `count` blank pages and return their indices. Used to hold space for
    * a table of contents that cannot be written until everything after it exists.

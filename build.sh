@@ -21,8 +21,13 @@ rm -f batesstamp/shared/brand.css
 # test page can fetch them at the same absolute paths it will use in production.
 # Never run with --dev for a deployed build; Cloudflare Pages runs `bash build.sh`
 # with no arguments, so evidence fixtures cannot reach the live site.
+# Clear any previously staged fixtures unconditionally, so a plain build after a
+# --dev build in the same tree cannot carry them into the output. Pages builds
+# from a fresh clone and batesstamp/fixtures/ is gitignored, so this guards the
+# local build-and-upload case rather than the hosted one.
+rm -rf batesstamp/fixtures
+
 if [ "$1" = "--dev" ]; then
-  rm -rf batesstamp/fixtures
   if [ -d docs/fixtures/eml ]; then
     mkdir -p batesstamp/fixtures
     cp -R docs/fixtures/eml batesstamp/fixtures/

@@ -1,4 +1,5 @@
-import { test, assert, assertEqual, extractPdfText } from '/shared/testing/harness.js';
+import { test, assert, assertEqual, extractPdfText, extractPdfTextItems }
+  from '/shared/testing/harness.js';
 import { loadFixture } from '/shared/testing/fixtures.js';
 import { parseEml } from './parse.js';
 import { convertEmail, convertBatchCombined, DEFAULT_OPTIONS } from './assemble.js';
@@ -46,6 +47,45 @@ test('an attached PDF is merged into the output', async () => {
   assertEqual(withAppend.summary.dispositions.get(
     (await parseEml(await loadFixture('07-large-pdf-attachment.eml'))).attachments[0].sha256
   ), 'appended');
+});
+
+test('appending a PDF adds its separator and its pages, and nothing else', async () => {
+  // "More pages than before" passes even when a stray blank page is emitted, so
+  // count them exactly: one labelled separator page plus the attachment's own
+  // pages. A blank page in an exhibit invites the question of what was on it.
+  const name = '07-large-pdf-attachment.eml';
+  const withAppend = await convertFixture(name);
+  const without = await convertFixture(name, { appendAttachments: false });
+
+  const rec = await parseEml(await loadFixture(name), { filename: name });
+  const src = await PDFLib.PDFDocument.load(rec.attachments[0].bytes,
+    { ignoreEncryption: true });
+
+  assertEqual(withAppend.pageCount, without.pageCount + 1 + src.getPageCount());
+});
+
+test('the page footer does not overprint an attachment\'s bottom margin', async () => {
+  // Fixture 13 carries text at y=36 and y=24 of its attached PDF, which is
+  // exactly where the footer is stamped. The footer goes on every page on
+  // purpose — continuous numbering is what lets a loose page be placed back —
+  // so the attachment's content is scaled up out of the band rather than the
+  // footer being omitted. Nothing may share the footer's line.
+  const out = await convertFixture('13-attachment-bottom-margin.eml');
+  const pages = await extractPdfTextItems(out.bytes);
+
+  const page = pages.find((items) =>
+    items.some((it) => it.str.includes('ATTACHMENT BOTTOM LINE ONE')));
+  assert(page, 'the attachment page is present in the output');
+
+  const footer = page.find((it) => /^page \d+ of \d+$/.test(it.str.trim()));
+  assert(footer, 'the attachment page carries a page footer');
+
+  const collisions = page
+    .filter((it) => it !== footer && !it.str.includes('.eml'))
+    .filter((it) => Math.abs(it.y - footer.y) < 9)
+    .map((it) => it.str);
+
+  assertEqual(collisions.join(' | '), '');
 });
 
 test('non-appendable attachments land in the ZIP list', async () => {
