@@ -422,7 +422,7 @@ test('an unmergeable PDF attachment is disclosed, not silently dropped', async (
 test('the summary carries everything the certificate needs', async () => {
   const out = await convertFixture('09-remote-images.eml');
   for (const key of ['pageCount', 'bodyPartUsed', 'sanitizeStats', 'substitutions',
-                     'dispositions', 'defects', 'generatedAtUtc']) {
+                     'dispositions', 'defects', 'zipRenames', 'generatedAtUtc']) {
     assert(out.summary[key] !== undefined, 'summary.' + key + ' present');
   }
 });
@@ -562,6 +562,10 @@ function attachmentEml(names) {
 const HOSTILE_NAMES = ['../../evil.txt', '..\\\\..\\\\win.txt', '/etc/passwd',
   'dup.txt', 'dup.txt', '..'];
 
+function namesJoined(out) {
+  return out.summary.zipRenames.map((r) => r.original + '->' + r.entry).join(', ');
+}
+
 function assertSafeEntry(name) {
   assert(!name.split('/').some((seg) => seg === '..' || seg === '.' || seg === ''),
     'no empty, . or .. path segment: ' + JSON.stringify(name));
@@ -672,6 +676,93 @@ test('box arrays written corner-first in reverse are normalised', async () => {
   scaled.forEach((d) => assert(!/-\d+%/.test(d.detail), 'no negative scale: ' + d.detail));
 });
 
+// The certificate lists every attachment the ZIP stored under a different name
+// than the email gave it. The comparison drops everything but letters and
+// digits: extraction re-spaces a justified bullet point however it likes, so a
+// literal whole-sentence match is unreliable. Pairing the two names is what
+// makes the check able to fail — a missing line, a dropped attachment or a
+// different entry name all break it — where a keyword check on the heading
+// alone would not.
+const nameChars = (t) => t.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+function renamedTo(text, original, entry) {
+  return nameChars(text).includes(nameChars(original) + 'savedas' + nameChars(entry));
+}
+
+// Name as the email gave it -> ZIP entry, for each attachment of HOSTILE_NAMES.
+// The names arrive through a MIME header, so the two backslashes written into
+// that header in this file are one attachment whose parsed name holds two of
+// them, and zipEntryName keeps only its last path segment. The first 'dup.txt'
+// keeps its name, the second becomes 'dup-2.txt', and '..' has no segment left
+// to keep at all, so it takes the fallback name.
+const WIN_ORIGINAL = HOSTILE_NAMES[1];
+const HOSTILE_ENTRIES = [
+  ['../../evil.txt', 'evil.txt'],
+  [WIN_ORIGINAL, 'win.txt'],
+  ['/etc/passwd', 'passwd'],
+  ['dup.txt', 'dup.txt'],
+  ['dup.txt', 'dup-2.txt'],
+  ['..', 'unnamed']
+];
+const RENAMED_IN_ZIP = HOSTILE_ENTRIES.filter((p) => p[0] !== p[1]);
+
+test('the certificate lists every attachment the ZIP renamed', async () => {
+  const rec = await parseEml(attachmentEml(HOSTILE_NAMES), { filename: 'hostile.eml' });
+  const out = await convertEmail(rec, Object.assign({}, DEFAULT_OPTIONS,
+    { zipOtherAttachments: true }));
+  const text = await extractPdfText(out.bytes);
+
+  for (const pair of RENAMED_IN_ZIP) {
+    assert(renamedTo(text, pair[0], pair[1]),
+      pair[0] + ' saved as ' + pair[1] + ' is listed; got ' + namesJoined(out));
+  }
+
+  // Exactly the renamed attachments are in the list: 'dup.txt', which kept its
+  // name, is absent from it.
+  assertEqual(out.summary.zipRenames.map((r) => r.entry).join(','),
+    RENAMED_IN_ZIP.map((p) => p[1]).join(','), namesJoined(out));
+  assert(out.summary.zipRenames.every((r) => r.original !== r.entry),
+    'an unchanged name is never listed: ' + namesJoined(out));
+  // The entry name is the one within this message's folder; the prefix the
+  // combined path adds elsewhere is not part of it.
+  assert(out.summary.zipRenames.every((r) => !r.entry.includes('/')),
+    'no folder prefix in the summary entry names');
+  // A rename is not a defect: defects turn the UI row amber, and a renamed file
+  // is neither missing nor damaged.
+  assert(!out.summary.defects.some((d) => /rename/i.test(d.code + d.detail)),
+    'a rename never reaches record.defects');
+});
+
+test('attachments that keep their names produce no rename line', async () => {
+  const rec = await parseEml(attachmentEml(['a.txt', 'b.txt']), { filename: 'plain-names.eml' });
+  const out = await convertEmail(rec, Object.assign({}, DEFAULT_OPTIONS,
+    { zipOtherAttachments: true }));
+
+  assertEqual(out.summary.zipRenames.length, 0, 'nothing was renamed');
+  assertEqual(out.zipFiles.map((f) => f.name).join(','), 'a.txt,b.txt',
+    'the ZIP keeps the names the email gave');
+  assert(!nameChars(await extractPdfText(out.bytes)).includes(nameChars('renamed in the ZIP')),
+    'a message whose attachments kept their names says nothing about renaming');
+});
+
+test('the combined-batch certificate lists ZIP renames too', async () => {
+  // appendAttachments is shared by both paths, but the list has to reach each
+  // message's own certificate: the combined path namespaces entries by folder,
+  // so it could just as easily report nothing at all.
+  const rec = await parseEml(attachmentEml(HOSTILE_NAMES), { filename: 'hostile.eml' });
+  const out = await convertBatchCombined([rec], Object.assign({}, DEFAULT_OPTIONS,
+    { zipOtherAttachments: true }));
+  const text = await extractPdfText(out.bytes);
+
+  for (const pair of RENAMED_IN_ZIP) {
+    assert(renamedTo(text, pair[0], pair[1]),
+      pair[0] + ' saved as ' + pair[1] + ' is listed on the combined certificate');
+  }
+  // Still namespaced per message in the ZIP itself.
+  assert(out.zipFiles.every((z) => z.name.startsWith('hostile/')),
+    'combined entries stay in the message folder: ' +
+      out.zipFiles.map((z) => z.name).join(', '));
+});
 test('clipping a page to its CropBox is disclosed on the certificate', async () => {
   const out = await convertFixture('15-attachment-cropbox.eml');
   const codes = out.summary.defects.map((d) => d.code + ': ' + d.detail);

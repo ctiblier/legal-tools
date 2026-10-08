@@ -187,11 +187,19 @@ function pageList(numbers) {
  * Shared by convertEmail and convertBatchCombined — they diverged once, and a
  * manifest that says "appended to this PDF" while the bytes are in neither the
  * PDF nor the ZIP is the document lying about itself.
+ *
+ * `zipRenames` collects every attachment the ZIP stores under a different name
+ * than the email gave it (a path stripped, a duplicate numbered). The entry name
+ * is the one within this record's folder; the folder prefix is added by the
+ * caller. The certificate lists them, because a reader comparing the manifest
+ * with an extracted ZIP would otherwise find files under names no one chose.
  */
-async function appendAttachments(writer, pdfDoc, record, opts, dispositions, zipFiles, ctx) {
+async function appendAttachments(writer, pdfDoc, record, opts, dispositions, zipFiles, ctx, zipRenames) {
   const zipNames = new Set();
   const queueForZip = (att) => {
-    zipFiles.push({ name: zipEntryName(att.filename, zipNames), bytes: att.bytes });
+    const name = zipEntryName(att.filename, zipNames);
+    zipFiles.push({ name, bytes: att.bytes });
+    if (name !== att.filename) zipRenames.push({ original: att.filename, entry: name });
   };
   for (const att of record.attachments || []) {
     const disposition = dispositions.get(att.sha256);
@@ -347,7 +355,8 @@ export async function convertEmail(record, options = {}) {
 
   // Appended attachments.
   const zipFiles = [];
-  await appendAttachments(writer, pdfDoc, record, opts, dispositions, zipFiles, ctx);
+  const zipRenames = [];
+  await appendAttachments(writer, pdfDoc, record, opts, dispositions, zipFiles, ctx, zipRenames);
 
   if (opts.rawHeaderAppendix) {
     writer.newPage();
@@ -368,6 +377,7 @@ export async function convertEmail(record, options = {}) {
       substitutions: fontSet.substitutions,
       dispositions,
       defects: record.defects,
+      zipRenames,
       generatedAtUtc
     }), ctx);
   }
@@ -399,6 +409,7 @@ export async function convertEmail(record, options = {}) {
       substitutions: fontSet.substitutions,
       dispositions,
       defects: record.defects,
+      zipRenames,
       generatedAtUtc
     }
   };
@@ -485,7 +496,8 @@ export async function convertBatchCombined(records, options = {}) {
     // filename into one shared list meant two messages attaching invoice.pdf
     // produced two identically-named entries, and the user extracted one file.
     const recordZipFiles = [];
-    await appendAttachments(writer, pdfDoc, record, opts, dispositions, recordZipFiles, ctx);
+    const zipRenames = [];
+    await appendAttachments(writer, pdfDoc, record, opts, dispositions, recordZipFiles, ctx, zipRenames);
     // Deduplicated across the batch: two inputs both named same.eml shared a
     // folder, so JSZip kept only the second message's copy of any attachment
     // both carried.
@@ -511,6 +523,7 @@ export async function convertBatchCombined(records, options = {}) {
         substitutions: fontSet.substitutions - substitutionsBefore,
         dispositions,
         defects: record.defects,
+        zipRenames,
         generatedAtUtc: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z')
       }), ctx);
     }
