@@ -1,6 +1,7 @@
 // Block IR -> drawing calls. The only module that knows both the IR and the page.
 
 import { tokenizeRuns, wrapTokens } from './measure.js';
+import { layoutTable } from './table-layout.js';
 
 const BULLETS = ['•', '◦', '▪'];
 
@@ -211,66 +212,6 @@ export async function drawBlocks(writer, blocks, ctx) {
         break; // unknown block types are skipped rather than throwing
     }
   }
-}
-
-// How much of a table's column grid a cell covers: `cols` columns, and the row
-// it sits in plus the `depth` rows below it. The parser already clamps spans;
-// this clamps again because a block list need not come from the parser, and the
-// layout walks a cell's columns one by one.
-function cellFootprint(cell) {
-  const cols = Math.min(1000, Math.max(1, Math.floor(cell.colspan) || 1));
-  const rows = Math.min(65534, Math.max(1, Math.floor(cell.rowspan) || 1));
-  return { cols, depth: rows - 1 };
-}
-
-// Where every cell of the table sits. Cells carry spans but no position, so the
-// grid is worked out once here and both the column count and the drawing read
-// it; two replays of the same rules drifted apart once already.
-//
-// starts[r][k]: first column of cell k of row r.
-// heldAfter[r]: column ranges [{start, cols}] that a rowspan carries from row r
-//   into row r + 1, sorted by start.
-// columnCount: the widest row. A held column needs no counting of its own: the
-//   row that started the span was already that wide.
-// Rowspans running past the last row are cut off, because no row is ever laid
-// out against them.
-//
-// Held columns are kept as one range per spanning cell, never column by column:
-// a 59 KB email of colspan=1000 rowspan cells made a per-column walk run for
-// minutes. The cost here is per cell and per live span, like the drawing itself.
-export function layoutTable(rows) {
-  let held = []; // [{start, cols, left}]: held for `left` more rows, this one included
-  const starts = [];
-  const heldAfter = [];
-  let columnCount = 0;
-  for (const row of rows) {
-    const next = [];
-    for (const h of held) if (h.left > 1) next.push({ start: h.start, cols: h.cols, left: h.left - 1 });
-    const rowStarts = [];
-    let ci = 0;
-    let i = 0;
-    for (const cell of row) {
-      // Step over held ranges. They are sorted by start and may overlap, so a
-      // range ending at or before ci is passed and one covering ci moves ci to
-      // its end.
-      for (; i < held.length && held[i].start <= ci; i++) {
-        const end = held[i].start + held[i].cols;
-        if (end > ci) ci = end;
-      }
-      rowStarts.push(ci);
-      const f = cellFootprint(cell);
-      // A cell spanning several columns and rows holds all of them for the
-      // rows below, even columns its own row never mentions.
-      if (f.depth > 0) next.push({ start: ci, cols: f.cols, left: f.depth });
-      ci += f.cols;
-    }
-    if (ci > columnCount) columnCount = ci;
-    next.sort((l, r) => l.start - r.start);
-    starts.push(rowStarts);
-    heldAfter.push(next.map((h) => ({ start: h.start, cols: h.cols })));
-    held = next;
-  }
-  return { starts, heldAfter, columnCount };
 }
 
 async function drawTable(writer, block, ctx, x, width) {

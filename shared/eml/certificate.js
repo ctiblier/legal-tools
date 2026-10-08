@@ -85,7 +85,8 @@ export function certificateBlocks(record, summary) {
       ? s.activeContentRemoved
       : (s.otherActiveRemoved || 0);
     const OTHER = 'other active or embedded element(s) (such as meta tags, ' +
-      'forms, frames or embedded objects) were removed.';
+      'forms, frames or embedded objects) were removed; the text inside a ' +
+      'form or button is kept.';
     let removed;
     if (scriptStyle && other) {
       removed = scriptStyle + ' script or style element(s) and ' +

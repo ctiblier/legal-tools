@@ -5,6 +5,9 @@
 // the markup but to recover the structure a reader would perceive: paragraphs,
 // emphasis, lists, quote levels, tables, images.
 
+// Grid arithmetic only (no PDF): the parser needs it to clamp spans the way the PDF lays them out.
+import { layoutTable } from '../pdf/table-layout.js';
+
 const BLOCK_TAGS = new Set([
   'P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'UL', 'OL', 'LI',
   'BLOCKQUOTE', 'TABLE', 'THEAD', 'TBODY', 'TR', 'TD', 'TH', 'PRE', 'HR', 'BR'
@@ -114,17 +117,9 @@ function hasBlockChild(el) {
             el.querySelector('[data-blocked-image],[data-cid-ref],[data-data-uri]'));
 }
 
-/**
- * @param {HTMLElement} root  the body element returned by sanitizeHtml
- * @param {number} [quoteDepth]
- * @param {Object} [inherited]  style flags inherited from an enclosing inline
- *   wrapper (e.g. an <a> around block content), so a link target or emphasis
- *   applied above a block-child boundary is not lost when we recurse.
- * @returns {Array<Object>} block IR
- */
 // Span limits as browsers apply them (HTML: colspan 1..1000, rowspan 0..65534).
-// Unclamped, colspan="999...9" parses to Infinity and the table layout, which
-// walks a cell's columns one by one, never finishes.
+// colspan="999...9" parses to Infinity. The table as a whole is limited
+// further by layoutTable (table-layout.js), whose clamped spans are written back.
 const MAX_COLSPAN = 1000;
 const MAX_ROWSPAN = 65534;
 
@@ -138,15 +133,23 @@ function spanValue(raw, max) {
 // block keeps. rowspan="0" runs to the end of the group, and no span leaves its
 // group. An empty <tr> is not kept as a row, so a span passing through one is
 // shortened by it; otherwise it would reach one kept row too far.
-function rowsSpanned(raw, cellEls, i) {
-  const left = cellEls.length - i;
+// keptBefore[r]: how many of the group's rows before r are kept.
+function rowsSpanned(raw, keptBefore, i) {
+  const left = keptBefore.length - 1 - i;
   const n = parseInt(raw == null ? '' : raw, 10);
   const asked = n === 0 ? left : spanValue(raw, MAX_ROWSPAN);
-  let kept = 0;
-  for (let r = i; r < i + Math.min(asked, left); r++) if (cellEls[r].length) kept++;
-  return Math.max(1, kept);
+  const end = i + Math.min(asked, left);
+  return Math.max(1, keptBefore[end] - keptBefore[i]);
 }
 
+/**
+ * @param {HTMLElement} root  the body element returned by sanitizeHtml
+ * @param {number} [quoteDepth]
+ * @param {Object} [inherited]  style flags inherited from an enclosing inline
+ *   wrapper (e.g. an <a> around block content), so a link target or emphasis
+ *   applied above a block-child boundary is not lost when we recurse.
+ * @returns {Array<Object>} block IR
+ */
 export function htmlToBlocks(root, quoteDepth = 0, inherited = EMPTY_STYLE) {
   const out = [];
   let pending = [];
@@ -248,26 +251,26 @@ export function htmlToBlocks(root, quoteDepth = 0, inherited = EMPTY_STYLE) {
       for (const group of groups) {
         const cellEls = group.map((tr) => Array.from(tr.children)
           .filter((td) => td.tagName === 'TD' || td.tagName === 'TH'));
+        const keptBefore = [0];
+        for (const tds of cellEls) keptBefore.push(keptBefore[keptBefore.length - 1] + (tds.length ? 1 : 0));
         cellEls.forEach((tds, i) => {
-          let width = 0;
-          const cells = tds.map((td) => {
-            // A row's colspans together stay within MAX_COLSPAN columns: 1000
-            // cells of colspan=1000 crashed the preview tab (Chrome's own table
-            // layout) and made a million-column PDF table. Cells past the cap
-            // keep one column each, so none is dropped.
-            const colspan = Math.max(1, Math.min(spanValue(td.getAttribute('colspan'), MAX_COLSPAN),
-              MAX_COLSPAN - width));
-            width += colspan;
-            return {
-              blocks: htmlToBlocks(td, quoteDepth, inherited),
-              colspan,
-              rowspan: rowsSpanned(td.getAttribute('rowspan'), cellEls, i),
-              header: td.tagName === 'TH'
-            };
-          });
+          const cells = tds.map((td) => ({
+            blocks: htmlToBlocks(td, quoteDepth, inherited),
+            colspan: spanValue(td.getAttribute('colspan'), MAX_COLSPAN),
+            rowspan: rowsSpanned(td.getAttribute('rowspan'), keptBefore, i),
+            header: td.tagName === 'TH'
+          }));
           if (cells.length) rows.push(cells);
         });
       }
+
+      // The preview renders these spans as HTML, so they must already be the
+      // ones the PDF lays out: within the table's column and span limits.
+      const { spans } = layoutTable(rows);
+      rows.forEach((row, r) => row.forEach((cell, k) => {
+        cell.colspan = spans[r][k].cols;
+        cell.rowspan = spans[r][k].depth + 1;
+      }));
 
       if (rows.length) {
         out.push({ type: 'table', rows });

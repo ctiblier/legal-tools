@@ -822,6 +822,37 @@ test('each combined certificate lists only its own message\'s renames, once', as
   assertEqual(count('"x.txt" saved as "x-2.txt"'), 1, 'listed once');
 });
 
+function rawAttachmentEml(dispositions) {
+  const lines = [
+    'Message-ID: <raw-names@firm.example>',
+    'Date: Mon, 16 Mar 2026 12:00:00 -0700',
+    'From: Robert Jones <counsel@firm.example>',
+    'Subject: Raw attachment names',
+    'MIME-Version: 1.0',
+    'Content-Type: multipart/mixed; boundary="rb"',
+    '', '--rb', 'Content-Type: text/plain', '', 'See attached.'
+  ];
+  dispositions.forEach((d, i) => {
+    lines.push('--rb', 'Content-Type: application/octet-stream', d, '', 'content ' + i);
+  });
+  lines.push('--rb--', '');
+  return new TextEncoder().encode(lines.join('\r\n'));
+}
+
+test('a name that only normalised is not a rename; a missing name is disclosed as missing', async () => {
+  const rec = await parseEml(rawAttachmentEml([
+    "Content-Disposition: attachment; filename*=utf-8''cafe%CC%81.txt", // NFD
+    'Content-Disposition: attachment'
+  ]), { filename: 'raw.eml' });
+  const out = await convertEmail(rec, Object.assign({}, DEFAULT_OPTIONS,
+    { zipOtherAttachments: true }));
+  assertEqual(out.summary.zipRenames.map((r) => (r.noName ? '(none)' : r.original) + '->' + r.entry)
+    .join(', '), '(none)->unnamed', namesJoined(out));
+  const text = await extractPdfText(out.bytes);
+  assert(text.includes('(no filename) saved as "unnamed"'), text.slice(-1200));
+  assert(!text.includes('"unnamed" saved as'), 'the placeholder is never quoted as the sender\'s');
+});
+
 test('clipping a page to its CropBox is disclosed on the certificate', async () => {
   const out = await convertFixture('15-attachment-cropbox.eml');
   const codes = out.summary.defects.map((d) => d.code + ': ' + d.detail);

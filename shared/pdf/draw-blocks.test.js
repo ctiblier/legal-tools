@@ -1,7 +1,8 @@
 import { test, assert, assertEqual, extractPdfText, extractPdfTextItems } from '/shared/testing/harness.js';
 import { loadFontSet } from './fonts.js';
 import { PageWriter } from './writer.js';
-import { drawBlocks, layoutTable } from './draw-blocks.js';
+import { drawBlocks } from './draw-blocks.js';
+import { layoutTable, MAX_COLUMNS, SPAN_BUDGET } from './table-layout.js';
 import { THEMES } from '/shared/eml/themes.js';
 import { loadFixture } from '/shared/testing/fixtures.js';
 import { parseEml } from '/shared/eml/parse.js';
@@ -437,13 +438,56 @@ test('a repeated header is drawn at its first-page positions while a body rowspa
   }
 });
 
-test('layout: many wide, deep spans cost per cell, not per column', () => {
-  // 1000 cells of colspan 1000 holding their columns over 1000 rows: a
-  // per-column walk is 10^9 steps; this ran for minutes before.
+test('layout: many wide, deep spans stay within the column and span limits', () => {
+  // 1000 cells of colspan 1000 holding their columns over 1000 rows. Without
+  // limits that is a million columns and 10^9 steps; it ran for minutes.
   const rows = [Array.from({ length: 1000 }, () => cell('x', { colspan: 1000, rowspan: 2000 }))];
   for (let i = 0; i < 1000; i++) rows.push([cell('y')]);
   const t0 = performance.now();
   const out = layoutTable(rows);
   assert(performance.now() - t0 < 2000, 'layout took ' + (performance.now() - t0).toFixed(0) + ' ms');
-  assertEqual(out.starts[1].join(','), '1000000', 'the row below steps over every held column');
+  // The first cell takes all MAX_COLUMNS; each later one is past the edge and
+  // spans one column. Each holds 1000 rows until SPAN_BUDGET is spent.
+  assertEqual(out.spans[0][0].cols, MAX_COLUMNS);
+  assertEqual(out.spans[0][1].cols, 1);
+  const holding = SPAN_BUDGET / 1000;
+  assertEqual(out.spans[0][holding - 1].depth, 1000);
+  assertEqual(out.spans[0][holding].depth, 0, 'past the budget a cell spans its own row');
+  assertEqual(out.starts[1].join(','), String(MAX_COLUMNS + holding - 1));
 });
+
+test('layout: rowspans pushing each row right cannot widen the table past the limit', () => {
+  // A staircase: each row's cell starts after every column held above it.
+  const rows = [];
+  for (let i = 0; i < 300; i++) rows.push([cell('s' + i, { colspan: 1000, rowspan: 300 })]);
+  const out = layoutTable(rows);
+  assert(out.columnCount <= MAX_COLUMNS + 300, 'columnCount ' + out.columnCount);
+});
+
+// Two held ranges that overlap: B holds column 1, C (placed at 0, three wide)
+// holds 0-2. The first free column in the last row is 3. A skip that sets ci to
+// each range's end, or an unsorted list, puts D at 2 or 0.
+const OVERLAP = () => [
+  [cell('A'), cell('B', { rowspan: 3 })],
+  [cell('C', { colspan: 3, rowspan: 2 }), cell('E')],
+  [cell('D')]
+];
+
+test('layout: overlapping held ranges are stepped over as a union', () => {
+  assertEqual(starts(OVERLAP()), '0,1 | 0,3 | 3');
+});
+
+test('row rules stop exactly at the columns a rowspan carries down', async () => {
+  const { writer, ctx } = await harness();
+  const rules = [];
+  const draw = writer.drawRule.bind(writer);
+  writer.drawRule = (o) => { rules.push(o); return draw(o); };
+  await drawBlocks(writer, [{ type: 'table', rows: OVERLAP() }], ctx);
+  // Four columns. Row 0 carries column 1 (B): rules over 0 and 2-3. Row 1
+  // carries 0-2 (C) and 1 (B): a rule over 3 only. Row 2: full width.
+  const unit = rules[rules.length - 1].width / 4;
+  const x0 = rules[rules.length - 1].x;
+  const cols = rules.map((r) => Math.round((r.x - x0) / unit) + '+' + Math.round(r.width / unit));
+  assertEqual(cols.join(' '), '0+1 2+2 3+1 0+4');
+});
+
