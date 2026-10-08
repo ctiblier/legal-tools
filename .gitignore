@@ -6,4 +6,7 @@
 batesstamp/shared/
 .superpowers/
 batesstamp/fixtures/
+batesstamp/email-to-pdf/tests.html
+batesstamp/vendor/pdf.min.js
+batesstamp/vendor/pdf.worker.min.js
 docs/fixtures/eml/07-large-pdf-attachment.eml

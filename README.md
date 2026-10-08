@@ -154,11 +154,13 @@ Then serve with any local HTTP server. Do NOT commit these copies — they are c
 
 ### Development builds
 
-`bash build.sh` copies shared assets into `batesstamp/`. Add `--dev` to also stage
-the `.eml` test fixtures at `batesstamp/fixtures/` for the Email to PDF test page
-at `/email-to-pdf/tests.html` — never run `--dev` for a deployed build. A plain
-build clears any fixtures a previous `--dev` build staged, and `batesstamp/fixtures/`
-is gitignored, so they cannot reach the live site either way.
+`bash build.sh` copies shared assets into `batesstamp/` and strips everything
+test-only: `shared/testing/` and every `*.test.js`. Add `--dev` to also stage the
+Email to PDF test page (tracked at `dev/email-to-pdf/tests.html`), the pdf.js it
+uses for text extraction (`dev/vendor/`) and the `.eml` fixtures, so the suite
+runs at `/email-to-pdf/tests.html`. Never run `--dev` for a deployed build. A
+plain build clears anything a previous `--dev` build staged, and every staged
+path is gitignored, so none of it can reach the live site either way.
 
 Generate the fixtures first; one of them is gitignored for size and is absent on a
 fresh clone:
