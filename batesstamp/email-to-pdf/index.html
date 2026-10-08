@@ -360,7 +360,7 @@
             document.getElementById('previewSection').classList.remove('hidden');
         }
 
-        async function onFilesSelected(files) {
+        async function onFilesSelected(files, zone) {
             selectedFiles = Array.from(files);
             convertBtn.disabled = selectedFiles.length === 0;
             resultsEl.classList.add('hidden');
@@ -377,9 +377,22 @@
                 refusedNote = statusEl.textContent + ' ';
                 selectedFiles = sizes.accepted;
                 convertBtn.disabled = selectedFiles.length === 0;
+                // The drop zone accepted the whole selection (it has no cap of
+                // its own, see initFileDropZone below); without this its check
+                // mark and total would vouch for the files just refused.
+                const tooLarge = sizes.refused.length + ' file(s) too large to convert';
+                if (!selectedFiles.length) zone.showError(tooLarge);
+                else zone.showWarning(selectedFiles.length + ' ready · ' + tooLarge);
             }
 
-            if (!selectedFiles.length) return;
+            if (!selectedFiles.length) {
+                // Nothing left to convert: drop the previous email's preview too.
+                previewRecord = null;
+                for (const url of previewBlobUrls) URL.revokeObjectURL(url);
+                previewBlobUrls = [];
+                document.getElementById('previewSection').classList.add('hidden');
+                return;
+            }
 
             try {
                 const first = selectedFiles[0];
@@ -403,7 +416,7 @@
                 }
             } catch (err) {
                 statusEl.className = 'status status-error';
-                statusEl.textContent = 'Could not read that file: ' + err.message;
+                statusEl.textContent = refusedNote + 'Could not read that file: ' + err.message;
             }
         }
 
@@ -420,6 +433,7 @@
             // generic message before onFilesSelected could drop just the oversize
             // files and say why. Its 2 GB browser limit still applies.
             maxSizeMB: 0,
+            sizeWarnings: false,
             onFiles: onFilesSelected
         });
 

@@ -78,8 +78,10 @@
   //   accept:    ['.pdf']           // allowed extensions (lower-case, with dot)
   //   multiple:  false              // allow multiple files
   //   maxSizeMB: 0                  // max size per file in MB (0 = no limit, 2 GB browser cap always enforced)
+  //   sizeWarnings: true            // false: the page owns large-file messages; no hint here
   //   onFile:    (file) => {}       // called in single-file mode
-  //   onFiles:   (files) => {}      // called in multiple-file mode
+  //   onFiles:   (files, zone) => {} // called in multiple-file mode; zone.showError(msg)
+  //                                 // lets the page refuse a selection it rejects itself
   // }
   // -------------------------------------------------------------------------
   window.initFileDropZone = function initFileDropZone(dropZoneId, options) {
@@ -88,6 +90,7 @@
     var accept    = options.accept    || [];
     var multiple  = !!options.multiple;
     var maxSizeMB = (options.maxSizeMB != null) ? options.maxSizeMB : 0;
+    var sizeWarnings = options.sizeWarnings !== false;
     var onFile    = options.onFile    || null;
     var onFiles   = options.onFiles   || null;
 
@@ -230,6 +233,8 @@
       }
     }
 
+    var zoneApi = { showError: showError, showWarning: showWarning };
+
     function resetDisplay() {
       dropZone.classList.remove('has-file');
       clearError();
@@ -263,7 +268,7 @@
       showSuccess(filesArray);
 
       // Show non-blocking size warning (if any) after success display
-      for (var w = 0; w < filesArray.length; w++) {
+      for (var w = 0; sizeWarnings && w < filesArray.length; w++) {
         var warn = sizeWarning(filesArray[w]);
         if (warn) {
           showWarning(warn);
@@ -274,10 +279,10 @@
       if (!multiple && onFile) {
         onFile(filesArray[0]);
       } else if (multiple && onFiles) {
-        onFiles(filesArray);
+        onFiles(filesArray, zoneApi);
       } else if (!multiple && onFiles) {
         // Caller passed onFiles even in single-file mode — support it
-        onFiles(filesArray);
+        onFiles(filesArray, zoneApi);
       } else if (multiple && onFile) {
         // Caller passed onFile in multiple mode — call for first file
         onFile(filesArray[0]);
@@ -295,6 +300,10 @@
       if (multiple) {
         fileInput.setAttribute('multiple', '');
       }
+      // On Back, Chromium restores the picked file onto the input after load,
+      // when this has already run, and fires no change event: the page shows its
+      // empty state with the file chosen, and re-picking it changes nothing.
+      fileInput.setAttribute('autocomplete', 'off');
 
       fileInput.addEventListener('change', function () {
         processFiles(this.files);
