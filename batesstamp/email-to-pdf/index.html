@@ -284,6 +284,7 @@
         import { textToBlocks } from '/shared/eml/text-to-blocks.js';
         import { blocksToHtml } from '/shared/eml/blocks-to-html.js';
         import { outputFilename } from '/shared/eml/filename.js';
+        import { sizeCheck } from '/shared/eml/size-check.js';
 
         const MAX_WARN_MB = 25;
         const MAX_HARD_MB = 100;
@@ -365,12 +366,16 @@
             resultsEl.classList.add('hidden');
             resultsEl.innerHTML = '';
 
-            const oversize = selectedFiles.filter((f) => f.size > MAX_HARD_MB * 1024 * 1024);
-            if (oversize.length) {
+            const sizes = sizeCheck(selectedFiles, MAX_WARN_MB, MAX_HARD_MB);
+            // A refusal stays on the status line when the rest of the batch is
+            // ready, so the user is not left wondering where a file went.
+            let refusedNote = '';
+            if (sizes.refused.length) {
                 statusEl.className = 'status status-error';
-                statusEl.textContent = oversize.length + ' file(s) exceed the ' +
+                statusEl.textContent = sizes.refused.length + ' file(s) exceed the ' +
                     MAX_HARD_MB + ' MB limit and cannot be converted in a browser tab.';
-                selectedFiles = selectedFiles.filter((f) => f.size <= MAX_HARD_MB * 1024 * 1024);
+                refusedNote = statusEl.textContent + ' ';
+                selectedFiles = sizes.accepted;
                 convertBtn.disabled = selectedFiles.length === 0;
             }
 
@@ -381,10 +386,21 @@
                 const bytes = new Uint8Array(await first.arrayBuffer());
                 previewRecord = await parseEml(bytes, { filename: first.name });
                 renderPreview(previewRecord);
-                statusEl.className = 'status';
-                statusEl.textContent = selectedFiles.length === 1
+                const ready = selectedFiles.length === 1
                     ? 'Ready to convert 1 email.'
                     : 'Ready to convert ' + selectedFiles.length + ' emails.';
+                if (sizes.large.length) {
+                    // A refusal outranks the warning; keep its red.
+                    statusEl.className = refusedNote ? 'status status-error' : 'status status-warning';
+                    statusEl.textContent = refusedNote + ready + ' ' + sizes.large.length +
+                        ' file(s) are over ' + MAX_WARN_MB +
+                        ' MB and may take a while to convert in the browser.';
+                } else if (refusedNote) {
+                    statusEl.textContent = refusedNote + ready;
+                } else {
+                    statusEl.className = 'status';
+                    statusEl.textContent = ready;
+                }
             } catch (err) {
                 statusEl.className = 'status status-error';
                 statusEl.textContent = 'Could not read that file: ' + err.message;
@@ -400,7 +416,10 @@
         initFileDropZone('dropZone', {
             accept: ['.eml'],
             multiple: true,
-            maxSizeMB: MAX_HARD_MB,
+            // No cap here: the drop zone would refuse the whole selection with a
+            // generic message before onFilesSelected could drop just the oversize
+            // files and say why. Its 2 GB browser limit still applies.
+            maxSizeMB: 0,
             onFiles: onFilesSelected
         });
 
