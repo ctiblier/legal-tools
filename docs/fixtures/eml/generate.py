@@ -465,4 +465,68 @@ Content-Disposition: attachment; filename="rotated-scan.pdf"
 """)
 print(f"  (attachment sha256 {hashlib.sha256(rot_bytes).hexdigest()[:12]})")
 
+# 15 ------------------- PDF attachment with a CropBox and an offset MediaBox
+#
+# Page 1 crops away its bottom half: a viewer shows only the top, and appending
+# the full MediaBox would reveal content the original deliberately hid. Page 2
+# has a MediaBox whose origin is not 0,0, which pdf-lib's default embed box
+# (MediaBox size, anchored at the origin) would shift off the sheet.
+def cropped_pdf():
+    """Two pages: CropBox on the first, offset MediaBox on the second."""
+    s1 = (b"BT /F1 14 Tf 72 700 Td (CROP VISIBLE LINE) Tj ET\n"
+          b"BT /F1 14 Tf 72 100 Td (CROPPED AWAY LINE) Tj ET\n")
+    s2 = b"BT /F1 14 Tf 172 800 Td (OFFSET MEDIABOX LINE) Tj ET\n"
+    objs = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [3 0 R 6 0 R] /Count 2 >>",
+        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] "
+        b"/CropBox [0 396 612 792] "
+        b"/Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>",
+        b"<< /Length %d >>\nstream\n" % len(s1) + s1 + b"endstream",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+        b"<< /Type /Page /Parent 2 0 R /MediaBox [100 100 712 892] "
+        b"/Resources << /Font << /F1 5 0 R >> >> /Contents 7 0 R >>",
+        b"<< /Length %d >>\nstream\n" % len(s2) + s2 + b"endstream",
+    ]
+    out = bytearray(b"%PDF-1.4\n")
+    offsets = []
+    for i, body in enumerate(objs, start=1):
+        offsets.append(len(out))
+        out += b"%d 0 obj\n" % i + body + b"\nendobj\n"
+    xref = len(out)
+    out += b"xref\n0 %d\n" % (len(objs) + 1) + b"0000000000 65535 f \n"
+    for off in offsets:
+        out += b"%010d 00000 n \n" % off
+    out += (b"trailer\n<< /Size %d /Root 1 0 R >>\nstartxref\n%d\n%%%%EOF\n"
+            % (len(objs) + 1, xref))
+    return bytes(out)
+
+crop_bytes = cropped_pdf()
+crop_b64 = base64.b64encode(crop_bytes).decode("ascii")
+crop_wrapped = "\n".join(crop_b64[i:i + 76] for i in range(0, len(crop_b64), 76))
+write("15-attachment-cropbox.eml", f"""\
+Message-ID: <20260321090000.DEFAB@firm.example>
+Date: Sat, 21 Mar 2026 09:00:00 -0700
+From: Robert Jones <counsel@firm.example>
+To: John Smith <jsmith@acme-manufacturing.example>
+Subject: Cropped attachment
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="crop-boundary"
+
+--crop-boundary
+Content-Type: text/plain; charset=utf-8
+
+Cropped document attached.
+
+--crop-boundary
+Content-Type: application/pdf; name="cropped.pdf"
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="cropped.pdf"
+
+{crop_wrapped}
+
+--crop-boundary--
+""")
+print(f"  (attachment sha256 {hashlib.sha256(crop_bytes).hexdigest()[:12]})")
+
 print("done")

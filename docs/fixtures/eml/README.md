@@ -17,6 +17,9 @@ Re-running produces byte-identical output so fixture changes are reviewable diff
 | `10-headers-only.eml` | empty body, header-only rendering |
 | `11-inline-forwarded.eml` | message/rfc822 with no Content-Disposition — the inline default |
 | `12-corrupt-pdf-attachment.eml` | attachment claims `application/pdf` but is not a loadable PDF — merge failure disclosure |
+| `13-attachment-bottom-margin.eml` | attached PDF with text at y=36 and y=24 — the footer band; appended pages must scale clear of it |
+| `14-attachment-rotated.eml` | attached PDF with `/Rotate 90` on a portrait MediaBox — rotation must be honoured |
+| `15-attachment-cropbox.eml` | attached PDF: page 1 has a `/CropBox` hiding its bottom half, page 2 a MediaBox not at the origin |
 
 No fixture contains a real person's data or a real domain; all use
 `.example` reserved domains per RFC 2606.

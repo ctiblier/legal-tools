@@ -1,0 +1,37 @@
+Message-ID: <20260321090000.DEFAB@firm.example>
+Date: Sat, 21 Mar 2026 09:00:00 -0700
+From: Robert Jones <counsel@firm.example>
+To: John Smith <jsmith@acme-manufacturing.example>
+Subject: Cropped attachment
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="crop-boundary"
+
+--crop-boundary
+Content-Type: text/plain; charset=utf-8
+
+Cropped document attached.
+
+--crop-boundary
+Content-Type: application/pdf; name="cropped.pdf"
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="cropped.pdf"
+
+JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2Jq
+CjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUiA2IDAgUl0gL0NvdW50IDIgPj4K
+ZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAg
+MCA2MTIgNzkyXSAvQ3JvcEJveCBbMCAzOTYgNjEyIDc5Ml0gL1Jlc291cmNlcyA8PCAvRm9udCA8
+PCAvRjEgNSAwIFIgPj4gPj4gL0NvbnRlbnRzIDQgMCBSID4+CmVuZG9iago0IDAgb2JqCjw8IC9M
+ZW5ndGggOTggPj4Kc3RyZWFtCkJUIC9GMSAxNCBUZiA3MiA3MDAgVGQgKENST1AgVklTSUJMRSBM
+SU5FKSBUaiBFVApCVCAvRjEgMTQgVGYgNzIgMTAwIFRkIChDUk9QUEVEIEFXQVkgTElORSkgVGog
+RVQKZW5kc3RyZWFtCmVuZG9iago1IDAgb2JqCjw8IC9UeXBlIC9Gb250IC9TdWJ0eXBlIC9UeXBl
+MSAvQmFzZUZvbnQgL0hlbHZldGljYSA+PgplbmRvYmoKNiAwIG9iago8PCAvVHlwZSAvUGFnZSAv
+UGFyZW50IDIgMCBSIC9NZWRpYUJveCBbMTAwIDEwMCA3MTIgODkyXSAvUmVzb3VyY2VzIDw8IC9G
+b250IDw8IC9GMSA1IDAgUiA+PiA+PiAvQ29udGVudHMgNyAwIFIgPj4KZW5kb2JqCjcgMCBvYmoK
+PDwgL0xlbmd0aCA1MyA+PgpzdHJlYW0KQlQgL0YxIDE0IFRmIDE3MiA4MDAgVGQgKE9GRlNFVCBN
+RURJQUJPWCBMSU5FKSBUaiBFVAplbmRzdHJlYW0KZW5kb2JqCnhyZWYKMCA4CjAwMDAwMDAwMDAg
+NjU1MzUgZiAKMDAwMDAwMDAwOSAwMDAwMCBuIAowMDAwMDAwMDU4IDAwMDAwIG4gCjAwMDAwMDAx
+MjEgMDAwMDAgbiAKMDAwMDAwMDI3MiAwMDAwMCBuIAowMDAwMDAwNDE5IDAwMDAwIG4gCjAwMDAw
+MDA0ODkgMDAwMDAgbiAKMDAwMDAwMDYxOSAwMDAwMCBuIAp0cmFpbGVyCjw8IC9TaXplIDggL1Jv
+b3QgMSAwIFIgPj4Kc3RhcnR4cmVmCjcyMQolJUVPRgo=
+
+--crop-boundary--

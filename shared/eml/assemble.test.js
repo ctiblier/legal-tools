@@ -503,3 +503,96 @@ test('a combined PDF discloses an unmergeable attachment rather than dropping it
     'the bytes still reach the user via the ZIP; got ' +
     out.zipFiles.map((z) => z.name).join(', '));
 });
+
+function formXObjectBoxes(doc) {
+  // The BBox of every form XObject drawn on any page — which, for an appended
+  // PDF attachment, is the region of the source page that was reproduced.
+  const boxes = [];
+  for (const page of doc.getPages()) {
+    const res = page.node.Resources();
+    const xobjects = res && res.lookupMaybe(PDFLib.PDFName.of('XObject'), PDFLib.PDFDict);
+    if (!xobjects) continue;
+    for (const [, ref] of xobjects.entries()) {
+      const stream = doc.context.lookup(ref);
+      const bbox = stream && stream.dict &&
+        stream.dict.lookupMaybe(PDFLib.PDFName.of('BBox'), PDFLib.PDFArray);
+      if (bbox) boxes.push(bbox.asArray().map((n) => n.asNumber()).join(' '));
+    }
+  }
+  return boxes;
+}
+
+test('appended attachment pages honour /CropBox and an offset /MediaBox', async () => {
+  // Fixture 15, page 1: CropBox is the top half of the MediaBox, with text in
+  // the cropped-away bottom half. Reproducing the MediaBox would reveal what
+  // the original hid. Page 2: MediaBox [100 100 712 892] — pdf-lib's default
+  // embed box is the MediaBox size anchored at 0,0, which shifts content.
+  const out = await convertFixture('15-attachment-cropbox.eml');
+  const boxes = formXObjectBoxes(await PDFLib.PDFDocument.load(out.bytes));
+  assert(boxes.includes('0 396 612 792'),
+    'page 1 reproduced only its CropBox; got boxes ' + JSON.stringify(boxes));
+  assert(boxes.includes('100 100 712 892'),
+    'page 2 reproduced its MediaBox where it actually lies; got ' + JSON.stringify(boxes));
+});
+
+function attachmentEml(names) {
+  const lines = [
+    'Message-ID: <zip-names@firm.example>',
+    'Date: Mon, 16 Mar 2026 12:00:00 -0700',
+    'From: Robert Jones <counsel@firm.example>',
+    'To: John Smith <jsmith@acme-manufacturing.example>',
+    'Subject: Attachment names',
+    'MIME-Version: 1.0',
+    'Content-Type: multipart/mixed; boundary="zb"',
+    '',
+    '--zb',
+    'Content-Type: text/plain',
+    '',
+    'See attached.'
+  ];
+  names.forEach((name, i) => {
+    lines.push('--zb', 'Content-Type: application/octet-stream',
+      'Content-Disposition: attachment; filename="' + name + '"', '',
+      'distinct content ' + i);
+  });
+  lines.push('--zb--', '');
+  return new TextEncoder().encode(lines.join('\r\n'));
+}
+
+const HOSTILE_NAMES = ['../../evil.txt', '..\\\\..\\\\win.txt', '/etc/passwd',
+  'dup.txt', 'dup.txt', '..'];
+
+function assertSafeEntry(name) {
+  assert(!name.split('/').some((seg) => seg === '..' || seg === '.' || seg === ''),
+    'no empty, . or .. path segment: ' + JSON.stringify(name));
+  assert(!name.includes('\\'), 'no backslash: ' + JSON.stringify(name));
+  assert(!/[\u0000-\u001f]/.test(name), 'no control characters: ' + JSON.stringify(name));
+}
+
+test('ZIP entry names from a hostile .eml cannot escape the archive', async () => {
+  // Attachment filenames come from the sender. A crafted filename of
+  // ../../evil.txt became a JSZip entry that extracts outside the target
+  // directory on a naive unzipper.
+  const rec = await parseEml(attachmentEml(HOSTILE_NAMES), { filename: 'hostile.eml' });
+  assertEqual(rec.attachments.length, HOSTILE_NAMES.length, 'every attachment parsed');
+  const out = await convertEmail(rec, Object.assign({}, DEFAULT_OPTIONS,
+    { zipOtherAttachments: true }));
+  const names = out.zipFiles.map((f) => f.name);
+  assertEqual(names.length, HOSTILE_NAMES.length, 'nothing dropped');
+  names.forEach((n) => { assertSafeEntry(n); assert(!n.includes('/'), 'flat name: ' + n); });
+  assertEqual(new Set(names).size, names.length, 'unique: ' + names.join(', '));
+  assert(names.includes('evil.txt'), 'the readable part of the name survives: ' + names.join(', '));
+});
+
+test('combined-batch ZIP entry names are safe too', async () => {
+  const rec = await parseEml(attachmentEml(HOSTILE_NAMES), { filename: 'hostile.eml' });
+  const out = await convertBatchCombined([rec], Object.assign({}, DEFAULT_OPTIONS,
+    { zipOtherAttachments: true }));
+  const names = out.zipFiles.map((f) => f.name);
+  assertEqual(names.length, HOSTILE_NAMES.length, 'nothing dropped');
+  names.forEach((n) => {
+    assertSafeEntry(n);
+    assertEqual(n.split('/').length, 2, 'exactly folder/name: ' + n);
+  });
+  assertEqual(new Set(names).size, names.length, 'unique: ' + names.join(', '));
+});

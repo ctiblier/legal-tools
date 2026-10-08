@@ -15,6 +15,7 @@ import { textToBlocks } from './text-to-blocks.js';
 import { dispositionFor, manifestBlocks } from './manifest.js';
 import { certificateBlocks, rawHeaderBlocks } from './certificate.js';
 import { shortHash } from './hash.js';
+import { zipEntryName } from './filename.js';
 
 export const DEFAULT_OPTIONS = {
   theme: 'mail-client',
@@ -137,18 +138,41 @@ async function drawRecord(writer, record, ctx, stats) {
 }
 
 /**
+ * The region of a source page a viewer actually shows: CropBox clipped to
+ * MediaBox (PDF 32000-1 §14.11.2), in the page's own coordinates. A CropBox
+ * that misses the MediaBox entirely is malformed; fall back to the MediaBox
+ * rather than reproduce nothing.
+ */
+function visibleBox(page) {
+  const m = page.getMediaBox();
+  const c = page.getCropBox();
+  const box = {
+    left: Math.max(m.x, c.x),
+    bottom: Math.max(m.y, c.y),
+    right: Math.min(m.x + m.width, c.x + c.width),
+    top: Math.min(m.y + m.height, c.y + c.height)
+  };
+  if (box.right <= box.left || box.top <= box.bottom) {
+    return { left: m.x, bottom: m.y, right: m.x + m.width, top: m.y + m.height };
+  }
+  return box;
+}
+
+/**
  * Merge or draw this record's attachments, and collect the rest for the ZIP.
  * Shared by convertEmail and convertBatchCombined — they diverged once, and a
  * manifest that says "appended to this PDF" while the bytes are in neither the
  * PDF nor the ZIP is the document lying about itself.
  */
 async function appendAttachments(writer, pdfDoc, record, opts, dispositions, zipFiles, ctx) {
+  const zipNames = new Set();
+  const queueForZip = (att) => {
+    zipFiles.push({ name: zipEntryName(att.filename, zipNames), bytes: att.bytes });
+  };
   for (const att of record.attachments || []) {
     const disposition = dispositions.get(att.sha256);
     if (disposition !== 'appended') {
-      if (opts.zipOtherAttachments && !att.error) {
-        zipFiles.push({ name: att.filename, bytes: att.bytes });
-      }
+      if (opts.zipOtherAttachments && !att.error) queueForZip(att);
       continue;
     }
 
@@ -177,8 +201,14 @@ async function appendAttachments(writer, pdfDoc, record, opts, dispositions, zip
         // default options, which both re-decompresses the attachment and drops
         // the ignoreEncryption above — so an encrypted-but-readable PDF would
         // throw here and be demoted to the ZIP.
+        //
+        // Each page is embedded with an explicit box. pdf-lib's default is the
+        // MediaBox's size anchored at 0,0, which ignores /CropBox — reproducing
+        // content the original deliberately cropped away — and misplaces any
+        // page whose MediaBox does not start at the origin.
         const embedded = drawable.length
-          ? await pdfDoc.embedPdf(src, drawable)
+          ? await pdfDoc.embedPages(drawable.map((i) => src.getPage(i)),
+              drawable.map((i) => visibleBox(src.getPage(i))))
           : [];
 
         // Pages of an attachment need not be the same size, so report the
@@ -209,7 +239,7 @@ async function appendAttachments(writer, pdfDoc, record, opts, dispositions, zip
           code: 'ATTACHMENT_UNREADABLE',
           detail: att.filename + ' — ' + att.error
         });
-        if (opts.zipOtherAttachments) zipFiles.push({ name: att.filename, bytes: att.bytes });
+        if (opts.zipOtherAttachments) queueForZip(att);
       }
       continue;
     }
