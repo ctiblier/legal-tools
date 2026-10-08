@@ -854,13 +854,21 @@ test('a name that only normalised is not a rename; a missing name is disclosed a
 });
 
 test('a renamed duplicate names its manifest number, so the two files can be told apart', async () => {
-  // HOSTILE_NAMES carries dup.txt at positions 4 and 5; the second is renamed.
-  const rec = await parseEml(attachmentEml(HOSTILE_NAMES), { filename: 'hostile.eml' });
+  // An image is appended to the PDF, not zipped, so it holds manifest number 1
+  // but no ZIP position: numbering by ZIP order would print 3 and 1.
+  const png = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+  const lines = new TextDecoder().decode(attachmentEml(['../../evil.txt', 'dup.txt', 'dup.txt']))
+    .replace('--zb\r\nContent-Type: application/octet-stream',
+      '--zb\r\nContent-Type: image/png\r\nContent-Transfer-Encoding: base64\r\n' +
+      'Content-Disposition: attachment; filename="photo.png"\r\n\r\n' + png + '\r\n' +
+      '--zb\r\nContent-Type: application/octet-stream');
+  const rec = await parseEml(new TextEncoder().encode(lines), { filename: 'numbers.eml' });
+  assertEqual(rec.attachments.map((a) => a.filename).join(','), 'photo.png,../../evil.txt,dup.txt,dup.txt');
   const out = await convertEmail(rec, Object.assign({}, DEFAULT_OPTIONS,
     { zipOtherAttachments: true }));
   const text = await extractPdfText(out.bytes);
-  assert(text.includes('"dup.txt" saved as "dup-2.txt" (attachment 5)'), text.slice(-1500));
-  assert(text.includes('"../../evil.txt" saved as "evil.txt" (attachment 1)'), text.slice(-1500));
+  assert(text.includes('"dup.txt" saved as "dup-2.txt" (attachment 4)'), text.slice(-1500));
+  assert(text.includes('"../../evil.txt" saved as "evil.txt" (attachment 2)'), text.slice(-1500));
 });
 
 test('each combined certificate names its own ZIP folder', async () => {

@@ -70,3 +70,15 @@ test('a table too large for the preview says so instead of rendering', () => {
   assert(out.includes('table of 5001 rows and 40 columns is too large to preview; it is in the PDF'), out);
   assert(blocksToHtml([small]).startsWith('<table'), 'a table at the limit still renders');
 });
+
+test('the preview limit counts the columns rowspans add, and refuses very wide tables', () => {
+  const cell = (t, rowspan = 1) => ({ blocks: [{ type: 'paragraph', runs: [run(t)] }],
+    colspan: 1, rowspan, header: false });
+  // 1000 cells in a row, each held below by a rowspan: the second row starts
+  // at column 1000, so the grid is 1001 wide although no row has 1001 cells.
+  const pushed = { type: 'table', rows: [
+    Array.from({ length: 1000 }, (_, i) => cell('a' + i, 2)), [cell('b')]] };
+  assert(blocksToHtml([pushed]).includes('2 rows and 1001 columns is too large'), 'pushed wide');
+  const oneRow = { type: 'table', rows: [Array.from({ length: 1001 }, (_, i) => cell('c' + i))] };
+  assert(!blocksToHtml([oneRow]).includes('<table'), 'a single row over 1000 columns is refused');
+});

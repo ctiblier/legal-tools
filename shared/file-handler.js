@@ -102,8 +102,18 @@
     e.preventDefault();
     var zone = e.target && e.target.closest ? e.target.closest('.file-drop-zone') : null;
     var files = e.dataTransfer.files;
-    if (zone && !zone._fileDropReady && files && files.length) zone._pendingDrop = files;
+    if (zone && !zone._fileDropReady && files && files.length) {
+      zone._pendingDrop = files;
+      // The latest action wins: a pick made before this drop is dropped.
+      var input = zone.querySelector('input[type="file"]');
+      if (input) input.value = '';
+    }
   });
+  // ...and a pick made after a pending drop replaces it.
+  document.addEventListener('change', function (e) {
+    var zone = e.target && e.target.closest ? e.target.closest('.file-drop-zone') : null;
+    if (zone && !zone._fileDropReady) zone._pendingDrop = null;
+  }, true);
 
   window.initFileDropZone = function initFileDropZone(dropZoneId, options) {
     options = options || {};
