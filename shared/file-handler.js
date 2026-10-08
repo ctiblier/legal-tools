@@ -299,6 +299,14 @@
       fileInput.addEventListener('change', function () {
         processFiles(this.files);
       });
+
+      // A pick made before this ran (the input is live as soon as it is parsed,
+      // but a module script attaches us only after its imports load) fired its
+      // change event into the void. Take those files now, or Convert stays
+      // disabled with the files visibly chosen.
+      if (fileInput.files && fileInput.files.length) {
+        processFiles(fileInput.files);
+      }
     }
 
     // ------------------------------------------------------------------
