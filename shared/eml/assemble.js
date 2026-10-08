@@ -138,24 +138,48 @@ async function drawRecord(writer, record, ctx, stats) {
 }
 
 /**
- * The region of a source page a viewer actually shows: CropBox clipped to
- * MediaBox (PDF 32000-1 §14.11.2), in the page's own coordinates. A CropBox
- * that misses the MediaBox entirely is malformed; fall back to the MediaBox
- * rather than reproduce nothing.
+ * A box array as a rectangle. PDF 32000-1 §7.9.5 allows any two diagonally
+ * opposite corners, so the corners are ordered here rather than trusted.
  */
-function visibleBox(page) {
-  const m = page.getMediaBox();
-  const c = page.getCropBox();
+function rectFrom(arr) {
+  const n = [0, 1, 2, 3].map((k) => arr.lookup(k, PDFLib.PDFNumber).asNumber());
+  return {
+    left: Math.min(n[0], n[2]), bottom: Math.min(n[1], n[3]),
+    right: Math.max(n[0], n[2]), top: Math.max(n[1], n[3])
+  };
+}
+
+/**
+ * The region of a source page a viewer actually shows: CropBox clipped to
+ * MediaBox (PDF 32000-1 §14.11.2), in the page's own coordinates.
+ * `cropped` is true when that hides part of the MediaBox, and `invalid` when
+ * the CropBox misses the page entirely — then the whole MediaBox is kept
+ * rather than reproducing nothing. Both are disclosed by the caller.
+ */
+function visibleBox(page, pageNumber) {
+  const media = rectFrom(page.node.MediaBox());
+  if (media.right <= media.left || media.top <= media.bottom) {
+    throw new Error('page ' + pageNumber + ' has an empty MediaBox');
+  }
+  const cropArr = page.node.CropBox();
+  if (!cropArr) return { box: media, cropped: false, invalid: false };
+  const crop = rectFrom(cropArr);
   const box = {
-    left: Math.max(m.x, c.x),
-    bottom: Math.max(m.y, c.y),
-    right: Math.min(m.x + m.width, c.x + c.width),
-    top: Math.min(m.y + m.height, c.y + c.height)
+    left: Math.max(media.left, crop.left),
+    bottom: Math.max(media.bottom, crop.bottom),
+    right: Math.min(media.right, crop.right),
+    top: Math.min(media.top, crop.top)
   };
   if (box.right <= box.left || box.top <= box.bottom) {
-    return { left: m.x, bottom: m.y, right: m.x + m.width, top: m.y + m.height };
+    return { box: media, cropped: false, invalid: true };
   }
-  return box;
+  const cropped = box.left > media.left || box.bottom > media.bottom ||
+    box.right < media.right || box.top < media.top;
+  return { box, cropped, invalid: false };
+}
+
+function pageList(numbers) {
+  return (numbers.length === 1 ? 'page ' : 'pages ') + numbers.join(', ');
 }
 
 /**
@@ -206,10 +230,13 @@ async function appendAttachments(writer, pdfDoc, record, opts, dispositions, zip
         // MediaBox's size anchored at 0,0, which ignores /CropBox — reproducing
         // content the original deliberately cropped away — and misplaces any
         // page whose MediaBox does not start at the origin.
+        const visible = drawable.map((i) => visibleBox(src.getPage(i), i + 1));
         const embedded = drawable.length
           ? await pdfDoc.embedPages(drawable.map((i) => src.getPage(i)),
-              drawable.map((i) => visibleBox(src.getPage(i))))
+              visible.map((v) => v.box))
           : [];
+        const croppedPages = drawable.filter((i, k) => visible[k].cropped).map((i) => i + 1);
+        const invalidPages = drawable.filter((i, k) => visible[k].invalid).map((i) => i + 1);
 
         // Pages of an attachment need not be the same size, so report the
         // largest reduction rather than whichever page happened to be last.
@@ -229,7 +256,25 @@ async function appendAttachments(writer, pdfDoc, record, opts, dispositions, zip
             code: 'ATTACHMENT_SCALED',
             detail: att.filename + ' — appended pages were reduced to ' +
               Math.round(scale * 100) + '% so the page footer clears the ' +
-              'original content; nothing was cropped or hidden'
+              'original content; reducing a page does not cut anything from it'
+          });
+        }
+        if (croppedPages.length) {
+          record.defects.push({
+            code: 'ATTACHMENT_CROPPED',
+            detail: att.filename + ' — ' + pageList(croppedPages) + ' shown to ' +
+              'the CropBox, as a PDF viewer displays ' +
+              (croppedPages.length === 1 ? 'it' : 'them') + '; content the original ' +
+              'places outside its CropBox is not reproduced here but remains in ' +
+              'the attachment, identified by its SHA-256'
+          });
+        }
+        if (invalidPages.length) {
+          record.defects.push({
+            code: 'ATTACHMENT_CROPBOX_INVALID',
+            detail: att.filename + ' — ' + pageList(invalidPages) +
+              (invalidPages.length === 1 ? ' declares a ' : ' declare a ') +
+              'CropBox lying outside the page; the full page is reproduced instead'
           });
         }
       } catch (err) {
@@ -402,6 +447,7 @@ export async function convertBatchCombined(records, options = {}) {
 
   const perEmail = [];
   const zipFiles = [];
+  const folderNames = new Set();
 
   for (const record of ordered) {
     writer.newPage();
@@ -440,8 +486,13 @@ export async function convertBatchCombined(records, options = {}) {
     // produced two identically-named entries, and the user extracted one file.
     const recordZipFiles = [];
     await appendAttachments(writer, pdfDoc, record, opts, dispositions, recordZipFiles, ctx);
-    const folder = (record.sourceFilename || ('message-' + (perEmail.length + 1)))
-      .replace(/\.eml$/i, '');
+    // Deduplicated across the batch: two inputs both named same.eml shared a
+    // folder, so JSZip kept only the second message's copy of any attachment
+    // both carried.
+    const folder = zipEntryName(
+      (record.sourceFilename || '').replace(/\.eml$/i, '') ||
+        ('message-' + (perEmail.length + 1)),
+      folderNames);
     for (const entry of recordZipFiles) {
       zipFiles.push({ name: folder + '/' + entry.name, bytes: entry.bytes });
     }

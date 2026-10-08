@@ -483,9 +483,10 @@
                 }
                 addResultRow({ name, note: out.pageCount + ' pages · ' +
                     out.perEmail.length + ' messages', state: 'ok' });
-                // Already namespaced per message by convertBatchCombined, so
-                // entries from two messages attaching the same filename no
-                // longer overwrite each other in the ZIP.
+                // Already namespaced per message by convertBatchCombined, in
+                // folders unique across the batch, so entries from two messages
+                // attaching the same filename — even two inputs that share a
+                // filename — no longer overwrite each other in the ZIP.
                 for (const entry of out.zipFiles) zipEntries.push(entry);
 
                 if (options.zipOtherAttachments && zipEntries.length) {

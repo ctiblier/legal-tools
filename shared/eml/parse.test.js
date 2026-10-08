@@ -99,6 +99,8 @@ test('random bytes are refused, not converted into a blank message', async () =>
     for (let i = 0; i < bytes.length; i++) bytes[i] = rand();
     const err = await rejects(parseEml(bytes, { filename: 'bad.eml' }));
     assert(err, 'run ' + run + ': random bytes must be refused');
+    // The refusal, not some unrelated crash further down the parser.
+    assert(/No email headers found/.test(err.message), 'run ' + run + ': got ' + err.message);
   }
 });
 
@@ -113,4 +115,31 @@ test('text with a colon but no email header is refused', async () => {
 test('a sparse but genuine message with one standard header still converts', async () => {
   const rec = await parseEml(new TextEncoder().encode('Subject: Hello\n\nBody text\n'));
   assertEqual(rec.subject, 'Hello');
+});
+
+test('a refused forwarded part is named in its defect', async () => {
+  const raw = new TextEncoder().encode([
+    'Message-ID: <outer@firm.example>',
+    'Date: Mon, 16 Mar 2026 12:00:00 -0700',
+    'From: Robert Jones <counsel@firm.example>',
+    'Subject: Two forwards',
+    'MIME-Version: 1.0',
+    'Content-Type: multipart/mixed; boundary="nb"',
+    '',
+    '--nb',
+    'Content-Type: text/plain',
+    '',
+    'See attached.',
+    '--nb',
+    'Content-Type: message/rfc822',
+    'Content-Disposition: attachment; filename="garbled-forward.eml"',
+    '',
+    'not an email at all',
+    '--nb--',
+    ''
+  ].join('\r\n'));
+  const rec = await parseEml(raw);
+  const d = rec.defects.find((x) => x.code === 'NESTED_PARSE_FAILED');
+  assert(d, 'the failed forward is disclosed');
+  assert(d.detail.includes('garbled-forward.eml'), 'names the part: ' + d.detail);
 });

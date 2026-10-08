@@ -121,7 +121,8 @@ export async function parseEml(bytes, opts = {}) {
         } catch (err) {
           defects.push({
             code: 'NESTED_PARSE_FAILED',
-            detail: String(err && err.message || err)
+            detail: (att.filename || 'forwarded message') + ': ' +
+              String(err && err.message || err)
           });
         }
       }

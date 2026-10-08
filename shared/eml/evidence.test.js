@@ -1,7 +1,7 @@
 import { test, assert, assertEqual } from '/shared/testing/harness.js';
 import { dispositionFor, manifestBlocks } from './manifest.js';
 import { certificateBlocks, rawHeaderBlocks } from './certificate.js';
-import { outputFilename } from './filename.js';
+import { outputFilename, zipEntryName } from './filename.js';
 import { loadFixture } from '/shared/testing/fixtures.js';
 import { parseEml } from './parse.js';
 
@@ -108,4 +108,32 @@ test('duplicate filenames get a numeric suffix rather than overwriting', async (
 test('a missing date and subject still yield a usable filename', () => {
   const rec = { date: { raw: null, parsed: null }, subject: '' };
   assertEqual(outputFilename(rec, new Set()), 'undated_no-subject.pdf');
+});
+
+test('zipEntryName neutralises names Windows refuses to extract', () => {
+  const taken = new Set();
+  for (const name of ['CON.txt', 'nul', 'COM1.pdf', 'lpt9.doc']) {
+    const out = zipEntryName(name, taken);
+    assert(!/^(con|prn|aux|nul|com[0-9]|lpt[0-9])(\.|$)/i.test(out), name + ' -> ' + out);
+  }
+});
+
+test('zipEntryName strips control and bidi characters', () => {
+  const out = zipEntryName('inv\u202Efdp.exe\u0007\u0085', new Set());
+  assert(!/[\u0000-\u001f\u007f-\u009f\u200e\u200f\u202a-\u202e\u2066-\u2069]/.test(out),
+    'got ' + JSON.stringify(out));
+  assert(out.endsWith('.exe'), 'the true extension stays visible: ' + out);
+});
+
+test('zipEntryName keeps names within 255 bytes, extension intact', () => {
+  const out = zipEntryName('\u00e9'.repeat(300) + '.pdf', new Set());
+  assert(new TextEncoder().encode(out).length <= 255, 'bytes ' + new TextEncoder().encode(out).length);
+  assert(out.endsWith('.pdf'), out);
+});
+
+test('zipEntryName dedupes canonically equivalent Unicode names', () => {
+  const taken = new Set();
+  const a = zipEntryName('caf\u00e9.txt', taken);
+  const b = zipEntryName('cafe\u0301.txt', taken);
+  assert(a.normalize('NFC') !== b.normalize('NFC'), a + ' vs ' + b);
 });

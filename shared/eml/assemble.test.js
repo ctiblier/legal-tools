@@ -596,3 +596,98 @@ test('combined-batch ZIP entry names are safe too', async () => {
   });
   assertEqual(new Set(names).size, names.length, 'unique: ' + names.join(', '));
 });
+
+test('combined-batch ZIP folders are unique when two inputs share a filename', async () => {
+  // Folders came from sourceFilename alone, so two inputs named same.eml put
+  // both attachments at same/<name>; JSZip keeps the last and the manifest
+  // promised a file the ZIP did not contain.
+  const a = await parseEml(attachmentEml(['x.txt']), { filename: 'same.eml' });
+  const b = await parseEml(attachmentEml(['x.txt', 'y.txt']), { filename: 'same.eml' });
+  const c = await parseEml(attachmentEml(['z.txt']), { filename: '...eml' });
+  const out = await convertBatchCombined([a, b, c], Object.assign({}, DEFAULT_OPTIONS,
+    { zipOtherAttachments: true }));
+  const names = out.zipFiles.map((f) => f.name);
+  assertEqual(names.length, 4, 'nothing dropped');
+  assertEqual(new Set(names).size, names.length, 'unique: ' + names.join(', '));
+  names.forEach(assertSafeEntry);
+});
+
+function base64(bytes) {
+  let bin = '';
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin).replace(/.{76}/g, '$&\r\n');
+}
+
+// A one-attachment message whose PDF pages carry the given raw box arrays.
+async function boxedPdfEml(pages) {
+  const doc = await PDFLib.PDFDocument.create();
+  const font = await doc.embedFont(PDFLib.StandardFonts.Helvetica);
+  for (const spec of pages) {
+    const page = doc.addPage([612, 792]);
+    page.drawText('KEPT LINE', { x: 72, y: 700, size: 14, font });
+    page.drawText('HIDDEN LINE', { x: 72, y: 100, size: 14, font });
+    page.node.set(PDFLib.PDFName.of('MediaBox'), doc.context.obj(spec.media));
+    if (spec.crop) page.node.set(PDFLib.PDFName.of('CropBox'), doc.context.obj(spec.crop));
+  }
+  const pdf = await doc.save();
+  return new TextEncoder().encode([
+    'Message-ID: <boxes@firm.example>',
+    'Date: Mon, 16 Mar 2026 12:00:00 -0700',
+    'From: Robert Jones <counsel@firm.example>',
+    'Subject: Boxes',
+    'MIME-Version: 1.0',
+    'Content-Type: multipart/mixed; boundary="bb"',
+    '',
+    '--bb',
+    'Content-Type: text/plain',
+    '',
+    'Attached.',
+    '--bb',
+    'Content-Type: application/pdf',
+    'Content-Transfer-Encoding: base64',
+    'Content-Disposition: attachment; filename="boxes.pdf"',
+    '',
+    base64(pdf),
+    '--bb--',
+    ''
+  ].join('\r\n'));
+}
+
+async function convertBoxes(pages) {
+  const rec = await parseEml(await boxedPdfEml(pages), { filename: 'boxes.eml' });
+  const out = await convertEmail(rec, DEFAULT_OPTIONS);
+  return { out, boxes: formXObjectBoxes(await PDFLib.PDFDocument.load(out.bytes)) };
+}
+
+test('box arrays written corner-first in reverse are normalised', async () => {
+  // PDF 32000-1 §7.9.5: any two diagonally opposite corners. A reversed
+  // CropBox fell through to the full-page fallback and revealed the cropped
+  // half; a reversed MediaBox yielded a negative scale and "reduced to -100%".
+  const { out, boxes } = await convertBoxes([
+    { media: [0, 0, 612, 792], crop: [612, 792, 0, 396] },
+    { media: [612, 792, 0, 0] }
+  ]);
+  assertEqual(boxes.join(' | '), '0 396 612 792 | 0 0 612 792');
+  const scaled = out.summary.defects.filter((d) => d.code === 'ATTACHMENT_SCALED');
+  scaled.forEach((d) => assert(!/-\d+%/.test(d.detail), 'no negative scale: ' + d.detail));
+});
+
+test('clipping a page to its CropBox is disclosed on the certificate', async () => {
+  const out = await convertFixture('15-attachment-cropbox.eml');
+  const codes = out.summary.defects.map((d) => d.code + ': ' + d.detail);
+  const crop = out.summary.defects.find((d) => d.code === 'ATTACHMENT_CROPPED');
+  assert(crop, 'cropping is disclosed; got ' + JSON.stringify(codes));
+  assert(crop.detail.startsWith('cropped.pdf — page 1 shown'),
+    'names page 1 only (page 2 has no CropBox): ' + crop.detail);
+  out.summary.defects.forEach((d) => assert(!/nothing was cropped/.test(d.detail),
+    'no certificate line may deny cropping: ' + d.detail));
+});
+
+test('a CropBox lying outside the page is disclosed and the full page kept', async () => {
+  const { out, boxes } = await convertBoxes([
+    { media: [0, 0, 612, 792], crop: [700, 800, 900, 900] }
+  ]);
+  assertEqual(boxes.join(' | '), '0 0 612 792');
+  assert(out.summary.defects.some((d) => d.code === 'ATTACHMENT_CROPBOX_INVALID'),
+    JSON.stringify(out.summary.defects));
+});
