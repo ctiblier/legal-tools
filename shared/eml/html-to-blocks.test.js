@@ -206,3 +206,8 @@ test('a rowspan through an empty row is shortened by the row that is not kept', 
   assertEqual(spans('<table><tr><td rowspan="3">A</td><td>B</td></tr><tr></tr>' +
     '<tr><td>C</td></tr><tr><td>D</td></tr></table>'), '1x2,1x1 | 1x1 | 1x1');
 });
+
+test('a row\'s colspans together stay within 1000 columns, and no cell is dropped', () => {
+  const html = '<table><tr>' + '<td colspan="1000">x</td>'.repeat(5) + '</tr></table>';
+  assertEqual(spans(html), '1000x1,1x1,1x1,1x1,1x1');
+});

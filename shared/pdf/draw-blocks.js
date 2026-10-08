@@ -228,35 +228,46 @@ function cellFootprint(cell) {
 // it; two replays of the same rules drifted apart once already.
 //
 // starts[r][k]: first column of cell k of row r.
-// heldAfter[r]: columns that a rowspan carries from row r into row r + 1.
+// heldAfter[r]: column ranges [{start, cols}] that a rowspan carries from row r
+//   into row r + 1, sorted by start.
 // columnCount: the widest row. A held column needs no counting of its own: the
-// row that started the span was already that wide.
+//   row that started the span was already that wide.
 // Rowspans running past the last row are cut off, because no row is ever laid
 // out against them.
+//
+// Held columns are kept as one range per spanning cell, never column by column:
+// a 59 KB email of colspan=1000 rowspan cells made a per-column walk run for
+// minutes. The cost here is per cell and per live span, like the drawing itself.
 export function layoutTable(rows) {
-  let held = new Map(); // column -> how many more rows, after this one, it is held for
+  let held = []; // [{start, cols, left}]: held for `left` more rows, this one included
   const starts = [];
   const heldAfter = [];
   let columnCount = 0;
   for (const row of rows) {
-    const next = new Map();
-    for (const [c, left] of held) if (left > 1) next.set(c, left - 1);
+    const next = [];
+    for (const h of held) if (h.left > 1) next.push({ start: h.start, cols: h.cols, left: h.left - 1 });
     const rowStarts = [];
     let ci = 0;
+    let i = 0;
     for (const cell of row) {
-      while (held.has(ci)) ci++;
+      // Step over held ranges. They are sorted by start and may overlap, so a
+      // range ending at or before ci is passed and one covering ci moves ci to
+      // its end.
+      for (; i < held.length && held[i].start <= ci; i++) {
+        const end = held[i].start + held[i].cols;
+        if (end > ci) ci = end;
+      }
       rowStarts.push(ci);
       const f = cellFootprint(cell);
-      if (f.depth > 0) {
-        // A cell spanning several columns and rows holds all of them for the
-        // rows below, even columns its own row never mentions.
-        for (let c = ci; c < ci + f.cols; c++) next.set(c, Math.max(next.get(c) || 0, f.depth));
-      }
+      // A cell spanning several columns and rows holds all of them for the
+      // rows below, even columns its own row never mentions.
+      if (f.depth > 0) next.push({ start: ci, cols: f.cols, left: f.depth });
       ci += f.cols;
     }
     if (ci > columnCount) columnCount = ci;
+    next.sort((l, r) => l.start - r.start);
     starts.push(rowStarts);
-    heldAfter.push(next);
+    heldAfter.push(next.map((h) => ({ start: h.start, cols: h.cols })));
     held = next;
   }
   return { starts, heldAfter, columnCount };
@@ -305,16 +316,19 @@ async function drawTable(writer, block, ctx, x, width) {
     writer.moveDown(2);
     // The rule stops at columns a rowspan carries into the next row: a line
     // through a merged cell makes it read as two cells, the lower one blank.
-    const held = repeats ? new Map() : layout.heldAfter[r];
+    const held = repeats ? [] : layout.heldAfter[r];
     let from = 0;
-    for (let c = 0; c <= layout.columnCount; c++) {
-      if (c < layout.columnCount && !held.has(c)) continue;
-      if (c > from) {
-        writer.drawRule({ x: x + colWidth * from, width: colWidth * (c - from),
+    const rule = (to) => {
+      if (to > from) {
+        writer.drawRule({ x: x + colWidth * from, width: colWidth * (to - from),
           thickness: isHeader ? 0.8 : 0.3 });
       }
-      from = c + 1;
+    };
+    for (const h of held) {
+      rule(h.start);
+      from = Math.max(from, h.start + h.cols);
     }
+    rule(layout.columnCount);
     writer.moveDown(4);
   }
 

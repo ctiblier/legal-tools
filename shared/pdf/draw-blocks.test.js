@@ -436,3 +436,14 @@ test('a repeated header is drawn at its first-page positions while a body rowspa
     assert(b && Math.abs(b.x - h2) <= 1, 'body rows stay under H2 on page ' + (pi + 1));
   }
 });
+
+test('layout: many wide, deep spans cost per cell, not per column', () => {
+  // 1000 cells of colspan 1000 holding their columns over 1000 rows: a
+  // per-column walk is 10^9 steps; this ran for minutes before.
+  const rows = [Array.from({ length: 1000 }, () => cell('x', { colspan: 1000, rowspan: 2000 }))];
+  for (let i = 0; i < 1000; i++) rows.push([cell('y')]);
+  const t0 = performance.now();
+  const out = layoutTable(rows);
+  assert(performance.now() - t0 < 2000, 'layout took ' + (performance.now() - t0).toFixed(0) + ' ms');
+  assertEqual(out.starts[1].join(','), '1000000', 'the row below steps over every held column');
+});

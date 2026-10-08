@@ -249,12 +249,22 @@ export function htmlToBlocks(root, quoteDepth = 0, inherited = EMPTY_STYLE) {
         const cellEls = group.map((tr) => Array.from(tr.children)
           .filter((td) => td.tagName === 'TD' || td.tagName === 'TH'));
         cellEls.forEach((tds, i) => {
-          const cells = tds.map((td) => ({
-            blocks: htmlToBlocks(td, quoteDepth, inherited),
-            colspan: spanValue(td.getAttribute('colspan'), MAX_COLSPAN),
-            rowspan: rowsSpanned(td.getAttribute('rowspan'), cellEls, i),
-            header: td.tagName === 'TH'
-          }));
+          let width = 0;
+          const cells = tds.map((td) => {
+            // A row's colspans together stay within MAX_COLSPAN columns: 1000
+            // cells of colspan=1000 crashed the preview tab (Chrome's own table
+            // layout) and made a million-column PDF table. Cells past the cap
+            // keep one column each, so none is dropped.
+            const colspan = Math.max(1, Math.min(spanValue(td.getAttribute('colspan'), MAX_COLSPAN),
+              MAX_COLSPAN - width));
+            width += colspan;
+            return {
+              blocks: htmlToBlocks(td, quoteDepth, inherited),
+              colspan,
+              rowspan: rowsSpanned(td.getAttribute('rowspan'), cellEls, i),
+              header: td.tagName === 'TH'
+            };
+          });
           if (cells.length) rows.push(cells);
         });
       }
