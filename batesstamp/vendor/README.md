@@ -9,10 +9,19 @@ parser from someone else's server at page load either.
 |---|---|---|---|---|
 | `postal-mime/*.js` (10 files) | postal-mime | 3.0.0 | `https://cdn.jsdelivr.net/npm/postal-mime@3.0.0/src/` | see below |
 | `fontkit.umd.js` | @pdf-lib/fontkit | 1.1.1 | `https://unpkg.com/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js` | `d8df561b9fba98e24f2e5130e40948809281bbbc55a20c412359f1a0a5eb35a6` |
+| `pdfjs-3.11.174/pdf.worker.min.js` | pdf.js | 3.11.174 | `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js` (identical on jsDelivr) | `feabdf309770ed24bba31a5467836cdc8cf639c705af27d52b585b041bb8527b` |
 | `dev/vendor/pdf.min.js` | pdf.js | 3.11.174 | `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js` | `5b5799e6f8c680663207ac5b42ee14eed2a406fa7af48f50c154f0c0b1566946` |
 | `dev/vendor/pdf.worker.min.js` | pdf.js | 3.11.174 | `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js` | `feabdf309770ed24bba31a5467836cdc8cf639c705af27d52b585b041bb8527b` |
 
-The two pdf.js files are used by the **test page only**, so they are tracked
+`pdfjs-3.11.174/pdf.worker.min.js` is the production worker for the compressor,
+filing-assembler, page-extractor and redaction pages. Their `pdf.min.js` still
+comes from cdnjs, pinned with subresource integrity, but a worker URL cannot
+carry an integrity attribute, so the worker is served from here instead. It is
+the same bytes as `dev/vendor/pdf.worker.min.js`; the versioned directory keeps
+it clear of the dev copy that `build.sh` deletes. Keep its version equal to the
+`pdf.min.js` version on those pages.
+
+The two `dev/vendor/` pdf.js files are used by the **test page only**, so they are tracked
 under `dev/vendor/` and staged into this directory by `build.sh --dev`; they are
 never deployed. The test page (`dev/email-to-pdf/tests.html`, served as
 `/email-to-pdf/tests.html` in a dev build) uses them to extract real PDF text

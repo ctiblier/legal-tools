@@ -84,6 +84,27 @@
   //                                 // lets the page refuse a selection it rejects itself
   // }
   // -------------------------------------------------------------------------
+  // A file dropped before a page has initialised its drop zone (a module page
+  // attaches it only after its imports load), or dropped just outside it, makes
+  // the browser navigate to the file and the page is gone. This script loads
+  // before any page code, so refuse that here for file drags (other drags, such
+  // as Sortable's reordering, are left alone), and keep a file dropped on a zone
+  // that is not ready yet for initFileDropZone to take.
+  function isFileDrag(e) {
+    var types = e.dataTransfer && e.dataTransfer.types;
+    return !!types && Array.prototype.indexOf.call(types, 'Files') !== -1;
+  }
+  document.addEventListener('dragover', function (e) {
+    if (isFileDrag(e)) e.preventDefault();
+  });
+  document.addEventListener('drop', function (e) {
+    if (!isFileDrag(e)) return;
+    e.preventDefault();
+    var zone = e.target && e.target.closest ? e.target.closest('.file-drop-zone') : null;
+    var files = e.dataTransfer.files;
+    if (zone && !zone._fileDropReady && files && files.length) zone._pendingDrop = files;
+  });
+
   window.initFileDropZone = function initFileDropZone(dropZoneId, options) {
     options = options || {};
 
@@ -316,6 +337,14 @@
       if (fileInput.files && fileInput.files.length) {
         processFiles(fileInput.files);
       }
+    }
+
+    // A drop that landed before this ran, held by the document listener above.
+    dropZone._fileDropReady = true;
+    if (dropZone._pendingDrop) {
+      var pending = dropZone._pendingDrop;
+      dropZone._pendingDrop = null;
+      processFiles(pending);
     }
 
     // ------------------------------------------------------------------
