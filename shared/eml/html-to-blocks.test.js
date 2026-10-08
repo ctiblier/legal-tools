@@ -211,3 +211,14 @@ test('a row\'s colspans together stay within 1000 columns, and no cell is droppe
   const html = '<table><tr>' + '<td colspan="1000">x</td>'.repeat(5) + '</tr></table>';
   assertEqual(spans(html), '1000x1,1x1,1x1,1x1,1x1');
 });
+
+test('the IR carries the spans the PDF lays out once the span budget is spent', () => {
+  // 500 cells of rowspan=0 over 500 more rows ask to hold 250,000 rows; the
+  // budget is 200,000, so cells 0-399 hold 500 each and the rest none. The
+  // preview renders these spans, so they must be the clamped ones.
+  const html = '<table><tr>' + '<td rowspan="0">a</td>'.repeat(500) + '</tr>' +
+    '<tr><td>b</td></tr>'.repeat(500) + '</table>';
+  const row0 = blocks(html).find((b) => b.type === 'table').rows[0];
+  assertEqual(row0[399].rowspan, 501);
+  assertEqual(row0[400].rowspan, 1);
+});

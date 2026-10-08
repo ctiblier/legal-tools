@@ -8,8 +8,9 @@
 // runs it again on spans that are already within the limits. Two replays of
 // the same rules drifted apart once already.
 
-// No table is wider than this many columns: a cell starting at column c spans
-// at most MAX_COLUMNS - c of them, and one at or past the edge spans one. HTML
+// A cell starting at column c spans at most MAX_COLUMNS - c columns, and one at
+// or past that edge spans one. So a table is wider than this only by one column
+// per cell, which is linear in the input and never drops a cell. HTML
 // caps a single colspan at 1000 but not the grid, and rowspans that push each
 // row further right built a 300,000-column table that hung Chrome's preview.
 export const MAX_COLUMNS = 1000;
