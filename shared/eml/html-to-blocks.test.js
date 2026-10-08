@@ -183,3 +183,26 @@ test('the nested-quote fixture reaches depth three', async () => {
   }
   assertEqual(depth, 3);
 });
+
+const spans = (html) => blocks(html).find((b) => b.type === 'table').rows
+  .map((r) => r.map((c) => c.colspan + 'x' + c.rowspan).join(',')).join(' | ');
+
+test('span attributes are clamped as browsers clamp them', () => {
+  const nines = '9'.repeat(400); // parseInt gives Infinity
+  assertEqual(spans('<table><tr><td colspan="' + nines + '">a</td></tr></table>'), '1000x1');
+  assertEqual(spans('<table><tr><td colspan="-3" rowspan="x">a</td><td colspan="0">b</td></tr></table>'),
+    '1x1,1x1');
+});
+
+test('rowspan="0" and long rowspans stop at the end of their row group', () => {
+  assertEqual(spans('<table><thead><tr><th rowspan="2">P</th><th>R</th></tr></thead>' +
+    '<tbody><tr><td>a</td><td>b</td></tr></tbody></table>'), '1x1,1x1 | 1x1,1x1');
+  assertEqual(spans('<table><tr><td rowspan="0">Z</td><td>1</td></tr><tr><td>2</td></tr>' +
+    '<tr><td>3</td></tr></table>'), '1x3,1x1 | 1x1 | 1x1');
+});
+
+test('a rowspan through an empty row is shortened by the row that is not kept', () => {
+  // Chrome lays the empty <tr> out as a row, so A's span of 3 ends before D.
+  assertEqual(spans('<table><tr><td rowspan="3">A</td><td>B</td></tr><tr></tr>' +
+    '<tr><td>C</td></tr><tr><td>D</td></tr></table>'), '1x2,1x1 | 1x1 | 1x1');
+});

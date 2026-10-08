@@ -122,6 +122,31 @@ function hasBlockChild(el) {
  *   applied above a block-child boundary is not lost when we recurse.
  * @returns {Array<Object>} block IR
  */
+// Span limits as browsers apply them (HTML: colspan 1..1000, rowspan 0..65534).
+// Unclamped, colspan="999...9" parses to Infinity and the table layout, which
+// walks a cell's columns one by one, never finishes.
+const MAX_COLSPAN = 1000;
+const MAX_ROWSPAN = 65534;
+
+// A span attribute as a whole number in 1..max; anything else is 1.
+function spanValue(raw, max) {
+  const n = parseInt(raw == null ? '' : raw, 10);
+  return n >= 1 ? Math.min(n, max) : 1; // NaN fails the test; Infinity is clamped
+}
+
+// The rows a cell at row `i` of its group spans, counted in the rows the table
+// block keeps. rowspan="0" runs to the end of the group, and no span leaves its
+// group. An empty <tr> is not kept as a row, so a span passing through one is
+// shortened by it; otherwise it would reach one kept row too far.
+function rowsSpanned(raw, cellEls, i) {
+  const left = cellEls.length - i;
+  const n = parseInt(raw == null ? '' : raw, 10);
+  const asked = n === 0 ? left : spanValue(raw, MAX_ROWSPAN);
+  let kept = 0;
+  for (let r = i; r < i + Math.min(asked, left); r++) if (cellEls[r].length) kept++;
+  return Math.max(1, kept);
+}
+
 export function htmlToBlocks(root, quoteDepth = 0, inherited = EMPTY_STYLE) {
   const out = [];
   let pending = [];
@@ -207,33 +232,31 @@ export function htmlToBlocks(root, quoteDepth = 0, inherited = EMPTY_STYLE) {
       // Gather rows by section explicitly, in visual order (head, then body,
       // then foot), rather than trusting querySelectorAll's document order --
       // a <tfoot> authored before <tbody> (legal, and required pre-HTML5)
-      // would otherwise render above the body rows.
-      const rowEls = [];
-      for (const tr of Array.from(node.children)) {
-        if (tr.tagName === 'TR') rowEls.push(tr);
-      }
+      // would otherwise render above the body rows. Each section is a row
+      // group: a rowspan never reaches out of its own group.
+      const groups = [];
+      const loose = Array.from(node.children).filter((tr) => tr.tagName === 'TR');
+      if (loose.length) groups.push(loose);
       for (const section of ['THEAD', 'TBODY', 'TFOOT']) {
         for (const sec of Array.from(node.children)) {
           if (sec.tagName !== section) continue;
-          for (const tr of Array.from(sec.children)) {
-            if (tr.tagName === 'TR') rowEls.push(tr);
-          }
+          groups.push(Array.from(sec.children).filter((tr) => tr.tagName === 'TR'));
         }
       }
 
       const rows = [];
-      for (const tr of rowEls) {
-        const cells = [];
-        for (const td of Array.from(tr.children)) {
-          if (td.tagName !== 'TD' && td.tagName !== 'TH') continue;
-          cells.push({
+      for (const group of groups) {
+        const cellEls = group.map((tr) => Array.from(tr.children)
+          .filter((td) => td.tagName === 'TD' || td.tagName === 'TH'));
+        cellEls.forEach((tds, i) => {
+          const cells = tds.map((td) => ({
             blocks: htmlToBlocks(td, quoteDepth, inherited),
-            colspan: parseInt(td.getAttribute('colspan') || '1', 10) || 1,
-            rowspan: parseInt(td.getAttribute('rowspan') || '1', 10) || 1,
+            colspan: spanValue(td.getAttribute('colspan'), MAX_COLSPAN),
+            rowspan: rowsSpanned(td.getAttribute('rowspan'), cellEls, i),
             header: td.tagName === 'TH'
-          });
-        }
-        if (cells.length) rows.push(cells);
+          }));
+          if (cells.length) rows.push(cells);
+        });
       }
 
       if (rows.length) {

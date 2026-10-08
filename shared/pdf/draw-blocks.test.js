@@ -1,7 +1,7 @@
 import { test, assert, assertEqual, extractPdfText, extractPdfTextItems } from '/shared/testing/harness.js';
 import { loadFontSet } from './fonts.js';
 import { PageWriter } from './writer.js';
-import { drawBlocks } from './draw-blocks.js';
+import { drawBlocks, layoutTable } from './draw-blocks.js';
 import { THEMES } from '/shared/eml/themes.js';
 import { loadFixture } from '/shared/testing/fixtures.js';
 import { parseEml } from '/shared/eml/parse.js';
@@ -377,5 +377,62 @@ test('the Outlook fixture renders to a saveable PDF in every theme', async () =>
       assert(text.includes(phrase),
         key + ' must render "' + phrase + '"; got ' + text.slice(0, 200));
     }
+  }
+});
+
+// layoutTable is the one place cells get their columns; drawTable and the
+// column count both read it. Expected positions are HTML's table model.
+const starts = (rows) => layoutTable(rows).starts.map((r) => r.join(',')).join(' | ');
+
+test('layout: a row under a rowspan is one column wider than its cells', () => {
+  const rows = [[cell('A', { rowspan: 2 }), cell('B')], [cell('C'), cell('D')]];
+  assertEqual(starts(rows), '0,1 | 1,2');
+  assertEqual(layoutTable(rows).columnCount, 3, 'D needs a third column');
+});
+
+test('layout: a held column right of a short row still counts, and the next row steps over it', () => {
+  // D holds column 3 for rows 2 and 3. Row 2 has one cell, so column 3 is held
+  // past a gap; row 3's fourth cell must go to column 4, inside the table.
+  const rows = [
+    [cell('A'), cell('B'), cell('C'), cell('D', { rowspan: 3 })],
+    [cell('E')],
+    [cell('F'), cell('G'), cell('H'), cell('I')]
+  ];
+  assertEqual(starts(rows), '0,1,2,3 | 0 | 0,1,2,4');
+  assertEqual(layoutTable(rows).columnCount, 5);
+});
+
+test('layout: a span past the last row adds no columns or rows', () => {
+  const rows = [[cell('A', { rowspan: 65534 }), cell('B')], [cell('C')]];
+  assertEqual(starts(rows), '0,1 | 1');
+  assertEqual(layoutTable(rows).columnCount, 2);
+});
+
+test('layout: an unbounded colspan is clamped instead of walked', () => {
+  const t0 = performance.now();
+  const out = layoutTable([[cell('A', { colspan: Infinity, rowspan: 2 }), cell('B')], [cell('C')]]);
+  assert(performance.now() - t0 < 1000, 'layout finished quickly');
+  assertEqual(out.columnCount, 1001, 'colspan capped at 1000, as browsers do');
+  assertEqual(out.starts[1].join(','), '1000');
+});
+
+test('a repeated header is drawn at its first-page positions while a body rowspan crosses the break', async () => {
+  // LONG holds column 1 across the page break. The repeated header must not
+  // read that and shift right: H1 sits at the same x on every page.
+  const { pdfDoc, writer, ctx } = await harness();
+  const rows = [[cell('H1', { header: true }), cell('H2', { header: true }), cell('H3', { header: true })]];
+  rows.push([cell('LONG', { rowspan: 60 }), cell('b0'), cell('c0')]);
+  for (let i = 1; i < 60; i++) rows.push([cell('b' + i), cell('c' + i)]);
+  await drawBlocks(writer, [{ type: 'table', rows }], ctx);
+  const pages = await renderItems(pdfDoc, writer);
+  assert(pages.length > 1, 'the table split across pages; got ' + pages.length);
+  const x1 = colX(pages[0], 'H1', ' on page 1');
+  for (let pi = 1; pi < pages.length; pi++) {
+    const x = colX(pages[pi], 'H1', ' on page ' + (pi + 1));
+    assert(Math.abs(x - x1) <= 1, 'H1 on page ' + (pi + 1) + ' at x=' + x.toFixed(1) +
+      ', page 1 at x=' + x1.toFixed(1));
+    const b = pages[pi].find((it) => /^b\d+$/.test(it.str.trim()));
+    const h2 = colX(pages[pi], 'H2', ' on page ' + (pi + 1));
+    assert(b && Math.abs(b.x - h2) <= 1, 'body rows stay under H2 on page ' + (pi + 1));
   }
 });

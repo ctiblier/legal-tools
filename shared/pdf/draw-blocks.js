@@ -214,46 +214,52 @@ export async function drawBlocks(writer, blocks, ctx) {
 }
 
 // How much of a table's column grid a cell covers: `cols` columns, and the row
-// it sits in plus the `depth` rows below it. Cells carry rowspan but no
-// position, so the grid only exists while the table is being laid out.
+// it sits in plus the `depth` rows below it. The parser already clamps spans;
+// this clamps again because a block list need not come from the parser, and the
+// layout walks a cell's columns one by one.
 function cellFootprint(cell) {
-  const cols = cell.colspan || 1;
-  const rows = cell.rowspan || 1;
-  return { cols: Math.max(1, cols), depth: Math.max(0, rows - 1) };
+  const cols = Math.min(1000, Math.max(1, Math.floor(cell.colspan) || 1));
+  const rows = Math.min(65534, Math.max(1, Math.floor(cell.rowspan) || 1));
+  return { cols, depth: rows - 1 };
 }
 
-// Widest row of the table in columns, counting the columns held by rowspans from
-// earlier rows as well as the colspans of the row's own cells: a row of two
-// cells sitting under a rowspan=2 cell is three columns wide. Rowspans running
-// past the last row are cut off, because no row is ever laid out against them.
-function tableColumnCount(rows) {
-  // Column occupancy is replayed row by row, exactly as drawRow does it, so the
-  // two cannot disagree about where a column starts: the widest row, counted
-  // with the columns its rowspans reserve, is the one the columns are cut to.
-  let busy = []; // column -> how many more rows it is held for
-  let count = 0;
+// Where every cell of the table sits. Cells carry spans but no position, so the
+// grid is worked out once here and both the column count and the drawing read
+// it; two replays of the same rules drifted apart once already.
+//
+// starts[r][k]: first column of cell k of row r.
+// heldAfter[r]: columns that a rowspan carries from row r into row r + 1.
+// columnCount: the widest row. A held column needs no counting of its own: the
+// row that started the span was already that wide.
+// Rowspans running past the last row are cut off, because no row is ever laid
+// out against them.
+export function layoutTable(rows) {
+  let held = new Map(); // column -> how many more rows, after this one, it is held for
+  const starts = [];
+  const heldAfter = [];
+  let columnCount = 0;
   for (const row of rows) {
-    const coming = [];
+    const next = new Map();
+    for (const [c, left] of held) if (left > 1) next.set(c, left - 1);
+    const rowStarts = [];
     let ci = 0;
-    let width = 0;
-    const step = () => {
-      width++;
-      if ((busy[ci] || 0) > 1) coming[ci] = (busy[ci] || 0) - 1;
-      ci++;
-    };
     for (const cell of row) {
-      while ((busy[ci] || 0) > 0) step();
+      while (held.has(ci)) ci++;
+      rowStarts.push(ci);
       const f = cellFootprint(cell);
-      for (let c = 0; c < f.cols; c++) step();
       if (f.depth > 0) {
-        for (let c = ci - f.cols; c < ci; c++) coming[c] = f.depth;
+        // A cell spanning several columns and rows holds all of them for the
+        // rows below, even columns its own row never mentions.
+        for (let c = ci; c < ci + f.cols; c++) next.set(c, Math.max(next.get(c) || 0, f.depth));
       }
+      ci += f.cols;
     }
-    while ((busy[ci] || 0) > 0) step();
-    if (width > count) count = width;
-    busy = coming;
+    if (ci > columnCount) columnCount = ci;
+    starts.push(rowStarts);
+    heldAfter.push(next);
+    held = next;
   }
-  return count;
+  return { starts, heldAfter, columnCount };
 }
 
 async function drawTable(writer, block, ctx, x, width) {
@@ -261,23 +267,17 @@ async function drawTable(writer, block, ctx, x, width) {
   const rows = block.rows || [];
   if (!rows.length) return;
 
-  const columnCount = tableColumnCount(rows);
-  const colWidth = width / Math.max(1, columnCount);
+  const layout = layoutTable(rows);
+  const colWidth = width / Math.max(1, layout.columnCount);
   const padding = 4;
-
-  // Columns still held by rowspan when the row being drawn starts, and the same
-  // for the row after it. A cell spanning N rows keeps its columns out of the
-  // following N - 1.
-  let occupied = [];
-  let nextOccupied = [];
 
   const headerRow = rows[0] && rows[0].some((c) => c.header) ? rows[0] : null;
 
-  // `repeats` marks a copy of the header row drawn on a new page. It shows the
-  // headings, but it is not a row of the body's layout: it is laid out against
-  // its own empty occupancy and hands nothing to the row under it, so a rowspan
-  // in the header never reaches past the first page.
-  async function drawRow(row, isHeader, repeats) {
+  // `r` is the row's index in the table. A header row repeated on a new page is
+  // drawn at row 0's positions and, being a copy, holds nothing over the row
+  // under it.
+  async function drawRow(r, isHeader, repeats) {
+    const row = rows[r];
     // Each cell is drawn from the same starting y; the deepest result sets the
     // row height. But a cell whose content overflows the page starts a new one,
     // and restoring a y measured on the previous page would then place the next
@@ -286,71 +286,36 @@ async function drawTable(writer, block, ctx, x, width) {
     // after the break are accepted as misaligned rather than overprinted.
     const startY = writer.y;
     const startPage = writer.pageCount;
-    // How many more rows, starting with this one, each column is held for. Held
-    // by a cell drawn in an earlier row, so the row now being drawn never
-    // repays it: it is only ever decremented, and only as far as zero. A
-    // repeated header reads none of it, and writes to a scratch table of its
-    // own that is thrown away below.
-    const carried = repeats ? [] : occupied;
-    const inherited = repeats ? [] : nextOccupied;
-    // Columns the cells of this row sit on, so their own footprint is not
-    // counted against them a second time.
-    const covered = [];
     let deepest = startY;
-    let cx = x;
-    let ci = 0;
     let brokePage = false;
 
-    for (const cell of row) {
-      // A cell from an earlier row still holds the column under this one, so
-      // step over it: without that, every cell after a rowspan lands one column
-      // too far left, under the wrong heading.
-      while ((carried[ci] || 0) > 0) {
-        cx += colWidth;
-        ci++;
-      }
-      const f = cellFootprint(cell);
-      if (f.depth > 0) {
-        for (let c = 0; c < f.cols; c++) {
-          // A cell spanning several columns and rows holds all of them for the
-          // rows below, even columns its own row never mentions.
-          covered[ci + c] = true;
-          inherited[ci + c] = f.depth;
-        }
-      }
+    for (let k = 0; k < row.length; k++) {
+      const cx = x + colWidth * layout.starts[r][k];
       if (!brokePage) writer.y = startY;
       const pageBefore = writer.pageCount;
-      await drawBlocks(writer, cell.blocks, {
+      await drawBlocks(writer, row[k].blocks, {
         ...ctx,
         indent: (cx - writer.left) + padding
       });
       if (writer.pageCount !== pageBefore) brokePage = true;
       if (!brokePage && writer.y < deepest) deepest = writer.y;
-      cx += colWidth * f.cols;
-      ci += f.cols;
     }
-
-    // What the rows below inherit: the rest of every held column, except where
-    // this row's own cell takes the column over from it.
-    for (const c in carried) {
-      if (covered[c]) continue;
-      const rest = carried[c] - 1;
-      if (rest > (inherited[c] || 0)) inherited[c] = rest;
-    }
-
-    // Only a row that is really drawn advances the grid. A header row repeated
-    // on a new page is a copy of the table's first row, and handing its footprint
-    // over would shift the body rows below it one column to the right.
-    const keepsGrid = !repeats && (row !== headerRow || rows[0] === row);
 
     if (!brokePage && writer.pageCount === startPage) writer.y = deepest;
     writer.moveDown(2);
-    writer.drawRule({ x, width, thickness: isHeader ? 0.8 : 0.3 });
-    writer.moveDown(4);
-    if (keepsGrid) {
-      occupied = inherited;
-      nextOccupied = [];
+    // The rule stops at columns a rowspan carries into the next row: a line
+    // through a merged cell makes it read as two cells, the lower one blank.
+    const held = repeats ? new Map() : layout.heldAfter[r];
+    let from = 0;
+    for (let c = 0; c <= layout.columnCount; c++) {
+      if (c < layout.columnCount && !held.has(c)) continue;
+      if (c > from) {
+        writer.drawRule({ x: x + colWidth * from, width: colWidth * (c - from),
+          thickness: isHeader ? 0.8 : 0.3 });
+      }
+      from = c + 1;
     }
+    writer.moveDown(4);
   }
 
   for (let i = 0; i < rows.length; i++) {
@@ -359,9 +324,9 @@ async function drawTable(writer, block, ctx, x, width) {
       writer.newPage();
       // A table continuing onto a new page repeats its header row, so a reader
       // looking at page nine knows what the columns mean.
-      if (headerRow && i > 0) await drawRow(headerRow, true, true);
+      if (headerRow && i > 0) await drawRow(0, true, true);
     }
-    await drawRow(rows[i], rows[i] === headerRow);
+    await drawRow(i, rows[i] === headerRow);
   }
 
   writer.moveDown(t.spacing.block);
