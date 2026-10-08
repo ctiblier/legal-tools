@@ -24,6 +24,21 @@ function field(label, value) {
   ] };
 }
 
+/**
+ * A sender-supplied name, made safe to print on one line: control characters
+ * are shown as escapes rather than breaking the line or rendering as «�».
+ */
+function visibleControls(name) {
+  const named = { '\n': '\\n', '\r': '\\r', '\t': '\\t' };
+  return String(name).replace(/[\u0000-\u001f\u007f-\u009f]/g, (c) =>
+    named[c] || '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0'));
+}
+
+/** A name in double quotes, with a quote inside it escaped so the pair stays unambiguous. */
+function quotedName(name) {
+  return '"' + visibleControls(name).replace(/"/g, '\\"') + '"';
+}
+
 export function rawHeaderBlocks(record) {
   return [
     { type: 'heading', level: 3, runs: [styleRun('Appendix: full message headers')] },
@@ -96,7 +111,7 @@ export function certificateBlocks(record, summary) {
   const notAppended = [];
   for (const att of record.attachments || []) {
     const d = summary.dispositions.get(att.sha256);
-    if (d !== 'appended') notAppended.push(att.filename + ' (' + (d || 'zip-only') + ')');
+    if (d !== 'appended') notAppended.push(visibleControls(att.filename) + ' (' + (d || 'zip-only') + ')');
   }
   if (notAppended.length) {
     limitations.push('Attachment(s) not appended to this PDF: ' + notAppended.join('; ') + '.');
@@ -105,10 +120,11 @@ export function certificateBlocks(record, summary) {
   // A rename is not a defect — the bytes are unchanged and reach the user — but
   // the ZIP does not hold the names the email gave, and a reader checking one
   // against the other needs to be told the two names are one file.
-  const renamed = (summary.zipRenames || []).filter((r) => r.entry !== r.original);
+  const renamed = (summary.zipRenames || []).filter((r) => r.noName || r.entry !== r.original);
   if (renamed.length) {
     limitations.push('Attachment(s) renamed in the ZIP so they extract safely: ' +
-      renamed.map((r) => '"' + r.original + '" saved as "' + r.entry + '"').join('; ') + '.');
+      renamed.map((r) => (r.noName ? '(no filename)' : quotedName(r.original)) +
+        ' saved as ' + quotedName(r.entry)).join('; ') + '.');
   }
 
   for (const defect of summary.defects || []) {

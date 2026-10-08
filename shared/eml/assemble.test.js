@@ -167,6 +167,40 @@ test('combined-batch ZIP entries do not collide across messages', async () => {
   assertEqual(new Set(names).size, 2, 'entry names are unique; got ' + names.join(', '));
 });
 
+function activeContentEml() {
+  return new TextEncoder().encode([
+    'Message-ID: <active@firm.example>',
+    'Date: Mon, 16 Mar 2026 12:00:00 -0700',
+    'From: Robert Jones <counsel@firm.example>',
+    'To: John Smith <jsmith@acme-manufacturing.example>',
+    'Subject: Active content',
+    'MIME-Version: 1.0',
+    'Content-Type: text/html; charset=utf-8',
+    '',
+    '<html><head><meta charset="utf-8"><style>.x{}</style></head><body>',
+    '<script>a()</script><script>b()</script><iframe src="x"></iframe>',
+    '<p>BODY TEXT</p></body></html>',
+    ''
+  ].join('\r\n'));
+}
+
+test('the split removal counts reach the certificate on both paths', async () => {
+  // The counters travel through assemble.js's EMPTY_STATS/mergeStats. Dropping
+  // a key there left the suite green while every script was reported as "other".
+  const expected = '3 script or style element(s) and 2 other active';
+  const rec = await parseEml(activeContentEml(), { filename: 'active.eml' });
+  const out = await convertEmail(rec, DEFAULT_OPTIONS);
+  assertEqual(out.summary.sanitizeStats.scriptStyleRemoved, 3);
+  assertEqual(out.summary.sanitizeStats.otherActiveRemoved, 2);
+  const single = (await extractPdfText(out.bytes)).replace(/\s+/g, ' ');
+  assert(single.includes(expected), 'single-email certificate: ' + single.slice(-900));
+
+  const rec2 = await parseEml(activeContentEml(), { filename: 'active.eml' });
+  const combined = await convertBatchCombined([rec2], DEFAULT_OPTIONS);
+  const text = (await extractPdfText(combined.bytes)).replace(/\s+/g, ' ');
+  assert(text.includes(expected), 'combined certificate: ' + text.slice(-900));
+});
+
 test('an HTML part that renders to nothing falls back to the text part', async () => {
   // bodyPartUsed is chosen on truthiness, so an HTML part containing only
   // structure selects 'html'; htmlToBlocks then yields no blocks and the body
@@ -763,6 +797,31 @@ test('the combined-batch certificate lists ZIP renames too', async () => {
     'combined entries stay in the message folder: ' +
       out.zipFiles.map((z) => z.name).join(', '));
 });
+test('the certificate quotes the stripped path exactly', async () => {
+  // nameChars() cannot see punctuation, and the path is what the line discloses.
+  const rec = await parseEml(attachmentEml(HOSTILE_NAMES), { filename: 'hostile.eml' });
+  const out = await convertEmail(rec, Object.assign({}, DEFAULT_OPTIONS,
+    { zipOtherAttachments: true }));
+  const text = await extractPdfText(out.bytes);
+  assert(text.includes('"../../evil.txt" saved as "evil.txt"'), text.slice(-1500));
+  assert(text.includes('"/etc/passwd" saved as "passwd"'), text.slice(-1500));
+});
+
+test('each combined certificate lists only its own message\'s renames, once', async () => {
+  const recs = [
+    await parseEml(attachmentEml(['../../evil.txt']), { filename: 'a.eml' }),
+    await parseEml(attachmentEml(['plain.txt']), { filename: 'b.eml' }),
+    await parseEml(attachmentEml(['x.txt', 'x.txt']), { filename: 'c.eml' })
+  ];
+  const out = await convertBatchCombined(recs, Object.assign({}, DEFAULT_OPTIONS,
+    { zipOtherAttachments: true }));
+  const text = await extractPdfText(out.bytes);
+  const count = (needle) => text.split(needle).length - 1;
+  assertEqual(count('renamed in the ZIP'), 2, 'a.eml and c.eml only, not b.eml');
+  assertEqual(count('"../../evil.txt" saved as "evil.txt"'), 1, 'not carried into later messages');
+  assertEqual(count('"x.txt" saved as "x-2.txt"'), 1, 'listed once');
+});
+
 test('clipping a page to its CropBox is disclosed on the certificate', async () => {
   const out = await convertFixture('15-attachment-cropbox.eml');
   const codes = out.summary.defects.map((d) => d.code + ': ' + d.detail);

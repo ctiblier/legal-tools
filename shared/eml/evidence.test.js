@@ -227,3 +227,29 @@ test('zipEntryName dedupes canonically equivalent Unicode names', () => {
   const b = zipEntryName('cafe\u0301.txt', taken);
   assert(a.normalize('NFC') !== b.normalize('NFC'), a + ' vs ' + b);
 });
+
+test('renamed names print on one line, with controls, quotes and absent names shown', async () => {
+  const rec = await parseEml(await loadFixture('01-plain-text.eml'));
+  // Plain run text, not textOf: JSON.stringify would escape the very characters under test.
+  const plain = (blocks) => blocks.map((b) => b.items
+    ? b.items.map(plain).join('\n')
+    : (b.runs || []).map((r) => r.text).join('')).join('\n');
+  const out = plain(certificateBlocks(rec, {
+    pageCount: 1, bodyPartUsed: 'text',
+    sanitizeStats: { remoteImagesBlocked: 0, trackingPixelsBlocked: 0,
+                     activeContentRemoved: 0, unresolvedCidImages: 0 },
+    substitutions: 0, dispositions: new Map(), defects: [],
+    zipRenames: [
+      { original: 'first\nsecond.txt', entry: 'firstsecond.txt' },
+      { original: 'a\u0000b.txt', entry: 'ab.txt' },
+      { original: 'g"h.txt', entry: 'g_h.txt' },
+      { original: 'unnamed', entry: 'unnamed', noName: true }
+    ],
+    generatedAtUtc: '2026-09-11T12:00:00Z'
+  }));
+  assert(out.includes('"first\\nsecond.txt" saved as "firstsecond.txt"'), out);
+  assert(out.includes('"a\\u0000b.txt" saved as "ab.txt"'), out);
+  assert(out.includes('"g\\"h.txt" saved as "g_h.txt"'), out);
+  assert(out.includes('(no filename) saved as "unnamed"'), out);
+  assert(!/[\u0000-\u001f]/.test(out.replace(/\n/g, '')), 'no raw control character');
+});

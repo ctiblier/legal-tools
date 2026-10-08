@@ -29,6 +29,20 @@ test('script/style and other active removals sum to the total', () => {
   assertEqual(stats.otherActiveRemoved, 1);
 });
 
+test('a form or button is unwrapped, not deleted with the text inside it', () => {
+  // ASP.NET pages wrap the whole body in <form>; deleting it blanked the email.
+  const { body, stats } = sanitizeHtml(
+    '<form action="https://x.test/"><p>Visible text inside form</p>' +
+    '<button onclick="go()">Click me</button><input value="secret"></form>', new Map()
+  );
+  assert(body.textContent.includes('Visible text inside form'), 'form text survives');
+  assert(body.textContent.includes('Click me'), 'button label survives');
+  assertEqual(body.querySelector('form'), null);
+  assertEqual(body.querySelector('button'), null);
+  assertEqual(body.querySelector('input'), null);
+  assertEqual(stats.otherActiveRemoved, 3, 'form, button and input each count once');
+});
+
 test('strips event handler attributes and javascript: hrefs', () => {
   const { body } = sanitizeHtml(
     '<a href="javascript:evil()" onclick="evil()">click</a>', new Map()

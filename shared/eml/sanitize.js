@@ -12,6 +12,11 @@ const ACTIVE_TAGS = [
   'meta', 'base', 'form', 'input', 'button', 'textarea', 'select'
 ];
 
+// Containers whose children are the message: an ASP.NET page wraps the whole
+// body in <form>, and a button's label is visible text. These lose the element
+// (still counted) but keep what is inside it.
+const UNWRAP_TAGS = new Set(['form', 'button']);
+
 const SAFE_ATTRS = new Set([
   'href', 'alt', 'title', 'width', 'height', 'colspan', 'rowspan',
   'start', 'type', 'align', 'color', 'face', 'size',
@@ -49,7 +54,8 @@ export function sanitizeHtml(html, inlineImages) {
       // kept split: a bare <meta> must never be reported as a removed script.
       if (tag === 'script' || tag === 'style') stats.scriptStyleRemoved++;
       else stats.otherActiveRemoved++;
-      el.remove();
+      if (UNWRAP_TAGS.has(tag)) el.replaceWith(...el.childNodes);
+      else el.remove();
     }
   }
 

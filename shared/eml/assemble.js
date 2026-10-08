@@ -109,7 +109,8 @@ function bodyBlocksFor(record) {
 }
 
 function mergeStats(into, from) {
-  for (const key of Object.keys(EMPTY_STATS)) into[key] += (from[key] || 0);
+  // Every counter sanitizeHtml returns, so a new one can never be dropped here.
+  for (const key of Object.keys(from)) into[key] = (into[key] || 0) + (from[key] || 0);
   return into;
 }
 
@@ -200,7 +201,10 @@ async function appendAttachments(writer, pdfDoc, record, opts, dispositions, zip
   const queueForZip = (att) => {
     const name = zipEntryName(att.filename, zipNames);
     zipFiles.push({ name, bytes: att.bytes });
-    if (name !== att.filename) zipRenames.push({ original: att.filename, entry: name });
+    // NFC first: an NFD name and its NFC entry look identical and are not a rename.
+    if (att.filenameMissing || name !== String(att.filename).normalize('NFC')) {
+      zipRenames.push({ original: att.filename, entry: name, noName: !!att.filenameMissing });
+    }
   };
   for (const att of record.attachments || []) {
     const disposition = dispositions.get(att.sha256);

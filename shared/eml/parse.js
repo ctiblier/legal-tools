@@ -130,6 +130,8 @@ export async function parseEml(bytes, opts = {}) {
 
     const record = {
       filename: att.filename || 'unnamed',
+      // 'unnamed' is ours, not the sender's; the certificate must not quote it as theirs.
+      filenameMissing: !att.filename,
       mimeType,
       size: attBytes.length,
       bytes: attBytes,
