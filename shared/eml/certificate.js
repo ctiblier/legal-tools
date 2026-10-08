@@ -60,9 +60,29 @@ export function certificateBlocks(record, summary) {
       ' inline image(s) referenced by the message body were absent from the file.');
   }
   if (s.activeContentRemoved) {
-    limitations.push(s.activeContentRemoved +
-      ' script or style element(s) were removed. Style sheets are not applied; ' +
-      'the layout of the body is a reconstruction, not a screenshot.');
+    // The total is deliberately not printed: the breakdown below is the whole
+    // sentence, and putting the total in front of it read as two counts
+    // ("3 2 script or style element(s)"). Callers using the old stats shape
+    // know only the total; treat all of it as "other" so the certificate never
+    // claims scripts it was not told about.
+    const scriptStyle = s.scriptStyleRemoved || 0;
+    const other = s.scriptStyleRemoved === undefined
+      ? s.activeContentRemoved
+      : (s.otherActiveRemoved || 0);
+    const OTHER = 'other active or embedded element(s) (such as meta tags, ' +
+      'forms, frames or embedded objects) were removed.';
+    let removed;
+    if (scriptStyle && other) {
+      removed = scriptStyle + ' script or style element(s) and ' +
+        other + ' ' + OTHER;
+    } else if (scriptStyle) {
+      removed = scriptStyle + ' script or style element(s) were removed.';
+    } else {
+      removed = other + ' ' + OTHER;
+    }
+    limitations.push(removed +
+      ' Style sheets are not applied; the layout of the body is a reconstruction, ' +
+      'not a screenshot.');
   } else {
     limitations.push('Style sheets are not applied; the layout of the body is a ' +
       'reconstruction of the message, not a screenshot of it.');

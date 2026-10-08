@@ -35,6 +35,8 @@ export function sanitizeHtml(html, inlineImages) {
     remoteImagesBlocked: 0,
     trackingPixelsBlocked: 0,
     activeContentRemoved: 0,
+    scriptStyleRemoved: 0,
+    otherActiveRemoved: 0,
     unresolvedCidImages: 0
   };
 
@@ -43,6 +45,10 @@ export function sanitizeHtml(html, inlineImages) {
   for (const tag of ACTIVE_TAGS) {
     for (const el of Array.from(doc.querySelectorAll(tag))) {
       stats.activeContentRemoved++;
+      // The certificate names scripts and styles separately, so the count is
+      // kept split: a bare <meta> must never be reported as a removed script.
+      if (tag === 'script' || tag === 'style') stats.scriptStyleRemoved++;
+      else stats.otherActiveRemoved++;
       el.remove();
     }
   }

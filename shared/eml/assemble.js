@@ -29,7 +29,8 @@ export const DEFAULT_OPTIONS = {
 
 const EMPTY_STATS = {
   remoteImagesBlocked: 0, trackingPixelsBlocked: 0,
-  activeContentRemoved: 0, unresolvedCidImages: 0
+  activeContentRemoved: 0, scriptStyleRemoved: 0, otherActiveRemoved: 0,
+  unresolvedCidImages: 0
 };
 
 function styleRun(text, extra) {
