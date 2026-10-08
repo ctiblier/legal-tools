@@ -60,8 +60,11 @@ export function blocksToHtml(blocks, opts = {}) {
         out.push('<table class="eml-table">' + block.rows.map((row) =>
           '<tr>' + row.map((cell) => {
             const tag = cell.header ? 'th' : 'td';
-            const span = cell.colspan > 1 ? ' colspan="' + cell.colspan + '"' : '';
-            return '<' + tag + span + '>' + blocksToHtml(cell.blocks, opts) + '</' + tag + '>';
+            // rowspan too, or the reviewer sees a table whose later rows have
+            // drifted a column left of the headings the PDF puts them under.
+            let attrs = cell.colspan > 1 ? ' colspan="' + cell.colspan + '"' : '';
+            if (cell.rowspan > 1) attrs += ' rowspan="' + cell.rowspan + '"';
+            return '<' + tag + attrs + '>' + blocksToHtml(cell.blocks, opts) + '</' + tag + '>';
           }).join('') + '</tr>').join('') + '</table>');
         break;
       case 'blockedImage':

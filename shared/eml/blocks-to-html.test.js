@@ -41,6 +41,17 @@ test('nested blockquotes nest in the output', () => {
   assertEqual((html.match(/<blockquote/g) || []).length, 2);
 });
 
+test('table cells carry their rowspan so the preview keeps the source layout', () => {
+  const cell = (text, rowspan) => ({
+    blocks: [{ type: 'paragraph', runs: [run(text)] }], colspan: 1, rowspan, header: false
+  });
+  const html = blocksToHtml([{ type: 'table', rows: [[cell('A', 3), cell('B', 1)]] }],
+    { images: new Map() });
+  assert(html.includes('<td rowspan="3">'), 'rowspan 3 emitted as an attribute');
+  assertEqual((html.match(/rowspan/g) || []).length, 1,
+    'a rowspan of 1 is the default and stays out of the markup');
+});
+
 test('tables render as tables with header cells', () => {
   const html = blocksToHtml([{ type: 'table', rows: [[
     { blocks: [{ type: 'paragraph', runs: [run('H')] }], colspan: 1, rowspan: 1, header: true }
