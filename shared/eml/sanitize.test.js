@@ -13,6 +13,22 @@ test('strips script and style elements and counts them', () => {
   assert(body.textContent.includes('keep'), 'visible content survives');
 });
 
+test('script/style removals are counted separately from other active elements', () => {
+  const { stats } = sanitizeHtml('<meta charset="utf-8"><p>x</p>', new Map());
+  assertEqual(stats.activeContentRemoved, 1);
+  assertEqual(stats.scriptStyleRemoved, 0);
+  assertEqual(stats.otherActiveRemoved, 1, 'a bare meta tag is not a script or style');
+});
+
+test('script/style and other active removals sum to the total', () => {
+  const { stats } = sanitizeHtml(
+    '<script>a()</script><style>.x{}</style><form></form><p>x</p>', new Map()
+  );
+  assertEqual(stats.activeContentRemoved, 3);
+  assertEqual(stats.scriptStyleRemoved, 2);
+  assertEqual(stats.otherActiveRemoved, 1);
+});
+
 test('strips event handler attributes and javascript: hrefs', () => {
   const { body } = sanitizeHtml(
     '<a href="javascript:evil()" onclick="evil()">click</a>', new Map()

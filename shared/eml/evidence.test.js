@@ -6,6 +6,14 @@ import { loadFixture } from '/shared/testing/fixtures.js';
 import { parseEml } from './parse.js';
 
 const textOf = (blocks) => JSON.stringify(blocks);
+// The removed-element limitation as it will read on the page. JSON tells you the
+// bytes; this tells you the sentence, so an assertion failure shows what a
+// reader would actually see. List items hold paragraphs, paragraphs hold runs.
+const removedSentence = (blocks) => blocks
+  .filter((b) => b.type === 'list')
+  .flatMap((b) => b.items)
+  .map((item) => item.map((p) => (p.runs || []).map((r) => r.text).join('')).join(' '))
+  .find((t) => t.includes('removed')) || '(no removed-element sentence)';
 
 const OPTS = { appendAttachments: true };
 
@@ -77,6 +85,88 @@ test('the certificate states blocked images, substitutions and the body part use
   assert(out.includes('3 character(s) could not be rendered'), 'substitution count disclosed');
   assert(out.includes(rec.sourceSha256), 'full source hash present');
   assert(out.toLowerCase().includes('html'), 'body part disclosed');
+});
+
+test('the certificate names only what was actually removed, not scripts of meta tags', async () => {
+  const rec = await parseEml(await loadFixture('01-plain-text.eml'));
+  const blocks = certificateBlocks(rec, {
+    pageCount: 1, bodyPartUsed: 'html',
+    sanitizeStats: { remoteImagesBlocked: 0, trackingPixelsBlocked: 0,
+                     activeContentRemoved: 1, scriptStyleRemoved: 0,
+                     otherActiveRemoved: 1, unresolvedCidImages: 0 },
+    substitutions: 0, dispositions: new Map(), defects: [],
+    generatedAtUtc: '2026-09-11T12:00:00Z'
+  });
+  const out = textOf(blocks);
+  assertEqual(removedSentence(blocks),
+    '1 other active or embedded element(s) (such as meta tags, forms, frames or ' +
+    'embedded objects) were removed. Style sheets are not applied; the layout of ' +
+    'the body is a reconstruction, not a screenshot.');
+  assert(!out.includes('script or style'), 'no script claim when no script was removed');
+  // The total (1) must not sit in front of the breakdown either; it used to, and
+  // the certificate read "1 1 other active ...".
+  assert(!out.includes('1 1 '), 'total not doubled ahead of the breakdown: ' +
+    removedSentence(blocks));
+});
+
+test('the certificate splits both kinds when both were removed', async () => {
+  const rec = await parseEml(await loadFixture('01-plain-text.eml'));
+  const blocks = certificateBlocks(rec, {
+    pageCount: 1, bodyPartUsed: 'html',
+    sanitizeStats: { remoteImagesBlocked: 0, trackingPixelsBlocked: 0,
+                     activeContentRemoved: 3, scriptStyleRemoved: 2,
+                     otherActiveRemoved: 1, unresolvedCidImages: 0 },
+    substitutions: 0, dispositions: new Map(), defects: [],
+    generatedAtUtc: '2026-09-11T12:00:00Z'
+  });
+  const out = textOf(blocks);
+  // The sentence opens with the breakdown, and with nothing in front of it.
+  assertEqual(removedSentence(blocks),
+    '2 script or style element(s) and 1 other active or embedded element(s) (such ' +
+    'as meta tags, forms, frames or embedded objects) were removed. Style sheets ' +
+    'are not applied; the layout of the body is a reconstruction, not a screenshot.');
+  assert(out.includes('2 script or style element(s)'), 'script count named');
+  assert(out.includes('1 other active or embedded element(s)'), 'other count named');
+  // The total (3) is not printed at all: it used to lead the sentence, which
+  // read as "3 2 script or style element(s)".
+  assert(!out.includes('3 2 '), 'total not doubled ahead of the breakdown: ' +
+    removedSentence(blocks));
+});
+
+test('the old stats shape is reported as other, never as scripts', async () => {
+  const rec = await parseEml(await loadFixture('01-plain-text.eml'));
+  const blocks = certificateBlocks(rec, {
+    pageCount: 1, bodyPartUsed: 'html',
+    sanitizeStats: { remoteImagesBlocked: 0, trackingPixelsBlocked: 0,
+                     activeContentRemoved: 1, unresolvedCidImages: 0 },
+    substitutions: 0, dispositions: new Map(), defects: [],
+    generatedAtUtc: '2026-09-11T12:00:00Z'
+  });
+  const out = textOf(blocks);
+  assertEqual(removedSentence(blocks),
+    '1 other active or embedded element(s) (such as meta tags, forms, frames or ' +
+    'embedded objects) were removed. Style sheets are not applied; the layout of ' +
+    'the body is a reconstruction, not a screenshot.');
+  assert(!out.includes('script or style'), 'an unbroken-down total is not called scripts');
+  assert(!out.includes('1 1 '), 'total not doubled ahead of the breakdown: ' +
+    removedSentence(blocks));
+});
+
+test('a script-only removal is stated as scripts, with no other-kind clause', async () => {
+  const rec = await parseEml(await loadFixture('01-plain-text.eml'));
+  const blocks = certificateBlocks(rec, {
+    pageCount: 1, bodyPartUsed: 'html',
+    sanitizeStats: { remoteImagesBlocked: 0, trackingPixelsBlocked: 0,
+                     activeContentRemoved: 2, scriptStyleRemoved: 2,
+                     otherActiveRemoved: 0, unresolvedCidImages: 0 },
+    substitutions: 0, dispositions: new Map(), defects: [],
+    generatedAtUtc: '2026-09-11T12:00:00Z'
+  });
+  const out = textOf(blocks);
+  assertEqual(removedSentence(blocks),
+    '2 script or style element(s) were removed. Style sheets are not applied; the ' +
+    'layout of the body is a reconstruction, not a screenshot.');
+  assert(!out.includes('other active or embedded'), 'no other-kind claim when none were');
 });
 
 test('the certificate discloses parse defects', async () => {
