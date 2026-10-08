@@ -203,7 +203,9 @@ async function appendAttachments(writer, pdfDoc, record, opts, dispositions, zip
     zipFiles.push({ name, bytes: att.bytes });
     // NFC first: an NFD name and its NFC entry look identical and are not a rename.
     if (att.filenameMissing || name !== String(att.filename).normalize('NFC')) {
-      zipRenames.push({ original: att.filename, entry: name, noName: !!att.filenameMissing });
+      // The manifest's number: two attachments both named dup.txt differ only by it.
+      zipRenames.push({ original: att.filename, entry: name, noName: !!att.filenameMissing,
+        number: record.attachments.indexOf(att) + 1 });
     }
   };
   for (const att of record.attachments || []) {
@@ -529,6 +531,9 @@ export async function convertBatchCombined(records, options = {}) {
         dispositions,
         defects: record.defects,
         zipRenames,
+        // Two inputs both named same.eml get folders same/ and same-2/; this
+        // is what ties a certificate to its folder in the extracted ZIP.
+        zipFolder: recordZipFiles.length ? folder + '/' : null,
         generatedAtUtc: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z')
       }), ctx);
     }

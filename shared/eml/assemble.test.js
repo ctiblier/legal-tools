@@ -853,6 +853,34 @@ test('a name that only normalised is not a rename; a missing name is disclosed a
   assert(!text.includes('"unnamed" saved as'), 'the placeholder is never quoted as the sender\'s');
 });
 
+test('a renamed duplicate names its manifest number, so the two files can be told apart', async () => {
+  // HOSTILE_NAMES carries dup.txt at positions 4 and 5; the second is renamed.
+  const rec = await parseEml(attachmentEml(HOSTILE_NAMES), { filename: 'hostile.eml' });
+  const out = await convertEmail(rec, Object.assign({}, DEFAULT_OPTIONS,
+    { zipOtherAttachments: true }));
+  const text = await extractPdfText(out.bytes);
+  assert(text.includes('"dup.txt" saved as "dup-2.txt" (attachment 5)'), text.slice(-1500));
+  assert(text.includes('"../../evil.txt" saved as "evil.txt" (attachment 1)'), text.slice(-1500));
+});
+
+test('each combined certificate names its own ZIP folder', async () => {
+  // Two inputs both named same.eml: folders same/ and same-2/. Without the
+  // folder on the certificate both read "Source file same.eml".
+  const recs = [
+    await parseEml(attachmentEml(['a.txt']), { filename: 'same.eml' }),
+    await parseEml(attachmentEml(['b.txt']), { filename: 'same.eml' }),
+    await parseEml(attachmentEml([]), { filename: 'none.eml' })
+  ];
+  const out = await convertBatchCombined(recs, Object.assign({}, DEFAULT_OPTIONS,
+    { zipOtherAttachments: true }));
+  assertEqual(out.zipFiles.map((z) => z.name).join(','), 'same/a.txt,same-2/b.txt');
+  const text = await extractPdfText(out.bytes);
+  const count = (needle) => text.split(needle).length - 1;
+  assertEqual(count('ZIP folder same/ '), 1, 'first message');
+  assertEqual(count('ZIP folder same-2/ '), 1, 'second message');
+  assertEqual(count('ZIP folder'), 2, 'a message with nothing in the ZIP names no folder');
+});
+
 test('clipping a page to its CropBox is disclosed on the certificate', async () => {
   const out = await convertFixture('15-attachment-cropbox.eml');
   const codes = out.summary.defects.map((d) => d.code + ': ' + d.detail);

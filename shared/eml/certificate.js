@@ -125,7 +125,8 @@ export function certificateBlocks(record, summary) {
   if (renamed.length) {
     limitations.push('Attachment(s) renamed in the ZIP so they extract safely: ' +
       renamed.map((r) => (r.noName ? '(no filename)' : quotedName(r.original)) +
-        ' saved as ' + quotedName(r.entry)).join('; ') + '.');
+        ' saved as ' + quotedName(r.entry) +
+        (r.number ? ' (attachment ' + r.number + ')' : '')).join('; ') + '.');
   }
 
   for (const defect of summary.defects || []) {
@@ -145,6 +146,8 @@ export function certificateBlocks(record, summary) {
       ' (excluding this certificate, the manifest and any appendix — the total ' +
       'page count appears in the footer of every page)'),
     field('Attachments', String((record.attachments || []).length)),
+    ...(summary.zipFolder ? [field('ZIP folder', summary.zipFolder +
+      ' (this message’s files in the attachment ZIP)')] : []),
     field('Body rendered from', summary.bodyPartUsed === 'html'
       ? 'the message’s HTML part'
       : summary.bodyPartUsed === 'text'

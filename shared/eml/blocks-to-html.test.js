@@ -1,5 +1,5 @@
 import { test, assert, assertEqual } from '/shared/testing/harness.js';
-import { blocksToHtml } from './blocks-to-html.js';
+import { blocksToHtml, PREVIEW_MAX_GRID } from './blocks-to-html.js';
 
 const run = (text, extra) => Object.assign({
   text, bold: false, italic: false, underline: false, strike: false,
@@ -57,4 +57,16 @@ test('tables render as tables with header cells', () => {
     { blocks: [{ type: 'paragraph', runs: [run('H')] }], colspan: 1, rowspan: 1, header: true }
   ]] }], { images: new Map() });
   assert(html.includes('<th'), 'header cell rendered');
+});
+
+test('a table too large for the preview says so instead of rendering', () => {
+  const cell = (t) => ({ blocks: [{ type: 'paragraph', runs: [run(t)] }], colspan: 1, rowspan: 1, header: false });
+  const row = (n) => Array.from({ length: n }, (_, i) => cell('c' + i));
+  const big = { type: 'table', rows: Array.from({ length: 5001 }, () => row(40)) };
+  const small = { type: 'table', rows: Array.from({ length: 5000 }, () => row(40)) };
+  assert(5001 * 40 > PREVIEW_MAX_GRID && 5000 * 40 <= PREVIEW_MAX_GRID, 'the two straddle the limit');
+  const out = blocksToHtml([big]);
+  assert(!out.includes('<table'), 'no table element');
+  assert(out.includes('table of 5001 rows and 40 columns is too large to preview; it is in the PDF'), out);
+  assert(blocksToHtml([small]).startsWith('<table'), 'a table at the limit still renders');
 });
