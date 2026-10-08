@@ -8,6 +8,16 @@ import { extractRawHeaderBlock, unfoldHeaders, rawHeaderValue, MAX_HEADER_SCAN }
 
 const MAX_NEST_DEPTH = 5;
 
+// RFC 5322 §3.6 originator, destination, identification and trace fields, plus
+// the MIME and common transport headers. A message carrying none of these is
+// not one. Deliberately broad: refusing a real but sparse message is worse
+// than converting it with its gaps disclosed.
+const MESSAGE_HEADERS = new Set([
+  'from', 'sender', 'reply-to', 'to', 'cc', 'bcc', 'date', 'subject',
+  'message-id', 'in-reply-to', 'references', 'received', 'return-path',
+  'delivered-to', 'mime-version', 'content-type', 'x-mailer'
+]);
+
 function toAddressList(value) {
   if (!value) return [];
   const list = Array.isArray(value) ? value : [value];
@@ -55,9 +65,11 @@ export async function parseEml(bytes, opts = {}) {
     });
   }
   const rawHeaders = unfoldHeaders(rawHeaderBlock);
-  if (rawHeaders.length === 0) {
-    // Not a partial: a file with no parseable headers is not an email, and
+  if (!rawHeaders.some((row) => MESSAGE_HEADERS.has(row.key.toLowerCase()))) {
+    // Not a partial: a file with no recognisable headers is not an email, and
     // producing a PDF for it would assert something untrue about its contents.
+    // Any "word: text" line parses as a header row, so counting rows is not
+    // enough — random bytes and a notes file both have some.
     throw new Error('No email headers found — this does not appear to be a .eml file');
   }
 

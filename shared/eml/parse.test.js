@@ -81,3 +81,36 @@ test('an empty body is reported as such, not as a failure', async () => {
   assertEqual(rec.subject, 'Read receipt');
   assertEqual(rec.defects.length, 0);
 });
+
+async function rejects(promise) {
+  try { await promise; } catch (e) { return e; }
+  return null;
+}
+
+test('random bytes are refused, not converted into a blank message', async () => {
+  // RFC 822 has no magic bytes, and any line containing a colon used to count
+  // as a header — so 200 random bytes produced a PDF of a message with no
+  // sender, date or subject, dressed as an exhibit. Seeded, so the same bytes
+  // run every time; enough runs that one lucky "x:" line cannot carry it.
+  let seed = 0x2f6b;
+  const rand = () => (seed = (seed * 1103515245 + 12345) >>> 0) >>> 24;
+  for (let run = 0; run < 20; run++) {
+    const bytes = new Uint8Array(200);
+    for (let i = 0; i < bytes.length; i++) bytes[i] = rand();
+    const err = await rejects(parseEml(bytes, { filename: 'bad.eml' }));
+    assert(err, 'run ' + run + ': random bytes must be refused');
+  }
+});
+
+test('text with a colon but no email header is refused', async () => {
+  const bytes = new TextEncoder().encode(
+    'Meeting notes\nAgenda: budget, staffing\nNext: Thursday\n\nnothing else\n');
+  const err = await rejects(parseEml(bytes));
+  assert(err, 'a notes file is not an email');
+  assert(/not appear to be a \.eml/.test(err.message), 'got: ' + err.message);
+});
+
+test('a sparse but genuine message with one standard header still converts', async () => {
+  const rec = await parseEml(new TextEncoder().encode('Subject: Hello\n\nBody text\n'));
+  assertEqual(rec.subject, 'Hello');
+});

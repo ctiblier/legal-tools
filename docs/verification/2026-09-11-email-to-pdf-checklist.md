@@ -134,18 +134,16 @@ Last worked: **2026-09-18** (Playwright-driven, results recorded inline below).
 - [x] With many long-subject messages, the contents list stops with its
       "contents continue" notice **on a reserved page** — no contents text
       appears after the exhibits begin.
-- [ ] Introduce a deliberately corrupt file (`head -c 200 /dev/urandom > bad.eml`)
+- [x] Introduce a deliberately corrupt file (`head -c 200 /dev/urandom > bad.eml`)
       into the batch: it appears as a red failure row, every other file still
       converts, and the run completes.
-      **This item does not describe what the tool does.** The batch does complete
-      and every other file converts, but the corrupt file does *not* fail — RFC 822
-      has no magic bytes, so postal-mime accepts any byte string and it converts to
-      a message with no subject, sender or date. Nothing is concealed: the body
-      says "This message contained no body text", the certificate says
-      "Body rendered from no body part — the message had none" and reports 490
-      unrenderable characters, and the appendix reproduces the raw bytes. Left
-      unchecked pending a decision on whether an unparseable file should be
-      refused rather than disclosed.
+      **Changed 2026-10-08 (owner ruling: refuse, don't disclose).** Until then
+      random bytes converted into a message with no subject, sender or date,
+      because any `word: text` line counted as a header. `parseEml` now refuses a
+      file carrying no standard message header ("No email headers found — this
+      does not appear to be a .eml file"). Pinned by three tests in
+      `shared/eml/parse.test.js`: 20 seeded random-byte files, a notes file with
+      colons in it, and a one-header genuine message that must still convert.
 
 ## Privacy
 
