@@ -82,6 +82,15 @@ export function certificateBlocks(record, summary) {
     limitations.push('Attachment(s) not appended to this PDF: ' + notAppended.join('; ') + '.');
   }
 
+  // A rename is not a defect — the bytes are unchanged and reach the user — but
+  // the ZIP does not hold the names the email gave, and a reader checking one
+  // against the other needs to be told the two names are one file.
+  const renamed = (summary.zipRenames || []).filter((r) => r.entry !== r.original);
+  if (renamed.length) {
+    limitations.push('Attachment(s) renamed in the ZIP so they extract safely: ' +
+      renamed.map((r) => '"' + r.original + '" saved as "' + r.entry + '"').join('; ') + '.');
+  }
+
   for (const defect of summary.defects || []) {
     limitations.push(defect.code + ': ' + defect.detail);
   }
