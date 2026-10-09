@@ -1,0 +1,5 @@
+# Cloudflare Pages response headers. See docs/csp.md for what each directive is for
+# and what must change with it. A wrong policy fails silently for users: the page
+# just stops working. After editing, run every tool under the policy (docs/csp.md).
+/*
+  Content-Security-Policy: default-src 'none'; script-src 'self' https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js https://unpkg.com/jszip@3.10.1/dist/jszip.min.js https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.3/Sortable.min.js https://umami.ctibs.app/script.js; worker-src 'self'; child-src 'self'; connect-src 'self' https://umami.ctibs.app/api/send; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'

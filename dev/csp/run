@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Runs every batesstamp tool end to end under the policy in batesstamp/_headers and
+# fails on any CSP violation, page error, failed request or bad download.
+# Usage: dev/csp/run            (local plain build, served with the _headers policy)
+#        dev/csp/run <baseUrl>  (e.g. https://batesstamp.com, after a deploy)
+set -uo pipefail
+ROOT=$(git rev-parse --show-toplevel)
+cd "$ROOT"
+[ -f docs/fixtures/eml/07-large-pdf-attachment.eml ] || python3 docs/fixtures/eml/generate.py >/dev/null
+OUT=$(mktemp -d)
+STARTED=""
+if [ $# -ge 1 ]; then
+  BASE=$1
+else
+  PORT=${PORT:-8793}
+  bash build.sh >/dev/null || { echo "FAIL: build.sh failed" >&2; exit 1; }
+  python3 dev/csp/server.py batesstamp "$PORT" &
+  STARTED=$!
+  BASE="http://127.0.0.1:$PORT"
+  for _ in $(seq 1 40); do curl -sf -o /dev/null "$BASE/" && break; sleep 0.25; done
+fi
+cleanup() { [ -n "$STARTED" ] && kill "$STARTED" 2>/dev/null; rm -rf "$OUT"; }
+trap cleanup EXIT
+node dev/csp/e2e.js "$BASE" docs/fixtures/eml "$OUT"

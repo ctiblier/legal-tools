@@ -14,7 +14,7 @@ parser from someone else's server at page load either.
 | `dev/vendor/pdf.worker.min.js` | pdf.js | 3.11.174 | `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js` | `feabdf309770ed24bba31a5467836cdc8cf639c705af27d52b585b041bb8527b` |
 
 `pdfjs-3.11.174/pdf.worker.min.js` is the production worker for the compressor,
-filing-assembler, page-extractor and redaction pages. Their `pdf.min.js` still
+page-extractor and redaction pages. Their `pdf.min.js` still
 comes from cdnjs, pinned with subresource integrity, but a worker URL cannot
 carry an integrity attribute, so the worker is served from here instead. It is
 the same bytes as `dev/vendor/pdf.worker.min.js`; the versioned directory keeps
