@@ -84,9 +84,9 @@ export function certificateBlocks(record, summary) {
     const other = s.scriptStyleRemoved === undefined
       ? s.activeContentRemoved
       : (s.otherActiveRemoved || 0);
-    const OTHER = 'other active or embedded element(s) (such as meta tags, ' +
-      'forms, frames or embedded objects) were removed; the text inside a ' +
-      'form or button is kept.';
+    const OTHER = 'other active or embedded element(s) (such as meta, link or base tags, ' +
+      'forms and their fields, inline frames, SVG graphics or embedded objects) were removed; the ' +
+      'text of a form or button is kept, but the contents of input, text-area and select fields are not.';
     let removed;
     if (scriptStyle && other) {
       removed = scriptStyle + ' script or style element(s) and ' +

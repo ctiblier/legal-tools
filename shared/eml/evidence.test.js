@@ -99,8 +99,8 @@ test('the certificate names only what was actually removed, not scripts of meta 
   });
   const out = textOf(blocks);
   assertEqual(removedSentence(blocks),
-    '1 other active or embedded element(s) (such as meta tags, forms, frames or ' +
-    'embedded objects) were removed; the text inside a form or button is kept. Style sheets are not applied; the layout of ' +
+    '1 other active or embedded element(s) (such as meta, link or base tags, ' +
+    'forms and their fields, inline frames, SVG graphics or embedded objects) were removed; the text of a form or button is kept, but the contents of input, text-area and select fields are not. Style sheets are not applied; the layout of ' +
     'the body is a reconstruction, not a screenshot.');
   assert(!out.includes('script or style'), 'no script claim when no script was removed');
   // The total (1) must not sit in front of the breakdown either; it used to, and
@@ -123,7 +123,7 @@ test('the certificate splits both kinds when both were removed', async () => {
   // The sentence opens with the breakdown, and with nothing in front of it.
   assertEqual(removedSentence(blocks),
     '2 script or style element(s) and 1 other active or embedded element(s) (such ' +
-    'as meta tags, forms, frames or embedded objects) were removed; the text inside a form or button is kept. Style sheets ' +
+    'as meta, link or base tags, forms and their fields, inline frames, SVG graphics or embedded objects) were removed; the text of a form or button is kept, but the contents of input, text-area and select fields are not. Style sheets ' +
     'are not applied; the layout of the body is a reconstruction, not a screenshot.');
   assert(out.includes('2 script or style element(s)'), 'script count named');
   assert(out.includes('1 other active or embedded element(s)'), 'other count named');
@@ -144,8 +144,8 @@ test('the old stats shape is reported as other, never as scripts', async () => {
   });
   const out = textOf(blocks);
   assertEqual(removedSentence(blocks),
-    '1 other active or embedded element(s) (such as meta tags, forms, frames or ' +
-    'embedded objects) were removed; the text inside a form or button is kept. Style sheets are not applied; the layout of ' +
+    '1 other active or embedded element(s) (such as meta, link or base tags, ' +
+    'forms and their fields, inline frames, SVG graphics or embedded objects) were removed; the text of a form or button is kept, but the contents of input, text-area and select fields are not. Style sheets are not applied; the layout of ' +
     'the body is a reconstruction, not a screenshot.');
   assert(!out.includes('script or style'), 'an unbroken-down total is not called scripts');
   assert(!out.includes('1 1 '), 'total not doubled ahead of the breakdown: ' +

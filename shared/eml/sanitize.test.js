@@ -43,6 +43,18 @@ test('a form or button is unwrapped, not deleted with the text inside it', () =>
   assertEqual(stats.otherActiveRemoved, 3, 'form, button and input each count once');
 });
 
+test('form fields go with their contents, as the certificate says', () => {
+  // certificate.js tells the reader that input, text-area and select contents are
+  // not kept; this pins the behaviour that sentence describes.
+  const { body } = sanitizeHtml(
+    '<form><p>Approved:</p><textarea>Yes, ship it</textarea>' +
+    '<select><option>Option two</option></select></form>', new Map()
+  );
+  assert(body.textContent.includes('Approved:'), 'form text survives');
+  assert(!body.textContent.includes('Yes, ship it'), 'text-area contents are removed');
+  assert(!body.textContent.includes('Option two'), 'select contents are removed');
+});
+
 test('strips event handler attributes and javascript: hrefs', () => {
   const { body } = sanitizeHtml(
     '<a href="javascript:evil()" onclick="evil()">click</a>', new Map()
